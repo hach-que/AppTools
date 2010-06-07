@@ -1,0 +1,73 @@
+============================
+ AppTools
+============================
+
+-------------
+ Contents
+-------------
+
+ * Licensing
+ * Compiling
+ * Usage
+ * Testing
+
+-------------
+ Licensing
+-------------
+AppTools is licensed under an MIT license.  See LICENSE for
+more information.
+
+-------------
+ Compiling
+-------------
+The Makefile included with AppTools is not incredibly complex,
+just type "make" and in most cases, you'll get the resulting
+files.
+
+However, the compiler names are hardcoded; in the Makefile they
+are referenced as "g++" and "gcc".  If you're using other
+compilers, you'll need to replace those names in the Makefile
+(of course, if you do this, there's no guarantee the code will
+build).
+
+-------------
+ Usage
+-------------
+The "appfs" executable by itself is not very useful; nothing
+will happen when you run it because it does not have a filesystem
+to mount.  This needs to be attached at the 1MB marker onto the
+executable (preferrably you should keep appfs intact and copy it
+to apply the Ext2 filesystem :P).
+
+The "appfs" executable will search for an /EntryPoint file within
+the filesystem that it mounts - if it can not find one, it will
+act like appmount, except it will run in the foreground and use
+a temporary mount point.
+
+See the test/attach.sh file on how to combine the binary and a
+filesystem to produce a single executable.
+
+The "appmount" executable allows you to mount combined binaries,
+in the event you want to modify an already packaged application.
+You don't need to use this to mount filesystems before they are
+attached - since the filesystem is Ext2 you can just use a loopback
+adapter.
+
+-------------
+ Testing
+-------------
+It isn't much of a test suite, but you can combine the "appfs"
+executable and an example filesystem to see how the system operates
+(and the state of variables for bash scripts to see how it all
+comes together).  Run the test/attach.sh shell script in order to
+combine the files together.
+
+In the future there will be an official appattach shell script
+for combining filesystem and the "appfs" executable.
+
+NOTE: test/attach.sh makes use of dd to attach the files together.
+      You will need dd installed to combine the files (or you'll
+      have to do it manually with another program, in which case
+      check out test/attach.sh for the logic involved :P). 
+
+
