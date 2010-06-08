@@ -54,6 +54,13 @@ class Sandbox(Operations):
 	def updateOverlays(self):
 		l = self.readLineFromFIFO()
 		while (l):
+			if (l.strip()[5:] == self.mountpoint):
+				# We don't want to add the mountpoint as an overlay
+				# because that results in an infinite loop when readdir()
+				# is called.
+				l = self.readLineFromFIFO()
+				continue;
+
 			if (l.startswith("ADDR ")):
 				# Add readonly overlay
 				self.overlays.append(Overlay(l.strip()[5:], False))
@@ -265,12 +272,11 @@ if __name__ == "__main__":
 		Overlay("/", False)
 		];
 
-	if (len(argv) != 2):
-		debugMsgW('usage: %s mountpoint' % argv[0])
+	if (len(argv) < 2):
+		debugMsgW('usage: %s mountpoint [--quiet]' % argv[0])
+		debugMsgO('--quiet must be the 2nd argument to take effect')
 		exit(1)
 	
-	sbox = Sandbox(olays)
-
 	mountpath = os.path.abspath(argv[1])
 	fifopath = os.path.realpath(os.path.join("/var/sandbox", mountpath[1:].replace("/",":")))
 	try:
@@ -285,11 +291,17 @@ if __name__ == "__main__":
 		exit(1)
 	sbox = Sandbox(olays)
 	sbox.fifo = open(fifopath, 'r+')
-	debugMsgW("FIFO endpoint at:")
-	debugMsgO("  " + fifopath)
+	sbox.mountpoint = mountpath
+	showmsg = True
+	if (len(argv) >= 3):
+		if (argv[2] == "--quiet"):
+			showmsg = False
+	if (showmsg):
+		debugMsgW("FIFO endpoint at:")
+		debugMsgO("  " + fifopath)
 
 	try:
-		fuse = FUSE(sbox, argv[1], foreground=False)
+		fuse = FUSE(sbox, mountpath, foreground=False)
 	finally:
 		os.unlink(fifopath)
 

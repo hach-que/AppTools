@@ -28,6 +28,7 @@ GNU General Public License for more details.
 #include <fcntl.h>
 #include <argtable2.h>
 #include <string>
+#include <vector>
 #include <unistd.h>
 #include <linux/limits.h>
 #include <errno.h>
@@ -46,8 +47,8 @@ GNU General Public License for more details.
 // Note that ULTRAQUIET will prevent AppFS from showing *any* messages
 // what-so-ever, including errors.
 //
-// #define DEBUGGING
-// #define ULTRAQUIET
+// #define DEBUGGING 1
+// #define ULTRAQUIET 1
 
 // Uncomment the line below to switch between AppFS and AppMount
 // functionality.  The make command will produce two executables, one
@@ -58,7 +59,7 @@ GNU General Public License for more details.
 // WARNING:  If you leave this parameter defined, and you call make, you
 //           will get two copies of AppMount (as appfs and appmount) and not
 //           the intended AppFS file.
-// #define APPMOUNT
+// #define APPMOUNT 1
 
 /************************** END CONFIGURATION ***************************/
 
@@ -563,15 +564,237 @@ void* appfs_execution_thread(void* ptr)
 			}
 			command = command + " \"" + sane_argv + "\"";
                 }
-
-		char * old_cwd = getcwd(NULL, 0);
-		chdir(mount_point.c_str());
-		system(command.c_str());
-		chdir(old_cwd);
-
-#ifdef DEBUGGING		
-		appfs_debugw("closing mountpoint.\n");
+		
+		// Make a new temporary directory to hold our sandbox mount point.
+		int inside_sandbox = 1;
+		int alternative_sandbox = 0;
+		int should_run = 1;
+		char sandbox_mount_path[] = "/tmp/appfs_sandbox.XXXXXX";
+                if (mkdtemp(sandbox_mount_path) == NULL)
+                {
+                        appfs_debugw("error: unable to sandbox application (create temporary directory error)\n");
+			inside_sandbox = 0;
+			should_run = 0; // We should probably allow some kind of override so that people can run
+					// applications outside the sandbox, but it's a bit tricky since you don't
+					// want to pass it as a command-line argument since that would interfere with
+					// the application arguments.
+                }
+#ifdef DEBUGGING
+		appfs_debugw("info:  created sandbox folder at %s\n", sandbox_mount_path);
 #endif
+		
+		// Check to if "sandbox", "uchroot" and "fusermount" are available in the PATH..
+		std::vector<std::string> * path_list = new std::vector<std::string>();
+		char * env_path;
+		env_path = getenv("PATH");
+		if (env_path != NULL)
+		{
+			// Seperate the path directories by the : character.
+			std::string buffer = "";
+			for (int s = 0; s < strlen(env_path); s++)
+			{
+				if (env_path[s] == ':')
+				{
+					// seperate.
+					path_list->insert(path_list->end(), std::string(buffer));
+					buffer = "";
+				}
+				else
+				{
+					buffer += env_path[s];
+				}
+			}
+			if (buffer != "")
+			{
+				path_list->insert(path_list->end(), std::string(buffer));
+				buffer = "";
+			}
+
+			// Now each of our paths is inside path_list.  We're going to iterate over them
+			// to search for each of the executables.
+			bool found_sandbox = false;
+			bool found_uchroot = false;
+			bool found_fakechroot = false;
+			bool found_chroot = false;
+			bool found_fusermount = false;
+
+			for (std::vector<std::string>::iterator it = path_list->begin(); it < path_list->end(); it++)
+			{
+				if (file_exists(std::string(*it + "/sandbox").c_str()))
+					found_sandbox = true;
+				if (file_exists(std::string(*it + "/uchroot").c_str()))
+					found_uchroot = true;
+				if (file_exists(std::string(*it + "/fakechroot").c_str()))
+					found_fakechroot = true;
+				if (file_exists(std::string(*it + "/chroot").c_str()))
+					found_chroot = true;
+				if (file_exists(std::string(*it + "/fusermount").c_str()))
+					found_fusermount = true;
+			}
+
+			// Alrighty, let's see what we've got.
+			if (found_sandbox && found_uchroot && found_fusermount)
+			{
+				// No variables to update.
+			}
+			else if (found_sandbox && found_fakechroot && found_chroot && found_fusermount)
+			{
+				// They don't have the uchroot shortcut, but we can
+				// still run manually.
+				alternative_sandbox = 1;
+			}
+			else
+			{
+				// Any other situation and we don't have what we need.
+				inside_sandbox = 0;
+			}
+		}
+		else
+		{
+			inside_sandbox = 0;
+		}
+		delete path_list;
+
+#ifdef DEBUGGING
+		appfs_debugw("info:  should_run          = %i.\n", should_run);
+		appfs_debugw("info:  inside_sandbox      = %i.\n", inside_sandbox);
+		appfs_debugw("info:  alternative_sandbox = %i.\n", alternative_sandbox);
+#endif
+
+		if (should_run == 1)
+		{
+			if (inside_sandbox == 0)
+			{
+				// Inform the user that the application can write to anything they have
+				// access to.
+				appfs_debugw("warn:  Sandboxing prerequisites not found.  One or more of the following applications:\n");
+	                        appfs_debugo("         * uchroot (or fakechroot AND chroot)\n");
+	                        appfs_debugo("         * sandbox\n");
+	                        appfs_debugo("         * fusermount\n");
+	                        appfs_debugo("       were not found in PATH.  Since they are not available on the system\n");
+	                        appfs_debugo("       the application will not be run in a sandbox.  It will have write\n");
+				appfs_debugo("       access to any files you also have access too.\n");
+			}
+			else
+			{
+				// First set up the sandbox.
+#ifdef DEBUGGING
+                appfs_debugw("info:  setting up sandbox...\n");
+#endif
+				std::string sandbox_command = "sandbox ";
+				sandbox_command += sandbox_mount_path;
+#ifndef DEBUGGING
+				sandbox_command += " --quiet"; // Prevent messages from being shown
+#endif
+				system(sandbox_command.c_str());
+#ifdef DEBUGGING
+                appfs_debugw("info:  sandbox has been setup.\n");
+#endif
+
+				// We know where the FIFO will be stored.  It will be at:
+				//   /var/sandbox/tmp:appfs_sandbox.XXXXXX
+				// where XXXXXX is replaced as appropriate.  For this purpose
+				// we're going to grab the last 6 characters from the
+				// sandbox_mount_path variable and generate a path to the
+				// FIFO block.
+				std::string fifo_path = "/var/sandbox/tmp:appfs_sandbox.";
+				fifo_path += std::string(sandbox_mount_path).substr(strlen(sandbox_mount_path) - 6);
+
+				if (!file_exists(fifo_path.c_str()))
+				{
+					appfs_debugw("error: unable to start sandboxing (FIFO does not exist).  Will now exit.\n");
+					kill(getpid(), SIGHUP);
+					return NULL;
+				}
+#ifdef DEBUGGING
+                appfs_debugw("info:  writing to FIFO at %s...\n", fifo_path.c_str());
+#endif
+
+				// Now open and write to the FIFO.
+				std::string fifo_data = "ADDW ";
+				fifo_data += mount_point;
+				fifo_data += "\n";
+				int fifo_file = open(fifo_path.c_str(), O_WRONLY);
+				if (fifo_file == -1)
+				{
+					appfs_debugw("error: unable to start sandboxing (failure to open FIFO).  Will now exit.\n");
+                                        kill(getpid(), SIGHUP);
+                                        return NULL;
+				}
+				write(fifo_file, fifo_data.c_str(), fifo_data.length());
+				close(fifo_file);
+#ifdef DEBUGGING
+                appfs_debugw("wrote: %s", fifo_data.c_str());
+#endif
+				
+				// Now our sandbox is set up, modify the command variable to wrap the
+				// command in a chroot environment.
+				std::string build = "";
+				if (alternative_sandbox == 0)
+					build = "uchroot ";
+				else
+					build = "fakechroot chroot ";
+				build += sandbox_mount_path;
+				build += " ";
+				build += command;
+				command = build;
+#ifdef DEBUGGING
+                appfs_debugw("info:  the sandboxed command is '%s'.\n", command.c_str());
+#endif
+			}
+
+#ifdef DEBUGGING
+                appfs_debugw("info:  executing '%s'...\n", command.c_str());
+#endif
+			char * old_cwd = getcwd(NULL, 0);
+			chdir(mount_point.c_str());
+			system(command.c_str());
+			chdir(old_cwd);
+#ifdef DEBUGGING
+                appfs_debugw("info:  execution complete.\n", command.c_str());
+#endif
+
+			if (inside_sandbox == 1)
+			{
+				// Now we need to close the temporary mountpoint using
+				// fusermount.
+				std::string fusermount_command = "fusermount -u ";
+				fusermount_command += sandbox_mount_path;
+				system(fusermount_command.c_str());
+
+				// And remove the mountpoint directory.
+				if (rmdir(sandbox_mount_path) != 0)
+		                {
+		                        appfs_debugw("error: Unable to cleanup sandbox (delete temporary directory error)\n");
+					appfs_debugo("       You may have to manually unmount the sandbox and remove the\n");
+					appfs_debugo("       mountpoint manually.  The mountpoint is:\n");
+					appfs_debugo("         %s\n", sandbox_mount_path);
+		                }	
+			}
+
+#ifdef DEBUGGING
+			appfs_debugw("closing mountpoint.\n");
+#endif
+		}
+		else
+		{
+			appfs_debugw("error: Sandboxing prerequisites not found.  One or more of the following applications:\n");
+			appfs_debugo("         * uchroot (or fakechroot AND chroot)\n");
+			appfs_debugo("         * sandbox\n");
+			appfs_debugo("         * fusermount\n");
+			appfs_debugo("       were not found in PATH.  Since they are not available on the system\n");
+			appfs_debugo("       you must install the application system-wide to run it.\n");
+			
+			// And remove the mountpoint directory.
+                        if (rmdir(sandbox_mount_path) != 0)
+                        {
+                        	appfs_debugw("error: Unable to cleanup sandbox (delete temporary directory error)\n");
+                                appfs_debugo("       You may have to manually unmount the sandbox and remove the\n");
+                                appfs_debugo("       mountpoint manually.  The mountpoint is:\n");
+                                appfs_debugo("         %s\n", sandbox_mount_path);
+                        }
+		}
+
 		kill(getpid(), SIGHUP);
 		return NULL;
 	}
