@@ -1,0 +1,295 @@
+#!/usr/bin/python
+
+import os
+import select
+from errno import ENOENT, EACCES
+from fuse import FUSE, Operations, LoggingMixIn
+from threading import Lock
+from sys import argv
+
+class Action():
+	READ = 0
+	WRITE = 1
+	CREATE = 2
+	DELETE = 3
+	COPY = 4
+	WRITECREATE = 5
+
+class Overlay():
+	def __init__(self, path, writable = False):
+		self.path = path
+		self.writable = writable
+
+class File():
+	def __init__(self, real_path, fake_path, overlay):
+		self.real_path = real_path
+		self.fake_path = "/" + fake_path
+		self.overlay = overlay
+
+class Sandbox(Operations):
+	"""Sandboxing filesystem.  Redirects reads and writes based on overlays."""
+	
+	def __init__(self, overlays):
+		self.overlays = overlays
+		self.rwlock = Lock()
+		self.fifobuf = ""
+	
+	def readLineFromFIFO(self):
+		if (len(select.select([self.fifo], [], [], 0)[0]) == 0):
+			return None
+		l = self.fifo.read(1)
+		while (l):
+			self.fifobuf += l
+			if (l == "\n"):
+				break;
+			else:
+				l = self.fifo.read(1)
+		if (len(self.fifobuf) > 0):
+			buf = self.fifobuf
+			self.fifobuf = ""
+			return buf
+		else:
+			return False
+	
+	def updateOverlays(self):
+		l = self.readLineFromFIFO()
+		while (l):
+			if (l.startswith("ADDR ")):
+				# Add readonly overlay
+				self.overlays.append(Overlay(l.strip()[5:], False))
+			elif (l.startswith("ADDW ")):
+				# Add writeable overlay
+				self.overlays.append(Overlay(l.strip()[5:], True))
+			elif (l.startswith("SETR ")):
+				# Clear all of the overlays and replace with a single one (readonly)
+				self.overlays = list()
+				self.overlays.append(Overlay(l.strip()[5:], False))
+			elif (l.startswith("SETW ")):
+                                # Clear all of the overlays and replace with a single one (writable)
+                                self.overlays = list()
+                                self.overlays.append(Overlay(l.strip()[5:], True))
+			l = self.readLineFromFIFO()
+
+	def resolveFile(self, requested_path, action = Action.READ):
+		# HACK: Just call the overlay message queue updater here.
+		self.updateOverlays()
+
+		# Check to see if we have no overlays and the requested_path is /.
+		if (len(self.overlays) == 0 and requested_path == "/" and action == Action.READ):
+			return File("/", "/", None)
+
+		# TODO: Follow specifications outlined in Sandboxing wiki article.
+		#       (most importantly chuck in the permission checks).
+		i = 0
+		requested_path = requested_path[1:]
+		for o in self.overlays:
+			if (action == Action.READ):
+				if (os.path.exists(os.path.join(o.path, requested_path))):
+					return File(os.path.join(o.path, requested_path),
+							requested_path,
+							o)
+			elif (action == Action.WRITE):
+				if (os.path.exists(os.path.join(o.path, requested_path)) and o.writable):
+                                        return File(os.path.join(o.path, requested_path),
+                                                        requested_path,
+                                                        o)
+			elif (action == Action.DELETE):
+                                if (os.path.exists(os.path.join(o.path, requested_path)) and o.writable):
+                                        return File(os.path.join(o.path, requested_path),
+                                                        requested_path,
+                                                        o)
+			elif (action == Action.CREATE):
+                                if (not os.path.exists(os.path.join(o.path, requested_path)) and
+					os.path.exists(o.path) and o.writable):	
+                                        return File(os.path.join(o.path, requested_path),
+                                                        requested_path,
+                                                        o)
+			elif (action == Action.WRITECREATE):
+				if (o.writable):
+                                        return File(os.path.join(o.path, requested_path),
+                                                        requested_path,
+                                                        o)
+			i += 1
+		return None
+
+	def chmod(self, path, mode):
+		f = self.resolveFile(path, Action.WRITE)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		os.chmod(f.real_path, mode)
+		return 0
+
+	def chown(self, path, uid, gid):
+		f = self.resolveFile(path, Action.WRITE)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		os.chown(f.real_path, uid, gid)
+	
+	def create(self, path, mode):
+		f = self.resolveFile(path, Action.CREATE)
+		if (f == None):
+			raise OSError(EACCES, '')
+		if (not os.path.exists(os.path.dirname(f.real_path))):
+			os.makedirs(os.path.dirname(f.real_path))
+		return os.open(f.real_path, os.O_WRONLY | os.O_CREAT, mode)
+	
+	def getattr(self, path, fh=None):
+		f = self.resolveFile(path, Action.READ)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		st = os.lstat(f.real_path)
+		return dict((key,getattr(st,key)) for key in ('st_atime', 'st_ctime',
+			'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
+
+	def getxattr(self, path, name, position=0):
+		f = self.resolveFile(path, Action.READ)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		# TODO: Find out how to do a getxattr operation on the underlying filesystem.
+		return ENOATTR
+	
+	def listxattr(self, path):
+		f = self.resolveFile(path, Action.READ)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		# TODO: Find out how to do a listxattr operation on the underlying filesystem.
+		return list()
+
+	def mkdir(self, path, mode):
+		f = self.resolveFile(path, Action.CREATE)
+		if (f == None):
+                        raise OSError(EACCES, '')
+		os.mkdir(f.real_path, mode)
+
+	def open(self, path, flags):
+		if (flags | os.O_WRONLY == flags or flags | os.O_RDWR == flags):
+			# Write mode
+			f = self.resolveFile(path, Action.WRITE)
+		else:
+			# Read mode
+			f = self.resolveFile(path, Action.READ)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		return os.open(f.real_path, flags)
+	
+	def read(self, path, size, offset, fh):
+		with self.rwlock:
+			os.lseek(fh, offset, 0)
+			return os.read(fh, size)
+
+	def readdir(self, path, fh):
+		# We have to os.listdir each of the paths in each of
+		# the overlays, and then combine them to form one list.
+		self.updateOverlays()
+
+		existsOnce = False
+		flist = []
+		for o in self.overlays:
+			fpath = os.path.join(o.path, path[1:]) # Chop off the leading /
+			if (os.path.exists(fpath)):
+				existsOnce = True
+				dlist = os.listdir(fpath)
+				for i in dlist:
+					if not (i in flist):
+						flist.append(i)
+		if (not existsOnce):
+			raise OSError(ENTONT, '')
+		return [".", ".."] + flist
+
+	def readlink(self, path):
+		f = self.resolveFile(path, Action.READ)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		return os.readlink(f.real_path)
+
+	def rmdir(self, path):
+		f = self.resolveFile(path, Action.DELETE)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		os.rmdir(f.real_path)
+	
+	def setxattr(self, path, name, value, options, position=0):
+		f = self.resolveFile(path, Action.READ) # Read because we aren't changing the file data.
+                if (f == None):
+                        raise OSError(ENOENT, '')
+                # TODO: Find out how to do a setxattr operation on the underlying filesystem.
+                return ENOATTR
+	
+	def statfs(self, path):
+		# TODO: Should we presume that the application is requesting this information
+		#       because it wants to optimize writing?
+		f = self.resolveFile(target, Action.READ)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		return os.statvfs(f.real_path)
+
+	def symlink(self, target, source):
+		f = self.resolveFile(target, Action.CREATE)
+		if (f == None):
+                        raise OSError(EACCES, '')
+		os.symlink(source, f.real_path)
+
+	def truncate(self, path, length, fh=None):
+		f = self.resolveFile(path, Action.WRITE)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		with open(f.real_path, "r+") as f:
+			f.truncate(length)
+
+	def unlink(self, path):
+		f = self.resolveFile(path, Action.DELETE)
+                if (f == None):
+                        raise OSError(ENOENT, '')
+                os.unlink(f.real_path)
+	
+	def utimens(self, path, times=None):
+		f = self.resolveFile(path, Action.WRITECREATE)
+		if (f == None):
+			raise OSError(ENOENT, '')
+		os.utime(f.real_path, times)
+
+	def write(self, path, data, offset, fh):
+		with self.rwlock:
+			os.lseek(fh, offset, 0)
+			return os.write(fh, data)
+		
+
+def debugMsgW(msg):
+	print "sandbox: " + msg
+
+def debugMsgO(msg):
+	print "         " + msg
+
+if __name__ == "__main__":
+	olays = [
+		Overlay("/", False)
+		];
+
+	if (len(argv) != 2):
+		debugMsgW('usage: %s mountpoint' % argv[0])
+		exit(1)
+	
+	sbox = Sandbox(olays)
+
+	mountpath = os.path.abspath(argv[1])
+	fifopath = os.path.realpath(os.path.join("/var/sandbox", mountpath[1:].replace("/",":")))
+	try:
+		os.mkfifo(fifopath, 0770)
+	except OSError:
+		debugMsgW("Unable to generate FIFO file.  Check to make sure")
+		debugMsgO("there is not already a sandbox mounted at the given")
+		debugMsgO("point and that there is not a stale FIFO at:")
+		debugMsgO("  " + fifopath)
+		debugMsgO("and then try again.")
+		debugMsgW("Mount failed.")
+		exit(1)
+	sbox = Sandbox(olays)
+	sbox.fifo = open(fifopath, 'r+')
+	debugMsgW("FIFO endpoint at:")
+	debugMsgO("  " + fifopath)
+
+	try:
+		fuse = FUSE(sbox, argv[1], foreground=False)
+	finally:
+		os.unlink(fifopath)
+
