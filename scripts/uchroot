@@ -1,0 +1,14 @@
+#!/bin/bash
+# Quick and dirty shortcut to typing out the full fakechroot usage.
+
+if [ $# -eq 0 ]; then
+	echo "usage: uchroot <chroot args>"
+	echo "if no command is specified, defaults to /bin/bash -l"
+	exit 1
+fi
+
+if [ $# -eq 1 ]; then
+	/System/AppResolve/fakechroot /System/AppResolve/chroot "$1" /bin/bash -l
+else
+	/System/AppResolve/fakechroot /System/AppResolve/chroot $*
+fi

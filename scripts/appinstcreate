@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# Short script to create the /System/Utilities/Applications/<AppName>/<AppVersion> setup correctly.
+# Usage: appcreate <AppName> <AppVersion>
+
+mkdir -pv /System/Utilities/Applications/$1/$2
+ln -sv $2 /System/Utilities/Applications/$1/Current

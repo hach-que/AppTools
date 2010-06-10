@@ -1,0 +1,463 @@
+#!/usr/bin/python
+
+# Import all of the modules we need.
+import optparse
+import sys
+import os
+import subprocess
+import tempfile
+import time
+import traceback
+import shutil
+
+VERSION = "0.0.1"
+
+# Define our functions.
+def applicationsInPath(apps):
+	paths = os.environ["PATH"].split(":")
+	appsfound = dict()
+	for a in apps:
+		appsfound[a] = False
+	for i in paths:
+		for a in apps:
+			if os.path.exists(os.path.join(i, a)):
+				appsfound[a] = True
+	return appsfound
+
+def showErrorW(msg):
+	print "appcompile: [ error   ] " + msg.replace("\n", "\n                        ")
+
+def showErrorO(msg):
+	print "                        " + msg.replace("\n", "\n                        ")
+
+def showSuccessW(msg):
+	print "appcompile: [ success ] " + msg.replace("\n", "\n                        ")
+
+def showInfoW(msg):
+	try:
+		if (options.verbose):
+			print "appcompile: [ info    ] " + msg.replace("\n", "\n                        ")
+	except:
+		print "appcompile: [ info    ] " + msg.replace("\n", "\n                        ")
+
+def showWarnW(msg):
+	try:
+		if (options.verbose):
+			print "appcompile: [ warn    ] " + msg.replace("\n", "\n                        ")
+	except:
+		print "appcompile: [ warn    ] " + msg.replace("\n", "\n                        ")
+
+showSuccessO = showErrorO
+showInfoO = showErrorO
+showWarnO = showErrorO
+
+def provideTempDevice(writearea, path):
+	path = os.path.abspath(path) # ensure we match how it will be access in the real system
+	if (path.startswith("/")):
+		path = path[1:]
+	p = os.path.join(writearea, path)
+	# create dirs
+	os.makedirs(os.path.dirname(p))
+	with open(p, "w") as f:
+		f.write("")
+
+def runSilentProc(args):
+	proc = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+	proc.wait()
+	return proc.returncode
+
+def forceDirectoryUnmount(mount_point):
+	ret = runSilentProc(["fusermount", "-u", mount_point])
+	i = 0
+	while (ret != 0 and i < 10):
+		time.sleep(1)
+		ret = runSilentProc(["fusermount", "-u", mount_point])
+		i += 1
+	if (ret != 0):
+		showErrorW("Unable to unmount " + mount_point + ".  Please unmount manually.")
+		return False
+	return True
+
+def forceDirectoryCleanup(directory, recursive=False):
+	if (not os.path.exists(directory)):
+		return True
+
+	if (recursive):
+		return forceDirectoryCleanupRecursive(directory)
+
+	try:
+		os.rmdir(directory)
+		i = 0
+		while (os.path.exists(directory) and i < 10):
+			time.sleep(1)
+			os.rmdir(directory)
+			i += 1
+		if (os.path.exists(directory)):
+			# failed to remove
+			showErrorW("Unable to remove directory " + directory + ".  Please remove manually.")
+			return False
+	except OSError:
+		showErrorW("Unable to remove directory " + directory + ".  Please remove manually.")
+		return False
+	return True
+
+def forceDirectoryCleanupRecursive(directory):
+	if (not directory.startswith("/tmp")):
+		showWarnW("Directory " + str(directory) + " will not be recursively")
+		showWarnO("deleted as it is not a subdirectory of /tmp.")
+		return False
+
+	try:
+		for root, dirs, files in os.walk(directory, topdown=False):
+			for name in files:
+				os.remove(os.path.join(root, name))
+			for name in dirs:
+				os.rmdir(os.path.join(root, name))
+		return True
+	except:
+		showWarnW("Unable to complete recursive delete of directory " + directory + ".")
+		return False
+# APPLICATION START
+# Check to see if we've got the required applications
+# in the user's PATH.
+result = applicationsInPath([
+	"unionfs-fuse",
+	"fusermount",
+	"uchroot",
+	"fakechroot",
+	"chroot",
+	"mkfs.ext2",
+	"appmount",
+	"appattach"])
+base_requirements = (result["fusermount"] and
+			result["mkfs.ext2"] and
+			result["appmount"] and
+			result["appattach"] and
+			result["unionfs-fuse"])
+chrooted_command = None
+if (result["uchroot"] and base_requirements):
+	chrooted_command = ["uchroot"]
+elif (result["fakechroot"] and result["chroot"] and base_requirements):
+	chrooted_command = ["fakechroot chroot"]
+else:
+	# No chroot'ing functionality available.
+	showErrorW("No sandboxing functionality found on your system.  Please install")
+	showErrorO("the following applications (either uchroot OR fakechroot and chroot is required):")
+	for a, r in result.items():
+		if (not r):
+			showErrorO("  * " + a)
+	sys.exit(1)
+
+# We're going to parse the command line arguments.
+parser = optparse.OptionParser(usage = "usage: %prog [options] -- [configure arguments]")
+parser.add_option("-b", "--buildsystem", dest="buildsystem", default="auto",
+                  help="force the type of buildsystem", metavar="TYPE")
+parser.add_option("-q", "--quiet", action="store_false", dest="verbose",
+                  default=True, help="do a quiet build")
+parser.add_option("-d", "--directory", dest="directory",
+                  help="specify where the source tree is (default: %default)",
+                  default=".")
+parser.add_option("-o", "--out", dest="outfile",
+                  help="specify where the AppFS package should be saved (default: ./NAME-VERSION.afs)")
+parser.add_option("", "--app-name", dest="application_name",
+                  help="the application name (required)")
+parser.add_option("", "--app-version", dest="application_version",
+                  help="the application version (required)")
+parser.add_option("", "--extra-size", dest="extra_size",
+                  help="add specified size onto ext2 partition (in MB)",
+                  default="2")
+
+(options, conf_args) = parser.parse_args()
+
+# Detect chroot'd environment.
+in_fakechroot = False
+try:
+	in_fakechroot = (os.environ["FAKECHROOT"] == "true")
+except KeyError:
+	in_fakechroot = False
+
+if (not in_fakechroot):
+	showInfoW("AppCompile " + VERSION + " started.")
+
+	# Check for required arguments.
+	if (options.application_name == None):
+		showErrorW("Application name was not specified (use --app-name=NAME).")
+		sys.exit(1)
+	if (options.application_version == None):
+		showErrorW("Application version was not specified (use --app-version=VER).")
+		sys.exit(1)
+	try:
+		options.extra_size = int(options.extra_size)
+	except:
+		showErrorW("Extra size for Ext2 partition is invalid.  Must be an integer.")
+		sys.exit(1)
+
+	# Check to make sure the AppFS package doesn't already exist.
+	if (options.outfile == None):
+		options.outfile = "./" + options.application_name + "-" + options.application_version + ".afs"
+	showInfoW("Output file is: " + str(options.outfile))
+
+	# Create temporary directories.
+	sandbox_mount_point = tempfile.mkdtemp("","appfs_sandbox.","/tmp/")
+	compile_write_area = tempfile.mkdtemp("","appcompile_storage.","/tmp/")
+	build_area_path = tempfile.mkdtemp("","appbuild_storage.", "/tmp")
+	showInfoW("Created temporary mount point / write directories.")
+
+	# Create some writable devices to overlay /dev
+	provideTempDevice(compile_write_area, "/dev/null")
+	showInfoW("Created temporary /dev/null device for writing.")
+
+	# To make for easier for cleanup, we're going to the isinstance check here.
+	if (not isinstance(chrooted_command, list)):
+		showErrorW("Unable to chroot into the compilation sandbox.")
+		forceDirectoryCleanup(sandbox_mount_point)
+		forceDirectoryCleanup(compile_write_area)
+		forceDirectoryCleanup(build_area_path)
+		sys.exit(1)
+	
+	# Run sandmount to create a sandbox in the temporary directory.
+	sandmount_result = subprocess.call(["unionfs-fuse", "-o", "cow,max_files=32768,allow_other,use_ino,suid,dev,nonempty", compile_write_area + "=RW:/=RO", sandbox_mount_point])
+	if (sandmount_result != 0):
+		showErrorW("Unable to start compilation sandbox.  See messages above.")
+		forceDirectoryCleanup(sandbox_mount_point)
+		forceDirectoryCleanup(compile_write_area)
+		forceDirectoryCleanup(build_area_path)
+		sys.exit(1)
+	showInfoW("Started sandbox (via unionfs-fuse).")
+
+	# We wrap this entire block with a try-finally to ensure proper
+	# clean up is done of the mountpoint.
+	afs_has_unmounted = False
+	afs_mount_point = None
+	try:
+		# Now we're going to re-run ourself inside the chroot environment.
+		# fakechroot sets up an environment variable FAKECHROOT, so we use
+		# that to determine whether we're running in chroot.
+		chrooted_command.append(sandbox_mount_point)
+		chrooted_command.append(os.path.abspath(os.path.join(os.getcwd(),sys.argv[0])))
+		if (not options.verbose):
+			chrooted_command.append("-q")
+		chrooted_command.append("-d")
+		chrooted_command.append(os.path.abspath(options.directory))
+		chrooted_command.append("-b")
+		chrooted_command.append(options.buildsystem)
+		chrooted_command.append("--")
+		for i in conf_args:
+			chrooted_command.append(i)
+		
+		subprocess.call(chrooted_command)
+
+		# Read the /BuildInfo file, if it exist.
+		path_build_info = os.path.join(sandbox_mount_point, "BuildInfo")
+		if (not os.path.exists(path_build_info)):
+			showErrorW("Unable to locate /BuildInfo results file.  Build may")
+			showErrorO("have failed.")
+			sys.exit(1)
+
+		path_build_results = None
+		with open(path_build_info, "r") as f:
+			path_build_results = f.readline().strip()
+		showInfoW("Build results directory is:  " + path_build_results)
+		showInfoO("              (absolute is): " + os.path.join(sandbox_mount_point, path_build_results[1:]))
+
+		# Check to make sure the build results directory exists.
+		build_data_storage_path = os.path.join(sandbox_mount_point, path_build_results[1:])
+		if (not os.path.exists(build_data_storage_path)):
+			showErrorW("Unable to locate the folder that /BuildInfo points")
+			showErrorO("to.  Build may have failed.")
+			sys.exit(1)
+		
+		# Count the total size of all of the content in the path_build_results
+		# folder, then add 1-2MB (or an amount specified by --extra-size) and
+		# generate an Ext2 partition inside build_area_path.
+		size_total = 0
+		for root, dirs, files in os.walk(path_build_results):
+			size_total += sum(os.path.getsize(os.path.join(root, name)) for name in files)
+			size_total += sum(os.path.getsize(os.path.join(root, name)) for name in dirs)
+		size_total += options.extra_size * 1024 * 1024
+		showInfoW("Total size for Ext2 partition will be: " + str(float(size_total) / (1024 * 1024)) + " MB")
+		showInfoW("Creating zero'd file at " + os.path.join(build_area_path, "app.ext2") + "...")
+		#try:
+		with open(os.path.join(build_area_path, "app.ext2"), "w") as f:
+			f.write("".ljust(int(size_total), "\0"))
+		#except:
+		#	showErrorW("An error occurred while creating the zero'd file.")
+		#	sys.exit(1)
+		showInfoW("Formatting Ext2 partition at " + os.path.join(build_area_path, "app.ext2") + "...")
+		if (subprocess.call(["mkfs.ext2", "-F", "-t", "ext2", os.path.join(build_area_path, "app.ext2")]) != 0):
+			showErrorW("An error occurred while formatting the Ext2 partition.")
+			sys.exit(1)
+		showInfoW("Attaching Ext2 partition to AppFS file at " + os.path.join(build_area_path, "app.afs") + "...")
+		if (subprocess.call(["appattach", os.path.join(build_area_path, "app.ext2"), os.path.join(build_area_path, "app.afs")]) != 0):
+			showErrorW("An error occurred while attaching the Ext2 partition to")
+			showErrorO("the AppFS binary.  Check above for error messages.")
+
+		# Mount the AppFS package we just created and move all of the files
+		# from the build area into the new package.
+		afs_path = os.path.join(build_area_path, "app.afs")
+		afs_mount_point = os.path.join(build_area_path, "app.mount")
+		try:
+			os.mkdir(afs_mount_point)
+		except OSError:
+			showErrorW("Unable to create temporary directory for AppFS mounting.")
+			sys.exit(1)
+		appmount_result = subprocess.call(["appmount", afs_path, afs_mount_point])
+		if (appmount_result != 0):
+			showErrorW("Unable to mount the AppFS image.  See messages above.")
+			sys.exit(1)
+		
+		# Move all of the files.
+		files = os.listdir(build_data_storage_path)
+		showInfoW("Moving all of the files from " + build_data_storage_path + " to AppFS mount point...")
+		for i in files:
+			try:
+				fsrc = os.path.join(build_data_storage_path, i)
+				fdst = os.path.join(afs_mount_point, i)
+				shutil.copytree(fsrc, fdst, True)
+				showInfoO("  * Moved " + i)
+			except OSError:
+				showWarnW("  * Unable to move " + i)	
+
+		prev_afs_mtime = os.stat(afs_path).st_mtime
+
+		# Now unmount the AppFS area.
+		if (not forceDirectoryUnmount(afs_mount_point)):
+			showErrorW("Can not proceed without successfully unmounting AppFS")
+			showErrorO("package.  Unmount " + afs_mount_point + " manually.")
+			sys.exit(1)
+		
+		afs_has_unmounted = True
+
+		# Wait for the AppFS package to be updated by the unmount.
+		showInfoW("Waiting for the AppFS package to be updated by the unmounting process...")
+		count_timer = 0
+		while (os.stat(afs_path).st_mtime <= prev_afs_mtime and
+		       os.stat(afs_path).st_ctime <= prev_afs_mtime and
+		       count_timer < 10):
+			showInfoO("  Waiting 1 sec.")
+			time.sleep(1)
+			count_timer += 1
+		showInfoW("AppFS package has been updated.")
+
+		# And copy the AppFS package to the output area.
+		try:
+			os.rename(afs_path, options.outfile)
+			showSuccessW("The AppFS packaging process completed successfully.")
+			showSuccessO("The new application package is located at:")
+			showSuccessO("  " + options.outfile)
+		except:
+			showErrorW("Unable to move AppFS package from the temporary build")
+			showErrorO("area to the output filename.")
+		
+		# Now clean out the temporary directories.
+		forceDirectoryCleanup(afs_mount_point)
+		forceDirectoryCleanup(compile_write_area, True)
+		forceDirectoryCleanup(build_area_path, True)
+
+	except Exception, e:
+		showErrorW("An error occurred while setting up the chroot environment")
+		showErrorO("or packaging the results of the build.  The Python error")
+		showErrorO("is displayed below:")
+		showErrorO("")
+		showErrorO(traceback.format_exc())
+	finally:
+		# At this point the build process has completed (either via error or
+		# success), so we close down the mount point and remove the temporary
+		# directories.
+		if (afs_mount_point != None and afs_has_unmounted != True):
+			forceDirectoryUnmount(afs_mount_point)
+			forceDirectoryCleanup(afs_mount_point)
+		forceDirectoryUnmount(sandbox_mount_point)
+		forceDirectoryCleanup(sandbox_mount_point)
+		forceDirectoryCleanup(compile_write_area)
+		forceDirectoryCleanup(build_area_path)
+		showInfoW("Cleaned up temporary files and mountpoint.")
+		showInfoW("Application compilation has completed.  See above for")
+		showInfoO("success or failure messages.")
+		sys.exit(0)
+else:
+	showInfoW("AppCompile " + VERSION + " running in chroot.")
+
+	# Change current working directory to that of the directory
+	# specified.
+	os.chdir(options.directory)
+	showInfoW("Current working directory has changed to: " + options.directory)
+
+	# Normally we'd detect what kind of build environment we have, but for
+	# now we only support configure/make/make install.
+	if (options.buildsystem == "auto"):
+		options.buildsystem = "configure-make-install"
+
+	showInfoW("Build system is: " + options.buildsystem)
+
+	# Detect and run the build system.
+	try:
+		buildArea = None
+
+		if (options.buildsystem == "configure-make-install"):
+			# RUNS: ./configure [confargs] && make && make install
+			# Check to see if ./configure exists.
+			if (not os.path.exists("./configure")):
+				showErrorW("./configure was not found.  Can not continue compilation.")
+				sys.exit(1)
+			
+			# Check to see if make exists.
+			result = applicationsInPath(["make"])
+			if (not result["make"]):
+				showErrorW("Some of the requirements for the compile-make-install buildsystem were not found.")
+				showErrorO("Please install the following applications:")
+				for a, r in result.items():
+					if (not r):
+						showErrorO("  * " + a)
+				sys.exit(1)
+			
+			# At this point we have everything the build system should need
+			# to do a basic run.  Now we can attempt to run
+			# ./configure [confargs] && make && make install
+			# There's no gaurentee this will work, so in the future we'll need
+			# a custom buildsystem specification, which allows the user to write
+			# an XML / shell file that tells us how to build the application.
+			buildArea = "/build"
+			conf_command = ["./configure","--prefix","/build"]
+			prevI = None
+			for i in conf_args:
+				if (prevI == "--prefix"):
+					buildArea = i
+				conf_command.append(i)
+				prevI = i
+			showInfoW("Running configure...")
+			result = subprocess.call(conf_command)
+			if (result == 0):
+				showInfoW("Running make...")
+				result = subprocess.call(["make"])
+			if (result == 0):
+				showInfoW("Running make install...")
+				result = subprocess.call(["make","install"])
+	
+			# Check to see whether the build succeeded.
+			if (result != 0):
+				showErrorW("Build failed.  See above for output.")
+				sys.exit(1)
+			else:
+				showSuccessW("Build success.")
+		else:
+			showErrorW("Unknown build system was passed.  Unable to compile application.")
+			sys.exit(1)
+		
+		# We're going to write to a file called /BuildInfo so that the
+		# non-chroot'd component knows where to find the build results.
+		if (buildArea.startswith("/")):
+			buildArea = buildArea
+		else:
+			buildArea = os.path.join(options.directory, buildArea)
+
+		with open("/BuildInfo", "w") as f:
+			f.write(buildArea + "\n")
+
+		sys.exit(0)
+
+	except KeyboardInterrupt:
+		showErrorO("") # newline because the keyboard interrupt will have generated ^C on the console
+		showErrorW("Build process was cancelled by user.")
+		sys.exit(1)
+
