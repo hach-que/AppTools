@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
         // Check to see if there were errors.
         if (nerrors > 0 && show_help->count == 0)
         {
-                printf("Usage: PROGRAM_NAME");
+                printf("Usage: appmount");
                 arg_print_syntax(stdout, argtable, "\n");
 
                 arg_print_errors(stdout, end, "appfs");
@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
         // message.
         if (show_help->count == 1)
         {
-                printf("Usage: PROGRAM_NAME");
+                printf("Usage: appmount");
                 arg_print_syntax(stdout, argtable, "\n");
 
                 printf("AppFS - An application storage filesystem.\n\n");
@@ -352,7 +352,12 @@ int main(int argc, char *argv[])
 
 	// Open the file the application is running from.
 	FILE * self_file;
-	self_file = fopen(argv[0], "r");
+#ifdef APPMOUNT
+	const char * source_app = disk_image->filename[0];
+#else
+	const char * source_app = argv[0];
+#endif
+	self_file = fopen(source_app, "r");
 	if (self_file != NULL)
 	{
 		// Obtain file size.
@@ -454,12 +459,12 @@ int main(int argc, char *argv[])
 		}
 		std::string t = oldtmp_path;
 		t = t + "/appmemory";
-		if (rename(argv[0], t.c_str()) != 0)
+		if (rename(source_app, t.c_str()) != 0)
 		{
 			appfs_debugw("error: unable to save package (rename error, old -> oldtmp)\n");
 			return 1;
 		}
-		if (rename(new_disk_path, argv[0]) != 0)
+		if (rename(new_disk_path, source_app) != 0)
 		{
 			appfs_debugw("error: unable to save package (rename error, new -> old)\n");
 			return 1;
@@ -478,7 +483,7 @@ int main(int argc, char *argv[])
 		// Set the permissions on the new file.
 		// TODO: Really should read the old permissions and then assign them
 		//       to the new file...
-		if (chmod(argv[0], S_IRUSR | S_IWUSR | S_IXUSR) != 0)
+		if (chmod(source_app, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
 			appfs_debugw("error: unable to save package (set permissions error)\n");
 			return 1;
@@ -620,7 +625,7 @@ void* appfs_execution_thread(void* ptr)
 
 			for (std::vector<std::string>::iterator it = path_list->begin(); it < path_list->end(); it++)
 			{
-				if (file_exists(std::string(*it + "/sandbox").c_str()))
+				if (file_exists(std::string(*it + "/unionfs-fuse").c_str()))
 					found_sandbox = true;
 				if (file_exists(std::string(*it + "/uchroot").c_str()))
 					found_uchroot = true;
@@ -669,7 +674,7 @@ void* appfs_execution_thread(void* ptr)
 				// access to.
 				appfs_debugw("warn:  Sandboxing prerequisites not found.  One or more of the following applications:\n");
 	                        appfs_debugo("         * uchroot (or fakechroot AND chroot)\n");
-	                        appfs_debugo("         * sandbox\n");
+	                        appfs_debugo("         * unionfs-fuse\n");
 	                        appfs_debugo("         * fusermount\n");
 	                        appfs_debugo("       were not found in PATH.  Since they are not available on the system\n");
 	                        appfs_debugo("       the application will not be run in a sandbox.  It will have write\n");
@@ -679,13 +684,14 @@ void* appfs_execution_thread(void* ptr)
 			{
 				// First set up the sandbox.
 #ifdef DEBUGGING
-                appfs_debugw("info:  setting up sandbox...\n");
+                appfs_debugw("info:  setting up sandbox (via unionfs-fuse)...\n");
 #endif
-				std::string sandbox_command = "sandbox ";
+				std::string sandbox_command = "unionfs-fuse -o cow,max_files=32768,allow_other,use_ino,suid,dev,nonempty ";
+				// Add the write area to the sandbox command line.
+				sandbox_command += mount_point;
+				sandbox_command += "=RW:/=RO ";
+				
 				sandbox_command += sandbox_mount_path;
-#ifndef DEBUGGING
-				sandbox_command += " --quiet"; // Prevent messages from being shown
-#endif
 				system(sandbox_command.c_str());
 #ifdef DEBUGGING
                 appfs_debugw("info:  sandbox has been setup.\n");
@@ -697,7 +703,7 @@ void* appfs_execution_thread(void* ptr)
 				// we're going to grab the last 6 characters from the
 				// sandbox_mount_path variable and generate a path to the
 				// FIFO block.
-				std::string fifo_path = "/var/sandbox/tmp:appfs_sandbox.";
+				/*std::string fifo_path = "/var/sandbox/tmp:appfs_sandbox.";
 				fifo_path += std::string(sandbox_mount_path).substr(strlen(sandbox_mount_path) - 6);
 
 				if (!file_exists(fifo_path.c_str()))
@@ -725,8 +731,9 @@ void* appfs_execution_thread(void* ptr)
 				close(fifo_file);
 #ifdef DEBUGGING
                 appfs_debugw("wrote: %s", fifo_data.c_str());
-#endif
-				
+#endif				
+				*/
+
 				// Now our sandbox is set up, modify the command variable to wrap the
 				// command in a chroot environment.
 				std::string build = "";
@@ -760,7 +767,27 @@ void* appfs_execution_thread(void* ptr)
 				// fusermount.
 				std::string fusermount_command = "fusermount -u ";
 				fusermount_command += sandbox_mount_path;
-				system(fusermount_command.c_str());
+				fusermount_command += ">/dev/null 2>/dev/null";
+				int ret = -1;
+				int count_tries = 0;
+				while (ret != 0 && count_tries < 10)
+				{
+					ret = system(fusermount_command.c_str());
+					if (ret != 0)
+					{
+						sleep(1);
+						count_tries += 1;
+					}
+				}
+				if (ret != 0)
+				{
+					appfs_debugw("error: Unable to cleanup sandbox (mount point still in use after 10 attempts)\n");
+                                        appfs_debugo("       You may have to manually unmount the sandbox and remove the\n");
+                                        appfs_debugo("       mountpoint manually.  The mountpoint is:\n");
+                                        appfs_debugo("         %s\n", sandbox_mount_path);
+					kill(getpid(), SIGHUP);
+			                return NULL;
+				}
 
 				// And remove the mountpoint directory.
 				if (rmdir(sandbox_mount_path) != 0)
@@ -780,7 +807,7 @@ void* appfs_execution_thread(void* ptr)
 		{
 			appfs_debugw("error: Sandboxing prerequisites not found.  One or more of the following applications:\n");
 			appfs_debugo("         * uchroot (or fakechroot AND chroot)\n");
-			appfs_debugo("         * sandbox\n");
+			appfs_debugo("         * unionfs-fuse\n");
 			appfs_debugo("         * fusermount\n");
 			appfs_debugo("       were not found in PATH.  Since they are not available on the system\n");
 			appfs_debugo("       you must install the application system-wide to run it.\n");
@@ -803,11 +830,11 @@ void* appfs_execution_thread(void* ptr)
 		// The entry point does not exist.  Notify the user that
 		// no application will be run (and don't terminate the
 		// parent pid before returning from this function).
-		appfs_debugw("The application does not have an entry point.  The filesystem will be");
-		appfs_debugo("mounted in the foreground.  In order to stop the process:");
+		appfs_debugw("The application does not have an entry point.  The filesystem will be\n");
+		appfs_debugo("mounted in the foreground.  In order to stop the process:\n");
 		appfs_debugo(" * Hit Ctrl-C or\n");
-		appfs_debugo(" * Run 'umount %s'", mount_point.c_str());
-		printf("\n");
+		appfs_debugo(" * Run 'umount %s'\n", mount_point.c_str());
+		appfs_debugo("\n");
 		return NULL;
 	}
 #endif
