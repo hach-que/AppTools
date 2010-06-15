@@ -1,0 +1,49 @@
+#!/usr/bin/python
+
+import sys
+sys.path.append("../") # TODO: Remove this once debugging is finished and applib is an
+                       #       actual Python module.
+
+import applib
+from applib.logging import default_logger as log
+from optparse import OptionParser
+
+logging.setName("applink")
+
+# Parse options.
+parser = OptionParser()
+applib.general.CommandLine.applyOptions(parser)
+(options, args) = parser.parse_args()
+
+appname = None
+appver = None
+
+if (len(args) == 1):
+	appname = args[0]
+elif (len(args) == 2):
+	appname = args[0]
+	appver = args[1]
+else:
+	log.showErrorW("Invalid number arguments.  Type applink --help for usage information.")
+	sys.exit(1)
+
+# Get the application type from the command line arguments.
+apptype = applib.general.CommandLine.getTypeFromOptions(options)
+
+# Create an instance of InstalledApplication.
+app = applib.fs.InstalledApplication(apptype, args[0], args[1])
+try:
+	app.autodetect()
+except applib.general.NoVersionsException:
+	log.showErrorW("Unable to detect the application version.  Specify it as a second parameter.")
+	sys.exit(1)
+except applib.general.MultipleVersionsException:
+	log.showErrorW("More than one version of application detected.  Specify the version you")
+	log.showErrorO("want to link as a second parameter.")
+	sys.exit(1)
+
+# Check to make sure the application exists.
+if (not app.exists()):
+	log.showErrorW("Unable to locate the application on disk.  The location applink looked in was:")
+	log.showErrorO("  * " + app.location())
+	sys.exit(1)
