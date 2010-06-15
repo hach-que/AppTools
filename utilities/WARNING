@@ -5,4 +5,4 @@
 The following applications will not work on non-Elementary systems
 due to their reliance on the Elementary filesystem structure:
 
-  * appinstcreate
+  * applink

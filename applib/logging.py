@@ -6,8 +6,7 @@
 # Created:        Tuesday, 15th June 2010 by James Rhodes
 # Last Modified:  <same>
 
-
-class Logger(self):
+class Logger():
 	namefull = ""
 	nameblnk = ""
 

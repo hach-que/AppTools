@@ -6,7 +6,8 @@
 # Created:        Tuesday, 15th June 2010 by James Rhodes
 # Last Modified:  <same>
 
-__all__ = [ "logging", "general" ]
+__all__ = [ "logging", "general", "fs" ]
 
 import logging
 import general
+import fs

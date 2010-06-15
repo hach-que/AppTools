@@ -1,0 +1,11 @@
+=======================
+  AppLib Warning
+=======================
+
+The following library will not work on non-Elementary systems due
+to it's reliance on the Elementary filesystem structure.
+
+It's possible to modify the locations from where it expects applications
+and libraries to be installed, however, it's not guarenteed to work as
+expected in this situation.
+

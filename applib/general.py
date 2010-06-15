@@ -7,6 +7,7 @@
 # Last Modified:  <same>
 
 import os
+import pwd
 
 class AppType():
 	SYSTEM_ESSENTIAL_APP = 0    # Essential system application (i.e. binutils).
@@ -19,14 +20,14 @@ class AppType():
 
 class AppFolders():
 	@classmethod
-	def get(type, user = None):
+	def get(cls, type, user = None):
 		if (type == AppType.SYSTEM_ESSENTIAL_APP):
 			return "/System/Utilities/Applications"
 		elif (type == AppType.SYSTEM_ESSENTIAL_LIB):
 			return "/System/Utilities/Libraries"
 		elif (type == AppType.SYSTEM_OPTIONAL_APP):
 			return "/Applications"
-		elif (type == AppType.SYSTEN_GLOBAL_APP):
+		elif (type == AppType.SYSTEM_GLOBAL_APP):
 			return "/"
 		elif (type == AppType.SYSTEM_HW_DRIVER):
 			# TODO: Get the real kernel information
@@ -34,7 +35,7 @@ class AppFolders():
 			return "/System/Utilities/Applications/Linux/2.6.32.7/lib/modules/2.6.32.7/kernel/drivers"
 		elif (type == AppType.USER_OPTIONAL_APP):
 			if (user == None):
-				return None
+				user = pwd.getpwuid(os.getuid()).pw_name
 			if (not os.path.exists("/Users/" + user)):
 				return None
 			return "/Users/" + user + "/Applications"
@@ -45,7 +46,7 @@ class AppFolders():
 
 class CommandLine():
 	@classmethod
-	def applyOptions(self, parser):
+	def applyOptions(cls, parser):
 		parser.add_option("-l", "--library", dest="apptype_library", action="store_true", default=False,
 		                                     help="The application is a library.");
 		parser.add_option("-a", "--application", dest="apptype_library", action="store_false",
@@ -60,7 +61,7 @@ class CommandLine():
 		                                     help="The application resides in the user's directory.")
 
 	@classmethod	
-	def getTypeFromOptions(self, options):
+	def getTypeFromOptions(cls, options):
 		if (not options.apptype_library and options.apptype_essential and options.apptype_system):
 			return AppType.SYSTEM_ESSENTIAL_APP
 		elif (options.apptype_library and options.apptype_essential and options.apptype_system):
@@ -77,4 +78,10 @@ class MultipleVersionsException(Exception):
 	pass
 
 class NoVersionsException(Exception):
+	pass
+
+class InvalidApplicationException(Exception):
+	pass
+
+class InvalidApplicationTypeException(Exception):
 	pass

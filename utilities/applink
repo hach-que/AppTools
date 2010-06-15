@@ -8,11 +8,12 @@ import applib
 from applib.logging import default_logger as log
 from optparse import OptionParser
 
-logging.setName("applink")
+log.setName("applink")
 
 # Parse options.
-parser = OptionParser()
+parser = OptionParser(usage="%prog [options] NAME VERSION")
 applib.general.CommandLine.applyOptions(parser)
+parser.add_option("-x", "--unlink", help="Unlink the application instead of linking it.", dest="app_unlink", action="store_true", default=False)
 (options, args) = parser.parse_args()
 
 appname = None
@@ -31,7 +32,7 @@ else:
 apptype = applib.general.CommandLine.getTypeFromOptions(options)
 
 # Create an instance of InstalledApplication.
-app = applib.fs.InstalledApplication(apptype, args[0], args[1])
+app = applib.fs.InstalledApplication(apptype, appname, appver)
 try:
 	app.autodetect()
 except applib.general.NoVersionsException:
@@ -47,3 +48,36 @@ if (not app.exists()):
 	log.showErrorW("Unable to locate the application on disk.  The location applink looked in was:")
 	log.showErrorO("  * " + app.location())
 	sys.exit(1)
+
+if (not options.app_unlink):
+	log.showInfoW("Linking application " + app.name + ", version " + app.version + " to the root filesystem...");
+	successes, failures, tot = app.link()
+	tot = str(tot)
+	
+	if (len(failures) == 0):
+		log.showSuccessW("Successfully linked all " + str(len(successes)) + " files (total on disk: " + tot + ").")
+		log.showSuccessO("Remember to run ldconfig if the application contains library files.")
+		sys.exit(0)
+	elif (len(successes) > 0):
+		log.showWarningW("Only " + str(len(successes)) + " of " + str(len(successes) + len(failures)) + " files were successfully linked (total on disk: " + tot + ").")
+		log.showWarningO("Remember to run ldconfig if the application contains library files.")
+		sys.exit(1)
+	else:
+		log.showErrorW("All " + str(len(failures)) + " files failed to link.  Make sure you have appropriate permissions. (total on disk: " + tot + ")")
+		sys.exit(1)
+else:
+	log.showInfoW("Unlinking application " + app.name + ", version " + app.version + " from the root filesystem...");
+	successes, failures, tot = app.unlink()
+	tot = str(tot)
+
+	if (len(failures) == 0):
+		log.showSuccessW("Successfully unlinked all " + str(len(successes)) + " files (total in app: " + tot + ").")
+		log.showSuccessO("Remember to run ldconfig if the application contains library files.")
+		sys.exit(0)
+	elif (len(successes) > 0):
+		log.showWarningW("Only " + str(len(successes)) + " of " + str(len(successes) + len(failures)) + " files were successfully unlinked (total in app: " + tot + ").")
+		log.showWarningO("Remember to run ldconfig if the application contains library files.")
+		sys.exit(1)
+	else:
+		log.showErrorW("All " + str(len(failures)) + " files failed to unlink.  Make sure you have appropriate permissions. (total in app: " + tot + ")")
+		sys.exit(1)
