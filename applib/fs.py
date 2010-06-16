@@ -45,6 +45,12 @@ class InstalledApplication():
 			raise InvalidApplicationException();
 		if (AppFolders.get(self.type) == None):
 			raise InvalidApplicationTypeException();
+
+	def __del__(self):
+		try:
+			self.flog.close()
+		except:
+			pass # It'll be closed by the OS anyway...
 	
 	def autodetect(self):
 		"""Automatically fill in the version parameter."""
@@ -69,21 +75,25 @@ class InstalledApplication():
 				raise NoVersionsException()
 
 	def oper_mkdir(self, path, mode):
+		#os.mkdir(path, mode)
 		m = "mkdir \"" + path + "\" && chmod " + str(mode) + " \"" + path + "\""
 		self.flog.write(m + "\n")
 		log.showInfoO(m)
 
 	def oper_symlink(self, source, link_name):
+		#os.symlink(source, link_name)
 		m = "ln -s \"" + source + "\" \"" + link_name + "\""
 		self.flog.write(m + "\n")
 		log.showInfoO(m)
 
 	def oper_unlink(self, path):
+		#os.unlink(path)
 		m = "rm \"" + path + "\""
 		self.flog.write(m + "\n")
 		log.showInfoO(m)
 
 	def oper_rmdir(self, path):
+		#os.rmdir(path)
 		m = "rmdir \"" + path + "\""
 		self.flog.write(m + "\n")
 		log.showInfoO(m)
@@ -94,6 +104,9 @@ class InstalledApplication():
 				path = i + path[len(k):]
 				return path
 		return None
+	
+	def getNormalizedApplicationPath(self, version, path):
+		return path.replace("/" + version + "/", "/Current/", 1)
 
 	def link(self):
 		"""Link an application to the base filesystem."""
@@ -126,7 +139,11 @@ class InstalledApplication():
 				log.showWarningW("File or directory " + i[2] + " skipped because it was not a recognized path.")
 				continue
 			else:
-				i = (i[0], i[1], n)
+				# Since we're rebuilding the tuple here, we might
+				# as well normalize (replace version number with
+				# "Current") the application path.
+				sv = self.getNormalizedApplicationPath(self.version, i[1])
+				i = (i[0], sv, n)
 
 			if (i[0] == "directory"):
 				try:
@@ -167,7 +184,9 @@ class InstalledApplication():
 		
 		safe_app_dir = os.path.join(
                                         AppFolders.get(self.type),
-                                        self.name + "/" + self.version
+                                        self.name # We exclude the version here because we could be
+                                                  # checking against a link that's under Current or
+                                                  # a specific version.
                                         )
 		
 		# Preemptively go through the list of directories, removing those
@@ -207,6 +226,12 @@ class InstalledApplication():
 			else:
 				i = (i[0], i[1], n)
 
+			# Legacy removal is a special case because directories will be detected
+			# as file entries (because they are symlinks).  Therefore, we need to use
+			# os.path.realpath and os.path.isdir to find out whether it's really a directory
+			# or not.
+			is_directory = os.path.isdir(os.path.realpath(i[2]))
+
 			# Get file information.
 			try:
 				pstat = os.lstat(i[2])[stat.ST_MODE]
@@ -215,7 +240,7 @@ class InstalledApplication():
 				continue
 			
 			# Determine whether we should proceed with this entry.
-			if (not i[0] == "directory"):
+			if (not is_directory):
 				continue
 			if (not stat.S_ISLNK(pstat)):
 				continue
@@ -226,7 +251,7 @@ class InstalledApplication():
 				continue
 			
 			# Double-check before we go unlinking (in case of a logic oversight).
-			if (i[0] == "directory" and stat.S_ISLNK(pstat)):
+			if (is_directory and stat.S_ISLNK(pstat)):
 				trip_safety = True
 				try:
 					self.oper_unlink(i[2])
@@ -256,6 +281,15 @@ class InstalledApplication():
 		attempt_notexists = list()
 		total_files = 0
 		for i in results:
+			# Attempt to get the transformed path to see
+			# whether we should link this file.
+			n = self.getTransformedPath(i[2])
+			if (n == None):
+				log.showWarningW("File or directory " + i[2] + " skipped because it was not a recognized path.")
+				continue
+			else:
+				i = (i[0], i[1], n)
+
 			total_files += 1
 			try:
 				pstat = os.lstat(i[2])[stat.ST_MODE]

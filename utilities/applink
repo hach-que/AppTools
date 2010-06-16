@@ -77,12 +77,12 @@ elif (options.app_relink):
 		log.showSuccessO("Remember to run ldconfig if the application contains library files.")
 		sys.exit(0)
 	elif (c_successes > 0):
-		log.showWarningW("Only " + str(successes) + " of " + str(successes + failures) + " relinking operations were successful (total relinks attempted: " + tot + ").")
+		log.showWarningW("Only " + str(c_successes) + " of " + str(c_successes + c_failures) + " relinking operations were successful (total relinks attempted: " + tot + ").")
 		log.showWarningO("Check to make sure applications still operate if it's a core library.")
 		log.showWarningO("Remember to run ldconfig if the application contains library files.")
 		sys.exit(1)
 	else:
-		log.showErrorW("All of the relinking operations failed.  Make sure you have appropriate permissions (the system is unaffected).")
+		log.showErrorW("All " + str(c_failures) + " of the relinking operations failed.  Make sure you have appropriate permissions (the system is unaffected).")
 		sys.exit(1)
 else:
 	if (app.name == "Glibc" or app.name == "Python" or app.name == "Binutils"):
