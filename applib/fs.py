@@ -21,6 +21,7 @@ class InstalledApplication():
 		self.type = type
 		self.name = name
 		self.version = version
+		self.flog = open("/log", "w")
 
 		if (self.type == None or self.name == None):
 			raise InvalidApplicationException();
@@ -49,6 +50,26 @@ class InstalledApplication():
 			else:
 				raise NoVersionsException()
 
+	def oper_mkdir(self, path, mode):
+		m = "mkdir \"" + path + "\" && chmod " + str(mode) + " \"" + path + "\""
+		self.flog.write(m + "\n")
+		log.showInfoO(m)
+
+	def oper_symlink(self, source, link_name):
+		m = "ln -s \"" + source + "\" \"" + link_name + "\""
+		self.flog.write(m + "\n")
+		log.showInfoO(m)
+
+	def oper_unlink(self, path):
+		m = "rm \"" + path + "\""
+		self.flog.write(m + "\n")
+		log.showInfoO(m)
+
+	def oper_rmdir(self, path):
+		m = "rmdir \"" + path + "\""
+		self.flog.write(m + "\n")
+		log.showInfoO(m)
+
 	def link(self):
 		"""Link an application to the base filesystem."""
 		adiff = ApplicationDifferencer()
@@ -74,14 +95,14 @@ class InstalledApplication():
 			total_files += 1
 			if (i[0] == "directory"):
 				try:
-					os.mkdir(i[2], 0755)
+					self.oper_mkdir(i[2], 0755)
 					attempt_successes.append(i[2])
 				except:
 					log.showErrorW("Unable to create directory " + i[2])
 					attempt_failures.append(i[2])
 			elif (i[0] == "file"):
 				try:
-					os.symlink(i[1], i[2])
+					self.oper_symlink(i[1], i[2])
 					attempt_successes.append(i[2])
 				except:
 					log.showErrorW("Unable to symlink file " + i[2])
@@ -163,7 +184,7 @@ class InstalledApplication():
 			if (i[0] == "directory" and stat.S_ISLNK(pstat)):
 				trip_safety = True
 				try:
-					os.unlink(i[2])
+					self.oper_unlink(i[2])
 					log.showWarningW("Removed symlinked directory at: " + i[2])
 					log.showWarningW("The full path was: " + rpath)
 				except:
@@ -206,7 +227,7 @@ class InstalledApplication():
 
 			if (i[0] == "directory" and not stat.S_ISLNK(pstat)):
 				try:
-					os.rmdir(i[2])
+					self.oper_rmdir(i[2])
 					attempt_successes.append(i[2])
 				except:
 					log.showWarningW("Unable to remove directory " + i[2] + ".  Other applications may be using it.")
@@ -216,8 +237,7 @@ class InstalledApplication():
 					#attempt_failures.append(i[2])
 			elif ((i[0] == "file" or i[0] == "directory") and stat.S_ISLNK(pstat)):
 				try:
-					log.showInfoW("  * " + i[2])
-					os.unlink(i[2])
+					self.oper_unlink(i[2])
 					attempt_successes.append(i[2])
 				except:
 					log.showErrorW("Unable to symlink file " + i[2])

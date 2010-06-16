@@ -1,10 +1,7 @@
 #!/usr/bin/python
 
 import sys
-sys.path.append("../") # TODO: Remove this once debugging is finished and applib is an
-                       #       actual Python module.
-
-import applib
+import applib # You must install the applib directory in your Python module path.
 from applib.logging import default_logger as log
 from optparse import OptionParser
 
@@ -14,6 +11,7 @@ log.setName("applink")
 parser = OptionParser(usage="%prog [options] NAME VERSION")
 applib.general.CommandLine.applyOptions(parser)
 parser.add_option("-x", "--unlink", help="Unlink the application instead of linking it.", dest="app_unlink", action="store_true", default=False)
+parser.add_option("-r", "--relink", help="Unlink and then link the application.  Use this instead of -x if you are relinking an essential system component (such as Glibc) since if said core component is not linked at any point you will not be able to re-run Python to link it again.", dest="app_relink", action="store_true", default=False)
 (options, args) = parser.parse_args()
 
 appname = None
@@ -49,7 +47,7 @@ if (not app.exists()):
 	log.showErrorO("  * " + app.location())
 	sys.exit(1)
 
-if (not options.app_unlink):
+if (not options.app_unlink and not options.app_relink):
 	log.showInfoW("Linking application " + app.name + ", version " + app.version + " to the root filesystem...");
 	successes, failures, tot = app.link()
 	tot = str(tot)
@@ -65,7 +63,38 @@ if (not options.app_unlink):
 	else:
 		log.showErrorW("All " + str(len(failures)) + " files failed to link.  Make sure you have appropriate permissions. (total on disk: " + tot + ")")
 		sys.exit(1)
+elif (options.app_relink):
+	log.showInfoW("Relinking application " + app.name + ", version " + app.version + " to the root filesystem...");
+	ul_successes, ul_failures, ul_tot = app.unlink()
+	rl_successes, rl_failures, rl_tot = app.link()
+
+	c_successes = len(ul_successes) + len(rl_successes)
+	c_failures = len(ul_failures) + len(rl_failures)
+	tot = str(ul_tot + rl_tot)
+
+	if (c_failures == 0):
+		log.showSuccessW("Successfully performed all " + str(c_successes) + " relinking operations (total relinks attempted: " + tot + ").")
+		log.showSuccessO("Remember to run ldconfig if the application contains library files.")
+		sys.exit(0)
+	elif (c_successes > 0):
+		log.showWarningW("Only " + str(successes) + " of " + str(successes + failures) + " relinking operations were successful (total relinks attempted: " + tot + ").")
+		log.showWarningO("Check to make sure applications still operate if it's a core library.")
+		log.showWarningO("Remember to run ldconfig if the application contains library files.")
+		sys.exit(1)
+	else:
+		log.showErrorW("All of the relinking operations failed.  Make sure you have appropriate permissions (the system is unaffected).")
+		sys.exit(1)
 else:
+	if (app.name == "Glibc" or app.name == "Python" or app.name == "Binutils"):
+		log.showErrorW("Safety check triggered.  You have selected to unlink either:")
+		log.showErrorO("  * Glibc")
+		log.showErrorO("  * Python or")
+		log.showErrorO("  * Binutils")
+		log.showErrorO("all which are essential for the operation of other applications")
+		log.showErrorO("and this script.  If you wish to relink these applications, use")
+		log.showErrorO("the -r option instead.")
+		sys.exit(1)
+
 	log.showInfoW("Unlinking application " + app.name + ", version " + app.version + " from the root filesystem...");
 	successes, failures, tot = app.unlink()
 	tot = str(tot)
