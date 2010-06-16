@@ -12,7 +12,10 @@ parser = OptionParser(usage="%prog [options] NAME VERSION")
 applib.general.CommandLine.applyOptions(parser)
 parser.add_option("-x", "--unlink", help="Unlink the application instead of linking it.", dest="app_unlink", action="store_true", default=False)
 parser.add_option("-r", "--relink", help="Unlink and then link the application.  Use this instead of -x if you are relinking an essential system component (such as Glibc) since if said core component is not linked at any point you will not be able to re-run Python to link it again.", dest="app_relink", action="store_true", default=False)
+parser.add_option("-v", "--verbose", help="Display additional information (such as directories still in use or files ignored because they aren't specifically owned by the application) during the link / unlink / relink process.", dest="verbose", action="store_true", default=False)
 (options, args) = parser.parse_args()
+
+log.setVerbose(options.verbose)
 
 appname = None
 appver = None
@@ -53,7 +56,7 @@ if (not app.exists()):
 	sys.exit(1)
 
 if (not options.app_unlink and not options.app_relink):
-	log.showInfoW("Linking application " + app.name + ", version " + app.version + " to the root filesystem...");
+	log.showInfoW("Linking application " + app.name + ", version " + app.version + " to the root filesystem...", True);
 	successes, failures, tot = app.link()
 	tot = str(tot)
 	
@@ -69,7 +72,7 @@ if (not options.app_unlink and not options.app_relink):
 		log.showErrorW("All " + str(len(failures)) + " files failed to link.  Make sure you have appropriate permissions. (total on disk: " + tot + ")")
 		sys.exit(1)
 elif (options.app_relink):
-	log.showInfoW("Relinking application " + app.name + ", version " + app.version + " to the root filesystem...");
+	log.showInfoW("Relinking application " + app.name + ", version " + app.version + " to the root filesystem...", True);
 	ul_successes, ul_failures, ul_tot = app.unlink()
 	rl_successes, rl_failures, rl_tot = app.link()
 
@@ -100,7 +103,7 @@ else:
 		log.showErrorO("the -r option instead.")
 		sys.exit(1)
 
-	log.showInfoW("Unlinking application " + app.name + ", version " + app.version + " from the root filesystem...");
+	log.showInfoW("Unlinking application " + app.name + ", version " + app.version + " from the root filesystem...", True);
 	successes, failures, tot = app.unlink()
 	tot = str(tot)
 

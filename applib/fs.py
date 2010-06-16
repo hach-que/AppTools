@@ -208,7 +208,6 @@ class InstalledApplication():
 
 			# Determine whether it's safe to remove this symlinked dir.
 			if (not self.isApplicationOwned(i[2], safe_app_dir)):
-				log.showInfoW("Ignoring " + i[2] + " because it's not owned by the application (safety check).")
 				continue
 			
 			# Double-check before we go unlinking (in case of a logic oversight).
@@ -253,15 +252,17 @@ class InstalledApplication():
 			# Check to make sure that the file we're going to remove is located
 			# within a safe directory.
 			if (not self.isApplicationOwned(i[2], safe_app_dir)):
-				log.showInfoW("Ignoring " + i[2] + " because it's not owned by the application.")
-				continue
+				# This check only applies to symlinks, not real directories.
+				if ((i[0] == "file" or i[0] == "directory") and stat.S_ISLNK(pstat)):
+					log.showInfoW("Ignoring " + i[2] + " because it's not owned by the application.")
+					continue
 
 			if (i[0] == "directory" and not stat.S_ISLNK(pstat)):
 				try:
 					self.oper_rmdir(i[2])
 					attempt_successes.append(i[2])
 				except:
-					log.showWarningW("Unable to remove directory " + i[2] + ".  Other applications may be using it.")
+					log.showInfoW("Still in use: " + i[2])
 					# Failure to remove a directory should not be counted
 					# as a failure since quite often directories will not be
 					# removed because they are still in use by other applications.
@@ -274,6 +275,7 @@ class InstalledApplication():
 					log.showErrorW("Unable to symlink file " + i[2])
 					attempt_failures.append(i[2])
 			elif (i[0] == "notexists"):
+				log.showInfoW("  N " + i[2])
 				attempt_notexists.append(i[2])
 			elif (i[0] != "notexists" and i[0] != "file" and i[0] != "directory"):
 				log.showWarningW("Unknown operation for " + i[1])
@@ -301,7 +303,7 @@ class InstalledApplication():
 			)
 	
 	"""Checks to see whether the specified path is located within safe_root
-	   when normalized."""
+	   when normalized (only works with symlinks)."""
 	def isApplicationOwned(self, path, safe_root):
 		only_sub = [
 				safe_root
@@ -336,7 +338,10 @@ class ApplicationDifferencer():
 					else:
 						results.append(("exists", src_path, dest_path))
 				else:
-					if (os.path.exists(dest_path)):
+					# We use lexists in case the symbolic link is owned by this
+					# application, but it's broken for some reason (since it still
+					# needs to be removed anyway).
+					if (os.path.lexists(dest_path)):
 						results.append(("directory", src_path, dest_path))
 					else:
 						results.append(("notexists", src_path, dest_path))
@@ -352,7 +357,8 @@ class ApplicationDifferencer():
 					else:
 						results.append(("exists", src_path, dest_path))
 				else:
-					if (os.path.exists(dest_path)):
+					# See comment above for lexists explaination.
+					if (os.path.lexists(dest_path)):
 						results.append(("file", src_path, dest_path))
 					else:
 						results.append(("notexists", src_path, dest_path))
