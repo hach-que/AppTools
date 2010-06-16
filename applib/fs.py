@@ -14,6 +14,24 @@ from applib.general import AppType, AppFolders, MultipleVersionsException, NoVer
 from applib.general import InvalidApplicationException, InvalidApplicationTypeException
 from applib.logging import default_logger as log
 
+def rl(path):
+	return os.path.realpath(path)
+
+# Only paths which start with one of the entries
+# in FolderTransformations will be linked.
+FolderTransformations = {}
+FolderTransformations["/bin"]     = rl("/bin")
+FolderTransformations["/boot"]    = rl("/boot")
+FolderTransformations["/etc"]     = rl("/etc")
+FolderTransformations["/include"] = rl("/usr/include")
+FolderTransformations["/lib"]     = rl("/lib")
+FolderTransformations["/man"]     = rl("/usr/man")
+FolderTransformations["/sbin"]    = rl("/sbin")
+FolderTransformations["/share"]   = rl("/usr/share")
+FolderTransformations["/src"]     = rl("/src")
+FolderTransformations["/tmp"]     = rl("/tmp")
+FolderTransformations["/var"]     = rl("/var")
+
 class InstalledApplication():
 	"""Class for containing information about an installed
 	   application and performing operations on it."""
@@ -70,6 +88,13 @@ class InstalledApplication():
 		self.flog.write(m + "\n")
 		log.showInfoO(m)
 
+	def getTransformedPath(self, path):
+		for k, i in FolderTransformations.items():
+			if path.startswith(k):
+				path = i + path[len(k):]
+				return path
+		return None
+
 	def link(self):
 		"""Link an application to the base filesystem."""
 		adiff = ApplicationDifferencer()
@@ -93,6 +118,16 @@ class InstalledApplication():
 		total_files = 0
 		for i in results:
 			total_files += 1
+
+			# Attempt to get the transformed path to see 
+			# whether we should link this file.
+			n = self.getTransformedPath(i[2])
+			if (n == None):
+				log.showWarningW("File or directory " + i[2] + " skipped because it was not a recognized path.")
+				continue
+			else:
+				i = (i[0], i[1], n)
+
 			if (i[0] == "directory"):
 				try:
 					self.oper_mkdir(i[2], 0755)
@@ -163,6 +198,16 @@ class InstalledApplication():
 		results.reverse()
 		trip_safety = False
 		for i in results:
+			# Attempt to get the transformed path to see
+			# whether we should link this file.
+			n = self.getTransformedPath(i[2])
+			if (n == None):
+				log.showWarningW("File or directory " + i[2] + " skipped because it was not a recognized path.")
+				continue
+			else:
+				i = (i[0], i[1], n)
+
+			# Get file information.
 			try:
 				pstat = os.lstat(i[2])[stat.ST_MODE]
 			except:
