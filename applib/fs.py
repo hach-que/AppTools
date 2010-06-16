@@ -39,19 +39,12 @@ class InstalledApplication():
 		self.type = type
 		self.name = name
 		self.version = version
-		self.flog = open("/log", "w")
 
 		if (self.type == None or self.name == None):
 			raise InvalidApplicationException();
 		if (AppFolders.get(self.type) == None):
 			raise InvalidApplicationTypeException();
 
-	def __del__(self):
-		try:
-			self.flog.close()
-		except:
-			pass # It'll be closed by the OS anyway...
-	
 	def autodetect(self):
 		"""Automatically fill in the version parameter."""
 		if (self.version == None):
@@ -75,28 +68,16 @@ class InstalledApplication():
 				raise NoVersionsException()
 
 	def oper_mkdir(self, path, mode):
-		#os.mkdir(path, mode)
-		m = "mkdir \"" + path + "\" && chmod " + str(mode) + " \"" + path + "\""
-		self.flog.write(m + "\n")
-		log.showInfoO(m)
+		os.mkdir(path, mode)
 
 	def oper_symlink(self, source, link_name):
-		#os.symlink(source, link_name)
-		m = "ln -s \"" + source + "\" \"" + link_name + "\""
-		self.flog.write(m + "\n")
-		log.showInfoO(m)
+		os.symlink(source, link_name)
 
 	def oper_unlink(self, path):
-		#os.unlink(path)
-		m = "rm \"" + path + "\""
-		self.flog.write(m + "\n")
-		log.showInfoO(m)
+		os.unlink(path)
 
 	def oper_rmdir(self, path):
-		#os.rmdir(path)
-		m = "rmdir \"" + path + "\""
-		self.flog.write(m + "\n")
-		log.showInfoO(m)
+		os.rmdir(path)
 
 	def getNormalizedApplicationPath(self, version, path):
 		return path.replace("/" + version + "/", "/Current/", 1)
