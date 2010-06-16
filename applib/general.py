@@ -85,3 +85,6 @@ class InvalidApplicationException(Exception):
 
 class InvalidApplicationTypeException(Exception):
 	pass
+
+class ApplicationNotFoundException(Exception):
+	pass

@@ -40,6 +40,11 @@ except applib.general.MultipleVersionsException:
 	log.showErrorW("More than one version of application detected.  Specify the version you")
 	log.showErrorO("want to link as a second parameter.")
 	sys.exit(1)
+except applib.general.ApplicationNotFoundException:
+	log.showErrorW("Unable to locate the application on disk (to scan for versions).")
+	log.showErrorO("The location applink looked in was:")
+	log.showErrorO("  * " + app.location_unversioned())
+	sys.exit(1)
 
 # Check to make sure the application exists.
 if (not app.exists()):

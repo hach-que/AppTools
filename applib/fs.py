@@ -11,7 +11,7 @@ import shutil
 import stat
 import sys
 from applib.general import AppType, AppFolders, MultipleVersionsException, NoVersionsException
-from applib.general import InvalidApplicationException, InvalidApplicationTypeException
+from applib.general import InvalidApplicationException, InvalidApplicationTypeException, ApplicationNotFoundException
 from applib.logging import default_logger as log
 
 def rl(path):
@@ -48,12 +48,16 @@ class InstalledApplication():
 	def autodetect(self):
 		"""Automatically fill in the version parameter."""
 		if (self.version == None):
-			entries = os.listdir(
-				os.path.join(
-					AppFolders.get(self.type),
-					self.name
+			try:
+				entries = os.listdir(
+					os.path.join(
+						AppFolders.get(self.type),
+						self.name
+						)
 					)
-				)
+			except OSError:
+				raise ApplicationNotFoundException()
+
 			entry_has = False
 			entry_ver = None
 			for e in entries:
@@ -288,6 +292,12 @@ class InstalledApplication():
 		return os.path.join(
 			AppFolders.get(self.type),
 			self.name + "/" + self.version
+			)
+	
+	def location_unversioned(self):
+		return os.path.join(
+			AppFolders.get(self.type),
+			self.name
 			)
 	
 	"""Checks to see whether the specified path is located within safe_root
