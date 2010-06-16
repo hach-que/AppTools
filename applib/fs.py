@@ -98,13 +98,6 @@ class InstalledApplication():
 		self.flog.write(m + "\n")
 		log.showInfoO(m)
 
-	def getTransformedPath(self, path):
-		for k, i in FolderTransformations.items():
-			if path.startswith(k):
-				path = i + path[len(k):]
-				return path
-		return None
-	
 	def getNormalizedApplicationPath(self, version, path):
 		return path.replace("/" + version + "/", "/Current/", 1)
 
@@ -132,18 +125,10 @@ class InstalledApplication():
 		for i in results:
 			total_files += 1
 
-			# Attempt to get the transformed path to see 
-			# whether we should link this file.
-			n = self.getTransformedPath(i[2])
-			if (n == None):
-				log.showWarningW("File or directory " + i[2] + " skipped because it was not a recognized path.")
-				continue
-			else:
-				# Since we're rebuilding the tuple here, we might
-				# as well normalize (replace version number with
-				# "Current") the application path.
-				sv = self.getNormalizedApplicationPath(self.version, i[1])
-				i = (i[0], sv, n)
+			# Normalize (replace version number with
+			# "Current") the application path.
+			sv = self.getNormalizedApplicationPath(self.version, i[1])
+			i = (i[0], sv, i[2])
 
 			if (i[0] == "directory"):
 				try:
@@ -217,15 +202,6 @@ class InstalledApplication():
 		results.reverse()
 		trip_safety = False
 		for i in results:
-			# Attempt to get the transformed path to see
-			# whether we should link this file.
-			n = self.getTransformedPath(i[2])
-			if (n == None):
-				log.showWarningW("File or directory " + i[2] + " skipped because it was not a recognized path.")
-				continue
-			else:
-				i = (i[0], i[1], n)
-
 			# Legacy removal is a special case because directories will be detected
 			# as file entries (because they are symlinks).  Therefore, we need to use
 			# os.path.realpath and os.path.isdir to find out whether it's really a directory
@@ -281,15 +257,6 @@ class InstalledApplication():
 		attempt_notexists = list()
 		total_files = 0
 		for i in results:
-			# Attempt to get the transformed path to see
-			# whether we should link this file.
-			n = self.getTransformedPath(i[2])
-			if (n == None):
-				log.showWarningW("File or directory " + i[2] + " skipped because it was not a recognized path.")
-				continue
-			else:
-				i = (i[0], i[1], n)
-
 			total_files += 1
 			try:
 				pstat = os.lstat(i[2])[stat.ST_MODE]
@@ -368,6 +335,10 @@ class ApplicationDifferencer():
 		for root, dirs, files in os.walk(path, topdown = (not inverse)):
 			for d in dirs:
 				dest_path, src_path = self.calculatePaths(path, os.path.join(root, d))
+				dest_path = self.getTransformedPath(dest_path)
+				if (dest_path == None):
+					continue
+
 				if (not inverse):
 					if (not os.path.exists(dest_path)):
 						results.append(("directory", src_path, dest_path))
@@ -380,6 +351,10 @@ class ApplicationDifferencer():
 						results.append(("notexists", src_path, dest_path))
 			for f in files:
 				dest_path, src_path = self.calculatePaths(path, os.path.join(root, f))
+				dest_path = self.getTransformedPath(dest_path)
+				if (dest_path == None):
+					continue
+
 				if (not inverse):
 					if (not os.path.exists(dest_path)):
 						results.append(("file", src_path, dest_path))
@@ -397,3 +372,9 @@ class ApplicationDifferencer():
 		rel_path = os.path.relpath(file_path, scan_path)
 		return os.path.join("/", rel_path), os.path.join(scan_path, file_path)
 
+        def getTransformedPath(self, path):
+                for k, i in FolderTransformations.items():
+                        if path.startswith(k):
+                                path = i + path[len(k):]
+                                return path
+                return None
