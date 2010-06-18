@@ -333,8 +333,25 @@ int main(int argc, char *argv[])
 	appfs_debugw("The filesystem will now be mounted.  In order to write the changes\n");
         appfs_debugo("back to the application image, you need to unmount the image.  When ready:\n");
         appfs_debugo("  * Run 'umount %s'", global_mount_point.c_str());
-        printf("\n");
-	int ret = extstart((char*)global_disk_image.c_str(), (char*)global_mount_point.c_str(), false, appfs_continue_execution);
+	printf("\n");
+	// Make sure we lock the file until we're finished with it.
+	int lockedfd = open(disk_image->filename[0], O_RDWR);
+	flock lock = { F_WRLCK, SEEK_SET, 0, 0, 0 };
+	int lockres = fcntl(lockedfd, F_SETLK, &lock);
+	int ret = 1;
+	if (lockres != -1)
+	{
+		ret = extstart((char*)global_disk_image.c_str(), (char*)global_mount_point.c_str(), true, appfs_continue_execution);
+#ifdef DEBUGGING
+		appfs_debugw("info : finished appmount operation.  now saving data...\n");
+#endif
+	}
+	else
+	{
+		appfs_debugw("error: unable to lock image.  check to make sure it's\n");
+		appfs_debugo("       not already mounted.\n");
+		return 1;
+	}
 #else
 	int ret = extstart((char*)global_disk_image.c_str(), (char*)global_mount_point.c_str(), true, appfs_continue_execution);
 #endif
@@ -353,6 +370,9 @@ int main(int argc, char *argv[])
 	// Open the file the application is running from.
 	FILE * self_file;
 #ifdef APPMOUNT
+#ifdef DEBUGGING
+                appfs_debugw("info : source data is at %s\n", disk_image->filename[0]);
+#endif
 	const char * source_app = disk_image->filename[0];
 #else
 	const char * source_app = argv[0];
@@ -450,6 +470,32 @@ int main(int argc, char *argv[])
 		fclose(temp_file);
 		close(new_file);
 
+#ifdef APPMOUNT
+		// Remove the existing file and copy the new one in it's place
+#ifdef DEBUGGING
+		appfs_debugw("info : deleting %s...\n", source_app);
+#endif
+		if (remove(source_app) != 0)
+                {
+                        appfs_debugw("error: unable to save package (delete error, oldtmp -> *)\n");
+                        return 1;
+                }
+#ifdef DEBUGGING
+                appfs_debugw("info : renaming %s to %s...\n", new_disk_path, source_app);
+#endif
+		if (rename(new_disk_path, source_app) != 0)
+                {
+                        appfs_debugw("error: unable to save package (rename error, old -> oldtmp)\n");
+                        return 1;
+                }
+
+#ifdef DEBUGGING
+                appfs_debugw("info : releasing file lock...\n");
+#endif
+		flock unlock = { F_UNLCK, SEEK_SET, 0, 0, 0 };
+		fcntl(lockedfd, F_SETLKW, &unlock);
+		close(lockedfd);
+#else
 		// Copy the new file in-place.
 		char oldtmp_path[] = "/tmp/appfs_cleanup.XXXXXX";
 		if (mkdtemp(oldtmp_path) == NULL)
@@ -479,6 +525,7 @@ int main(int argc, char *argv[])
                         appfs_debugw("error: unable to save package (delete temporary directory error)\n");
                         return 1;
                 }
+#endif
 
 		// Set the permissions on the new file.
 		// TODO: Really should read the old permissions and then assign them
