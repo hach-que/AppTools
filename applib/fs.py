@@ -24,7 +24,8 @@ FolderTransformations["/bin"]     = rl("/bin")
 FolderTransformations["/boot"]    = rl("/boot")
 FolderTransformations["/etc"]     = rl("/etc")
 FolderTransformations["/include"] = rl("/usr/include")
-FolderTransformations["/lib"]     = rl("/lib")
+FolderTransformations["/libexec"] = rl("/bin")
+FolderTransformations["/lib/"]    = rl("/lib") + "/"    # Ensure it doesn't get confused with /libexec
 FolderTransformations["/man"]     = rl("/usr/man")
 FolderTransformations["/sbin"]    = rl("/sbin")
 FolderTransformations["/share"]   = rl("/usr/share")
@@ -70,6 +71,20 @@ class InstalledApplication():
 				self.version = entry_ver
 			else:
 				raise NoVersionsException()
+
+	def size(self):
+		# Calculate the size of the application.
+		path = os.path.join(
+					AppFolders.get(self.type),
+					self.name + "/" + self.version
+					)
+
+		size_total = 0
+                for root, dirs, files in os.walk(path):
+                        size_total += sum(os.path.getsize(os.path.join(root, name)) for name in files)
+                        size_total += sum(os.path.getsize(os.path.join(root, name)) for name in dirs)
+                
+		return size_total
 
 	def oper_mkdir(self, path, mode):
 		os.mkdir(path, mode)

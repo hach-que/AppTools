@@ -6,8 +6,11 @@
 # Created:        Tuesday, 15th June 2010 by James Rhodes
 # Last Modified:  <same>
 
-__all__ = [ "logging", "general", "fs" ]
+__all__ = [ "logging", "general", "fs", "packaging", "sandboxing", "environment" ]
 
 import logging
 import general
 import fs
+import packaging
+import sandboxing
+import environment
