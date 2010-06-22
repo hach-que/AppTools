@@ -6,8 +6,8 @@ EXE_APPMOUNT	= appmount
 BUILD_APPFS	=
 BUILD_APPMOUNT	= -DAPPMOUNT
 OBJS	= main.o 
-OBJLIBS	= libfs.a 
-LIBS	= -L. libfs.a /lib/libfuse.a /lib/libargtable2.a -lpthread -lext2fs -lstdc++ -ldl -lrt
+OBJLIBS	=  
+LIBS	= -L. /lib/libfuse.a /lib/libargtable2.a -lpthread -lext2fs -lstdc++ -ldl -lrt
 
 all: appfs appmount
 
@@ -27,9 +27,9 @@ appmount: main.o $(OBJLIBS)
 	@$(ECHO) rm main.o
 	@rm main.o
 
-libfs.a: force_look
-	@$(ECHO) looking in fs : $(MAKE) $(MFLAGS)
-	@cd fs; $(MAKE) $(MFLAGS)
+#libfs.a: force_look
+#	@$(ECHO) looking in fs : $(MAKE) $(MFLAGS)
+#	@cd fs; $(MAKE) $(MFLAGS)
 
 clean:
 	@$(ECHO) cleaning up in .

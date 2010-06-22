@@ -7,12 +7,14 @@
 # Last Modified:  <same>
 
 import applib.environment as environment
+import applib.fs as fs
 from applib.logging import default_logger as log
 import tempfile
 import subprocess
 import os
 import time
 import signal
+from xml.sax import saxutils
 
 class Package():
 	def __init__(self, filename):
@@ -44,7 +46,10 @@ class Package():
 
 		# Now use appmount to mount it to the specified mountpoint.
 		self.mountproc = subprocess.Popen(["appmount", self.filename, mountpoint])
-		time.sleep(1) # Give it a chance to bring up the mountpoint.
+		i = 0
+		while (not os.path.exists(os.path.join(mountpoint, "lost+found")) and i < 10):
+			time.sleep(1) # Give it a chance to bring up the mountpoint.
+			i += 1
 
 		# Check to see if the mountpoint was brought up.
 		if (not os.path.exists(os.path.join(mountpoint, "lost+found"))):
@@ -206,3 +211,67 @@ class PackageCreationFailureException(Exception):
 
 class NoPackagingAvailableException(Exception):
 	pass
+
+class PackageInvalidException(Exception):
+	pass
+
+# TODO: Make this use the XML writer classes in Python.
+class PackageInfoWriter():
+	def __init__(self, app):
+		if (not isinstance(app, fs.InstalledApplication)):
+			raise PackageInvalidException()
+		
+		self.app = app
+		self.author = None
+		self.updateURL = None
+		self.archs = []
+	
+	def setAuthor(self, author):
+		self.author = author
+
+	def setArchs(self, archs):
+		if (isinstance(archs, list)):
+			self.archs = archs
+		else:
+			raise ValueError()
+
+	def getXML(self):
+		updatexml = ""
+		if (self.updateURL != None):
+			updatexml = "<UpdateURL>" + saxutils.escape(self.updateURL) + """</UpdateURL>
+  """
+		archxml = ""
+		for i in self.archs:
+			if (isinstance(i, PackageArchitecture)):
+				archxml = "  " + i.getXMLRepresentation() + """
+  """
+		authorxml = ""
+		if (self.author != None):
+			authorxml = "<Author>" + saxutils.escape(self.author) + """</Author>
+  """
+		xml = """<?xml version="1.0" encoding="UTF-8" ?>
+<Application>
+  <Name>""" + saxutils.escape(self.app.name) + """</Name>
+  <Version>""" + saxutils.escape(self.app.version) + """</Version>
+  """ + authorxml + updatexml + """<Architectures>
+  """ + archxml + """</Architectures>
+</Application>"""
+		return xml
+
+class PackageArchitecture():
+	def __init__(self, arch, deltapatch = None):
+		self.arch = arch
+		if (deltapatch != None):
+			self.onrequest = True
+			self.deltapatch = deltapatch
+		else:
+			self.onrequest = False
+			self.deltapatch = None
+	
+	def getXMLRepresentation(self):
+		attribs = ""
+		if (self.onrequest):
+			attribs += " OnRequest=\"true\""
+		if (self.deltapatch != None):
+			attribs += " DeltaPatch=\"" + saxutils.escape(self.deltapatch) + "\""
+		return "<Arch" + attribs +">" + saxutils.escape(self.arch) + "</Arch>"
