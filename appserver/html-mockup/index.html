@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+		<meta http-equiv="content-script-type" content="text/javascript" /> 
+		<meta http-equiv="content-style-type" content="text/css" />
+		<meta name="keywords" content="" />
+		<meta name="description" content="" />
+		<title>Mockup AppServer front-end 0.1 (HTML/CSS/JS only)</title>
+		<link rel="stylesheet" media="screen" type="text/css" href="reset.css" />
+		<link rel="stylesheet" media="screen" type="text/css" href="960.css" />
+		<link rel="stylesheet" media="screen" type="text/css" href="styles.css" />
+		<link rel="stylesheet" media="screen" type="text/css" href="jquery.treeview.css" />
+		<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
+		<script type="text/javascript" src="http://dev.jquery.com/view/trunk/plugins/treeview/jquery.treeview.js"></script>
+		<script>
+		$(document).ready(function(){
+			$("#categories-treeview").treeview({
+				persist: "location",
+				collapsed: true,
+				unique: true
+			});
+		});
+		</script>
+	</head>
+	<body>
+		<div id="page-container" class="container_16">
+			<div id="page-body" class="grid_16 alpha omega">
+				<div id="page-body-header" class="grid_16 alpha omega">
+					<div id="page-body-header-title" class="grid_10">
+						<h1>AppFS appserver <small>0.1</small></h1>
+						<h2>Elementary Central Repository</h2>
+					</div>
+					<div id="page-body-header-login" class="grid_6">
+						<form action="" method="post">
+							<fieldset class="page-body-header-login-fieldset">
+								<legend>Repository Access</legend>
+								<p class="grid_6 page-body-header-login-legend">Repository Access</p>
+								<div class="grid_4 omega">
+									<label class="page-body-header-login-label-username" for="login-username">Username :</label>
+									<input type="text" name="login-username" id="login-username" class="page-body-header-login-input-text" />
+									<br />
+									<label class="page-body-header-login-label-password" for="login-password">Password :</label>
+									<input type="password" name="login-password" id="login-password" class="page-body-header-login-input-password" />
+								</div>
+								<br />
+								<div class="grid_2 alpha omega">
+									<input type="submit" class="page-body-header-login-input-submit" value="Login" />
+								</div>
+								<div class="grid_2 suffix_2 omega page-body-header-login-footer-left">
+									<a href="#">Register account</a>
+								</div>
+								<div class="grid_2 alpha page-body-header-login-footer-right">
+									<a href="#">Forgot password ?</a>
+								</div>
+							</fieldset>
+						</form>
+					</div>
+					<hr class="clear" />
+				</div>
+				<div id="page-body-content">
+					<div id="page-body-content-left" class="grid_12">
+						<div class="grid_12 alpha omega breadcrumbs">
+							<ul>
+								<li>
+									<a href="#">Home</a> / 
+								</li>
+								<li>
+									<a href="#">Desktop</a> / 
+								</li>
+								<li>
+									Graphics
+								</li>
+							</ul>
+						</div>
+						<dl class="grid_12 alpha omega">
+							<dt>
+								<img src="images/gnome.png" alt="GNOME" />
+							</dt>
+							<dd class="first">
+								<h3>The GNOME Desktop Environment</h3>
+								<p>The main desktop environment.</p>
+							</dd>
+							<!-- @TODO: Add a JS to dynamically open up this field to add more descriptions / replace the DL content entirely with more screenshots -->
+							<dd class="last">
+								<button>Install / Run</button>
+								<br />
+								<span>Version : 3.0.1</span>
+							</dd>
+						</dl>
+						<dl class="grid_12 alpha omega">
+							<dt>
+								
+							</dt>
+							<dd class="first">
+								<h3>Dash</h3>
+								<p>Elementary's console.</p>
+							</dd>
+							<!-- @TODO: Add a JS to dynamically open up this field to add more descriptions / replace the DL content entirely with more screenshots -->
+							<dd class="last">
+								<button>Install / Run</button>
+								<br />
+								<span>Version : 0.1</span>
+							</dd>
+						</dl>
+					</div>
+					<div id="page-body-content-right" class="grid_4">
+						<dl id="page-body-content-right-categories" class="grid_4 alpha omega">
+							<dt>Categories</dt>
+							<dd class="last">
+								<ul id="categories-treeview">
+									<li>
+										<span class="folder">Internet</span>
+										<ul>
+											<li>
+												Chat - IM
+											</li>
+											<li>
+												E-Mail
+											</li>
+											<li>
+												Filesharing
+											</li>
+										</ul>
+									</li>
+									<li>
+										<span class="folder">Desktop</span>
+										<ul>
+											<li>
+												Educational
+											</li>
+											<li>
+												Multimedia
+											</li>
+											<li>
+												<a href="index.html">Graphics</a>
+											</li>
+										</ul>
+									</li>
+									<li>
+										<span class="folder">Games</span>
+										<ul>
+											<li>
+												First-person shooter
+											</li>
+											<li>
+												Strategic
+											</li>
+											<li>
+												Jump'n'run
+											</li>
+										</ul>
+									</li>
+									<li>
+										<span class="folder">Tools</span>
+										<ul>
+											<li>
+												Drivers
+											</li>
+											<li>
+												Development
+											</li>
+											<li>
+												Emulators / VM
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</dd>
+						</dl>
+						<dl id="page-body-content-right-new_packages" class="grid_4 alpha omega">
+							<dt>New packages</dt>
+							<dd>GNOME <span><strong>1.3.1</strong> 2010/06/23</span></dd>
+							<dd class="last">Dash <span><strong>0.1</strong> 2010/06/23</span></dd>
+						</dl>
+						<dl id="page-body-content-right-best_rated_packages" class="grid_4 alpha omega">
+							<dt>Best rated packages</dt>
+							<dd class="last">GNOME <span class="rating-star-container">
+								<ul class="rating-star-list">
+									<li class="rating-star rating-star-full">&nbsp;</li>
+									<li class="rating-star rating-star-full">&nbsp;</li>
+									<li class="rating-star rating-star-full">&nbsp;</li>
+									<li class="rating-star rating-star-half">&nbsp;</li>
+									<li class="rating-star rating-star-empty">&nbsp;</li>
+								</ul></span>
+							</dd>
+						</dl>
+						<dl id="page-body-content-right-updated_packages" class="grid_4 alpha omega">
+							<dt>Updated packages</dt>
+							<dd>GNOME <span><strong>1.3.1</strong> 2010/06/23</span></dd>
+							<dd class="last">Dash <span><strong>0.1</strong> 2010/06/23</span></dd>
+						</dl>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div id="page-footer" class="container_16">
+			<div class="grid_16 page-footer-copyright">
+				All rights reserved &copy; 2010 - AppTools Project.
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,44 @@
+@charset "UTF-8";
+*,body { margin:0; padding:0; }
+
+body          { background:url("./images/page-header-background.jpg") repeat-x scroll 0 0 #EDEDED; font:12px/1.55 Arial, Helvetica, sans-serif; color:#000; text-align:left; }
+
+img           { border:0; vertical-align:top; }
+
+a             { color:#000; text-decoration:none; }
+a:hover       { text-decoration:underline; }
+:focus        { outline: 0; }
+
+/* Headings */
+h2,h3,
+h4,h5,h6      { margin:0 0 5px; line-height:1.35; color:#0a263c; }
+h1            { font-size:20px; font-weight:normal; }
+h2            { font-size:18px; font-weight:normal; }
+h3            { font-size:16px; font-weight:bold; }
+h4            { font-size:14px; font-weight:bold; }
+h5            { font-size:12px; font-weight:bold; }
+h6            { font-size:11px; font-weight:bold; }
+
+/* Forms */
+form          { display:inline; }
+fieldset      { border:0; }
+legend        { display:none; }
+
+/* Table */
+table         { border:0; /*border-collapse:collapse;*/ border-spacing:0; empty-cells:show; font-size:100%; }
+caption,th,td { vertical-align:top; text-align:left; font-weight:normal; }
+
+/* Content */
+p             { margin:0 0 10px; }
+strong        { font-weight:bold; }
+address       { font-style:normal; line-height:1.35; }
+cite          { font-style:normal; }
+q,
+blockquote    { quotes:none; }
+q:before,
+q:after       { content:''; }
+small,big     { font-size:1em; }
+/*sup           { font-size:1em; vertical-align:top; }*/
+
+/* Lists */
+ul,ol         { list-style:none; }

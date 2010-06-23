@@ -1,0 +1,189 @@
+@charset "UTF-8";
+/*
+ * Author :	marc-andre
+ * Date :	23 juin 2010
+ */
+
+html {
+    height: 100%;
+}
+
+body {
+    height: 100%;
+}
+#page-container {
+min-height:100%;
+position:relative;
+}
+#page-body {
+    /*overflow:hidden;*/
+padding-bottom:80px;
+}
+* html #page-body {
+    height: 100%;
+}
+#page-footer {
+    position: relative;
+    margin-top: -35px;
+    height:35px;
+}
+
+/* A CSS hack that only applies to IE -- specifies a different offset for the footer */ 
+* html #page-footer {
+    margin-top: -7.4em;
+}
+
+#page-body, #page-body-header {
+	height:100px;
+margin-bottom:25px;
+width:960px;
+}
+#page-body-header-title h1 {
+	color:#EEEEEE;
+margin-top:18px;
+}
+#page-body-header-title h1 small {
+	font-size:15px;
+}
+#page-body-header-title h2 {
+	color:#FFFFFF;
+font-size:14px;
+margin-top:12px;
+}
+.page-body-header-login-fieldset {
+	background-color:#EEEEEE;
+background-image:url("./images/page-header-login-background.jpg");
+background-position:0 0;
+background-repeat:repeat-x;
+border:1px solid #000000;
+height:84px;
+margin-top:5px;
+padding:0 0 4px;
+}
+.page-body-header-login-legend {
+	margin:0 0 5px 0;
+text-align:center;
+font-weight:bold;
+}
+#page-body-header-login input[type=text],
+#page-body-header-login input[type=password] {
+	border:1px solid #888888;
+font-size:11px;
+margin-bottom:4px;
+width:125px;
+}
+#page-body-header-login label {
+	float:left;
+width:75px;
+}
+#page-body-header-login a {
+	font-size:10px;
+	color:#264765;
+}
+.page-body-header-login-input-submit {
+	display:block;
+margin:0 auto;
+}
+.page-body-header-login-footer-left {
+}
+.page-body-header-login-footer-right {
+	text-align:right;
+}
+#page-body-content-right #page-body-content-right-categories span {
+	float:none;
+font-size:13px;
+padding-top:0;
+}
+#page-body-content-left .breadcrumbs {
+	margin-bottom:20px;
+}
+#page-body-content-left .breadcrumbs ul {
+	display:inline;
+}
+#page-body-content-left .breadcrumbs ul li {
+	display:inline;
+font-weight:bold;
+}
+#page-body-content-left .breadcrumbs ul li a {
+	font-weight:normal;
+}
+#page-body-content-left dl {
+	background-color:#fff;
+	background-image:url(./images/page-body-dl-background.jpg);
+	background-position:0 0;
+	background-repeat:repeat-y;
+	border:1px solid #999999;
+	margin-bottom:10px;
+	width:700px;
+}
+#page-body-content-left dt {
+float:left;
+height:120px;
+width:120px;
+}
+#page-body-content-left dt img {
+	border:1px solid #777;
+	margin:20px 0 0 20px;
+}
+#page-body-content-left dd {
+	padding:10px 0;
+}
+#page-body-content-left dd.first {
+	float:left;	
+}
+#page-body-content-left dd.last {
+	float:right;
+}
+#page-body-content-right dl {
+	background-color:#fff;
+	border:1px solid #999999;
+margin-bottom:20px;
+}
+#page-body-content-right dt {
+	background-color:#A82F27;
+border-bottom:1px solid #999999;
+color:#FFFFFF;
+font-size:13px;
+font-weight:bold;
+padding:4px 0;
+text-align:center;
+}
+#page-body-content-right dd {
+	border-bottom:1px solid #ECECEC;
+margin:5px;
+}
+#page-body-content-right dd span {
+	float:right;
+font-size:10px;
+padding-top:2px;
+}
+#page-body-content-right dd.last {
+	border-bottom:none;
+}
+.page-footer-copyright {
+	text-align:center;
+}
+/*Rating*/
+.rating-star-container {
+	float:right;
+	padding:0;
+}
+.rating-star-list {
+	display:inline;
+width:90px;
+}
+.rating-star {
+	background-image:url("./images/star.gif");
+float:left;
+height:16px;
+width:16px;
+}
+.rating-star-full {
+	background-position:0 16px;
+}
+.rating-star-half {
+	background-position:0 32px;
+}
+.rating-star-empty {
+	background-position:0 0;
+}
