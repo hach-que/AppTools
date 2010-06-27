@@ -1,0 +1,16 @@
+**DRAFT**
+
+Setting up the AppServer
+
+You need to run the following command to generate a config file:
+
+$ paster make-config appserver appserver_production.ini
+
+You need to edit the config file for your production environment with the settings you want and then run this command
+to setup the application:
+
+$ paster setup-app appserver_production.ini
+
+You can then deploy the AppServer through the paste server like this:
+
+$ paster serve appserver_production.ini
