@@ -6,7 +6,7 @@ This class provides a standardized way for sending error, warning
 and informational messages back to the standard output.
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                21th June 2010
+                22nd June 2010
 
 This software is licensed under an MIT license.  See
 http://code.google.com/p/apptools-dist for more information.
@@ -16,87 +16,141 @@ http://code.google.com/p/apptools-dist for more information.
 // NOTE: Unlike in the Python libraries, messages are not automatically
 //       intended on newline characters.
 
+#include "config.h"
+
 #include <string>
+#include "logging.h"
 
-static class Logging
+bool Logging::verbose = false;
+std::string Logging::appname = "apptools";
+std::string Logging::appblnk = "        ";
+
+void Logging::showErrorW(std::string msg, ... )
 {
-	public bool verbose = false;
-	private std::string appname = "apptools";
-	private std::string appblnk = "        ";
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgW("error", msg, arglist);
+	va_end(arglist);
+}
 
-	public void showErrorW(std::string msg)
-		showMsgW("error", msg);
+void Logging::showErrorO(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgO(msg, arglist);
+	va_end(arglist);
+}
 
-	public void showErrorO(std::string msg)
-		showMsgO(msg);
+void Logging::showWarningW(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgW("warning", msg, arglist);
+	va_end(arglist);
+}
 
-	public void showWarningW(std::string msg)
-                showMsgW("warning", msg);
+void Logging::showWarningO(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgO(msg, arglist);
+	va_end(arglist);
+}
 
-        public void showWarningO(std::string msg)
-                showMsgO(msg);
+void Logging::showInfoW(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	if (Logging::verbose)
+		Logging::showMsgW("info", msg, arglist);
+	va_end(arglist);
+}
 
-	public void showInfoW(std::string msg)
-	{
-		if (verbose)
-	                showMsgW("info", msg);
-	}
+void Logging::showInfoO(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	if (Logging::verbose)
+		Logging::showMsgO(msg, arglist);
+	va_end(arglist);
+}
 
-        public void showInfoO(std::string msg)
-	{
-		if (verbose)
-	                showMsgO(msg);
-	}
+void Logging::showSuccessW(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgW("success", msg, arglist);
+	va_end(arglist);
+}
 
-	public void showSuccessW(std::string msg)
-                showMsgW("success", msg);
-
-        public void showSuccessO(std::string msg)
-                showMsgO(msg);
+void Logging::showSuccessO(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgO(msg, arglist);
+	va_end(arglist);
+}
 	
-	public void setApplicationName(std::string name)
-	{
-		appname = name;
-		appblnk = "";
-		while (appblnk.length() < appname.length())
-			appblnk += " ";
-	}
+void Logging::showInternalW(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgW("intern", msg, arglist);
+	va_end(arglist);
+}
 
-	// Internal functions.
+void Logging::showInternalO(std::string msg, ... )
+{
+	va_list arglist;
+	va_start(arglist, msg);
+	Logging::showMsgO(msg, arglist);
+	va_end(arglist);
+}
 
-	private void showMsgW(std::string type, std::string msg)
-	{
-		std::string resultMessage = "";
-		resultMessage = buildPrefix("error");
-		resultMessage += msg;
-		printf("%s\n", resultMessage.c_str());
-	}
+void Logging::setApplicationName(std::string name)
+{
+	Logging::appname = name;
+	Logging::appblnk = "";
+	while (Logging::appblnk.length() < Logging::appname.length())
+		Logging::appblnk += " ";
+}
 
-	private void showMsgO(std::string msg)
-	{
-		std::string resultMessage = appblnk;
-		resultMessage += "    ";    // ": [ "
-		resultMessage += "       "; // "_______"
-		resultMessage += "   ";     // " ] "
-		resultMessage += msg;
-		printf("%s\n", resultMessage.c_str());
-	}
+// Internal functions.
 
-	private std::string alignText(std::string text, int len)
-	{
-		std::string resultMessage = text;
-		while (resultMessage.length() < len)
-			resultMessage += 1;
-		return resultMessage;
-	}
+void Logging::showMsgW(std::string type, std::string msg, va_list arglist)
+{
+	std::string resultMessage = "";
+	resultMessage = buildPrefix(type);
+	resultMessage += msg;
+	resultMessage += "\n";
+	vprintf(resultMessage.c_str(), arglist);
+}
 
-	private std::string buildPrefix(std::string type)
-	{
-		std::string resultMessage = "";
-		resultMessage = appname;
-		resultMessage += ": [ ";
-		resultMessage += alignText(type, 7);
-		resultMessage += " ] ";
-		return resultMessage;
-	}
+void Logging::showMsgO(std::string msg, va_list arglist)
+{
+	std::string resultMessage = appblnk;
+	resultMessage += "    ";    // ": [ "
+	resultMessage += "       "; // "_______"
+	resultMessage += "   ";     // " ] "
+	resultMessage += msg;
+	resultMessage += "\n";
+	vprintf(resultMessage.c_str(), arglist);
+}
+
+std::string Logging::alignText(std::string text, unsigned int len)
+{
+	std::string resultMessage = text;
+	while (resultMessage.length() < len)
+		resultMessage += " ";
+	return resultMessage;
+}
+
+std::string Logging::buildPrefix(std::string type)
+{
+	std::string resultMessage = "";
+	resultMessage = appname;
+	resultMessage += ": [ ";
+	resultMessage += alignText(type, 7);
+	resultMessage += " ] ";
+	return resultMessage;
 }

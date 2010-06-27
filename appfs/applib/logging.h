@@ -6,7 +6,7 @@ This class provides a standardized way for sending error, warning
 and informational messages back to the standard output.
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                21th June 2010
+                22nd June 2010
 
 This software is licensed under an MIT license.  See
 http://code.google.com/p/apptools-dist for more information.
@@ -16,19 +16,37 @@ http://code.google.com/p/apptools-dist for more information.
 // NOTE: Unlike in the Python libraries, messages are not automatically
 //       intended on newline characters.
 
+#include "config.h"
+
+#ifndef CLASS_LOGGING
+#define CLASS_LOGGING
+
 #include <string>
+#include <stdarg.h>
 
 class Logging
 {
-        public:
+	public:
 		static bool verbose;
-		static void showErrorW(std::string msg);
-		static void showErrorO(std::string msg);
-		static void showWarningW(std::string msg);
-		static void showWarningO(std::string msg);
-		static void showInfoW(std::string msg);
-		static void showInfoO(std::string msg);
-		static void showSuccessW(std::string msg);
-		static void showSuccessO(std::string msg);
+		static void showErrorW(std::string msg, ... );
+		static void showErrorO(std::string msg, ... );
+		static void showWarningW(std::string msg, ... );
+		static void showWarningO(std::string msg, ... );
+		static void showInfoW(std::string msg, ... );
+		static void showInfoO(std::string msg, ... );
+		static void showSuccessW(std::string msg, ... );
+		static void showSuccessO(std::string msg, ... );
+		static void showInternalW(std::string msg, ... );
+		static void showInternalO(std::string msg, ... );
 		static void setApplicationName(std::string name);
-}
+
+	private:
+		static std::string appname;
+		static std::string appblnk;
+		static void showMsgW(std::string type, std::string msg, va_list arglist);
+		static void showMsgO(std::string msg, va_list arglist);
+		static std::string alignText(std::string text, unsigned int len);
+		static std::string buildPrefix(std::string type);
+};
+
+#endif
