@@ -19,7 +19,7 @@ bool file_exists(std::string filename)
 void printListHeaders(unsigned int id, unsigned int total)
 {
 	Logging::showInfoW("inode %i, total %i:", id, total);
-	Logging::showInfoO("MASK       NODID   UID   GID      SIZE DATETIME     FILENAME");
+	Logging::showInfoO("MASK       NODID   UID   GID      SIZE DATETIME     FNAME");
 }
 
 void formatDateTime(unsigned long time, char * out)
@@ -152,6 +152,7 @@ int main(int argc, char* argv[])
 		Logging::showInfoW("Opened test package.");
 	FS fs(fd);
 
+	// TEST: Inspect the root inode.
 	printListHeaders(0, 2);
 	INode node = fs.getINodeByID(0);
 	if (node.type == INodeType::INT_INVALID)
@@ -164,6 +165,42 @@ int main(int argc, char* argv[])
 
 	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, ".");
 	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, "..");
+
+	// TEST: Locate the next available inode number.
+	unsigned int inodeid = fs.getFirstFreeInodeNumber();
+	if (inodeid == 0)
+	{
+		Logging::showErrorW("There are no free inodes available.");
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+	Logging::showInfoW("Next free inode number is: %i", inodeid);
+
+	// TEST: Add a new file inode.
+	unsigned long pos = fs.getFirstFreeBlock(INodeType::INT_FILE);
+	Logging::showInfoW("Next free data block for a file is at: %i", pos);
+	INode node2(inodeid, "file", INodeType::INT_FILE, 1001, 1001, 0755, 1000000000, 1000000000, 1000000000);
+	if (fs.writeINode(pos, node2) == FSResult::E_SUCCESS)
+		Logging::showInfoW("Wrote new file inode to: %i", pos);
+	else
+	{
+		Logging::showErrorW("Unable to write new file inode to: %i", pos);
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Add the newly created file inode to the root inode directory.
+	/*if (fs.addChildToDirectoryInode(0, inodeid) == FSResult::E_SUCCESS)
+		Logging::showInfoW("Added child inode %i to root inode.", inodeid);
+	else
+	{
+		Logging::showErrorW("Unable to add child inode %i to root inode.", pos);
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}*/
 
 	// TODO: Add function for reading the actual children from an inode.
 

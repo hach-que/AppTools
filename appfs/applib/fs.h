@@ -26,16 +26,27 @@ http://code.google.com/p/apptools-dist for more information.
 enum FSResult
 {
 	E_SUCCESS,
-	E_FAILURE_INVALID_FILENAME,
 	E_FAILURE_GENERAL,
+	E_FAILURE_INVALID_FILENAME,
+	E_FAILURE_INVALID_POSITION,
+	E_FAILURE_INODE_ALREADY_ASSIGNED,
+	E_FAILURE_NOT_A_DIRECTORY,
+	E_FAILURE_MAXIMUM_CHILDREN_REACHED,
 	E_FAILURE_UNKNOWN
 };
 
+// WARN: The values here are also used to store the types
+//       in the actual AppFS packages.  Therefore, you should
+//       not change the values for INT_FREEBLOCK, INT_FILE or
+//       INT_DIRECTORY since it will break the ability to read
+//       existing packages.
 enum INodeType
 {
-	INT_FILE,
-	INT_DIRECTORY,
-	INT_INVALID
+	INT_FREEBLOCK = 0,
+	INT_FILE = 1,
+	INT_DIRECTORY = 2,
+	INT_INVALID = 3,
+	INT_UNSET = 255
 };
 
 class INode
@@ -51,7 +62,7 @@ class INode
 		unsigned long mtime;
 		unsigned long ctime;
 		unsigned int parent;
-		unsigned int children[2048];
+		unsigned int children[DIRECTORY_CHILDREN_MAX];
 		unsigned int children_count;
 		unsigned long dat_len;
 		unsigned long seg_len;
@@ -81,7 +92,7 @@ class INode
 			this->dat_len = 0;
 			this->seg_len = 0;
 			this->parent = 0;
-			for (unsigned int i = 0; i < 2048; i += 1)
+			for (unsigned int i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
 				this->children[i] = 0;
 			this->children_count = 0;
 		}
@@ -105,7 +116,7 @@ class INode
 			this->dat_len = 0;
 			this->seg_len = 0;
 			this->parent = 0;
-			for (unsigned int i = 0; i < 2048; i += 1)
+			for (unsigned int i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
 				this->children[i] = 0;
 			this->children_count = 0;
 		}
@@ -130,10 +141,15 @@ class INode
 			else
 			{
 				binary_rep.write(reinterpret_cast<char *>(&this->parent),   2);
-				binary_rep.write(reinterpret_cast<char *>(&this->children), 4096);
+				binary_rep.write(reinterpret_cast<char *>(&this->children), DIRECTORY_CHILDREN_MAX * 2);
 				binary_rep.write(reinterpret_cast<char *>(&this->children_count), 2);
 			}
 			return binary_rep.str();
+		}
+
+		inline ~INode()
+		{
+			// Do nothing.. no cleanup to be done.
 		}
 };
 
@@ -155,6 +171,24 @@ class FS
 
 		// Sets the position of an inode in the inode lookup table.
 		FSResult setINodePositionByID(unsigned int id, unsigned long pos);
+
+		// Find first free block and return that position.  The user specifies
+		// INT_FILE or INT_DIRECTORY to indicate the number of sequential free
+		// blocks to find.  A return value of 0 indicates that the file was either
+		// at the maximum filesize, or the function could not otherwise find
+		// a free block.
+		unsigned long getFirstFreeBlock(INodeType type);
+
+		// Find the first free inode number and return it.  A return value of 0
+		// indicates that there are no free inode numbers available (we can use
+		// a value of 0 since the root inode will always exist and will always
+		// have an ID of 0).
+		unsigned int getFirstFreeInodeNumber();
+
+		// Adds a child inode to a parent (directory) inode.  Please note that it doesn't
+		// check to see whether or not the child is already attached to the parent, but
+		// it will add the child reference in the lowest available slot.
+		FSResult addChildToDirectoryInode(unsigned int parentid, unsigned int childid);
 
 		// Closes the filesystem.
 		void close();
