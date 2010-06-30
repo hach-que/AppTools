@@ -20,16 +20,22 @@ http://code.google.com/p/apptools-dist for more information.
 #include <fstream>
 #include "fs.h"
 #include "logging.h"
+#include "endian.h"
 
 FS::FS(std::fstream * fd)
 {
 	if (fd == NULL)
 		Logging::showInternalW("NULL file descriptor passed to FS constructor.");
 
+	// Detect the endianness here (since we don't want the user to have to
+	// remember to call it - stuff would break badly if they were required to
+	// and forgot to call it).
+	Endian::detectEndianness();
+
 	this->fd = fd;
 }
 
-INode FS::getINodeByID(unsigned int id)
+INode FS::getINodeByID(uint16_t id)
 {
 	// Retrieve the position using our getINodePositionByID
 	// function.
@@ -43,24 +49,25 @@ INode FS::getINodeByID(unsigned int id)
 	this->fd->seekg(ipos);
 
 	// Read the data.
-	this->fd->read(reinterpret_cast<char *>(&node.inodeid),  2);
-	this->fd->read(reinterpret_cast<char *>(&node.filename), 256);
-	this->fd->read(reinterpret_cast<char *>(&node.type),     2);
-	this->fd->read(reinterpret_cast<char *>(&node.uid),      2);
-	this->fd->read(reinterpret_cast<char *>(&node.gid),      2);
-	this->fd->read(reinterpret_cast<char *>(&node.mask),     2);
-	this->fd->read(reinterpret_cast<char *>(&node.atime),    4);
-	this->fd->read(reinterpret_cast<char *>(&node.mtime),    4);
-	this->fd->read(reinterpret_cast<char *>(&node.ctime),    4);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.inodeid),  2);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.type),     2);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.filename), 256);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.uid),      2);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.gid),      2);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.mask),     2);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.atime),    4);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.mtime),    4);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&node.ctime),    4);
 	if (node.type == INodeType::INT_FILE)
 	{
-		this->fd->read(reinterpret_cast<char *>(&node.dat_len),  4);
-		this->fd->read(reinterpret_cast<char *>(&node.seg_len),  4);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&node.dat_len),  4);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_len),  4);
 	}
 	else if (node.type == INodeType::INT_DIRECTORY)
 	{
-		this->fd->read(reinterpret_cast<char *>(&node.parent),   2);
-		this->fd->read(reinterpret_cast<char *>(&node.children), DIRECTORY_CHILDREN_MAX * 2);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&node.parent),   2);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&node.children_count), 2);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&node.children), DIRECTORY_CHILDREN_MAX * 2);
 	}
 
 	// Seek back to the original reading position.
@@ -82,44 +89,44 @@ FSResult FS::writeINode(unsigned long pos, INode node)
 	std::streampos old = this->fd->tellp();
 	std::string data = node.getBinaryRepresentation();
 	this->fd->seekp(pos);
-	this->fd->write(data.c_str(), data.length());
+	Endian::doW(this->fd, data.c_str(), data.length());
 	const char* z = ""; // a const char* always has a \0 terminator, which we use to write into the file.
 	if (node.type == INodeType::INT_FILE)
 	{
 		for (int i = 0; i < BSIZE_FILE - data.length(); i += 1)
-			this->fd->write(z, 1);
+			Endian::doW(this->fd, z, 1);
 	}
 	else if (node.type == INodeType::INT_DIRECTORY)
 	{
 		for (int i = 0; i < BSIZE_DIRECTORY - data.length(); i += 1)
-			this->fd->write(z, 1);
+			Endian::doW(this->fd, z, 1);
 	}
 	this->setINodePositionByID(node.inodeid, pos);
 	this->fd->seekp(old);
 	return FSResult::E_SUCCESS;
 }
 
-unsigned long FS::getINodePositionByID(unsigned int id)
+unsigned long FS::getINodePositionByID(uint16_t id)
 {
 	std::streampos old = this->fd->tellg();
 	this->fd->seekg(OFFSET_LOOKUP + (id * 4));
 	unsigned long ipos = 0;
-	this->fd->read(reinterpret_cast<char *>(&ipos), 4);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
 	this->fd->seekg(old);
 	return ipos;
 }
 
-unsigned int FS::getFirstFreeInodeNumber()
+uint16_t FS::getFirstFreeInodeNumber()
 {
 	std::streampos old = this->fd->tellg();
 	this->fd->seekg(OFFSET_LOOKUP);
 	unsigned long ipos = 0;
-	unsigned int count = 0;
-	unsigned int ret = 0;
-	this->fd->read(reinterpret_cast<char *>(&ipos), 4);
+	uint16_t count = 0;
+	uint16_t ret = 0;
+	Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
 	while (ipos != 0 && count < 65535)
 	{
-		this->fd->read(reinterpret_cast<char *>(&ipos), 4);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
 		count += 1;
 	}
 	if (count == 65535 && ipos != 0)
@@ -130,11 +137,11 @@ unsigned int FS::getFirstFreeInodeNumber()
 	return ret;
 }
 
-FSResult FS::setINodePositionByID(unsigned int id, unsigned long pos)
+FSResult FS::setINodePositionByID(uint16_t id, unsigned long pos)
 {
 	std::streampos old = this->fd->tellp();
 	this->fd->seekp(OFFSET_LOOKUP + (id * 4));
-	this->fd->write(reinterpret_cast<char *>(&pos), 4);
+	Endian::doW(this->fd, reinterpret_cast<char *>(&pos), 4);
 	this->fd->seekp(old);
 	return FSResult::E_SUCCESS;
 }
@@ -144,27 +151,27 @@ unsigned long FS::getFirstFreeBlock(INodeType type)
 	std::streampos old = this->fd->tellg();
 
 	// Since the inode number can be 0, and the filename can be blank, we
-	// check the value of the type field (offset 258).  If it's 0, then
+	// check the value of the type field (offset 2).  If it's 0, then
 	// it's a free block.
-	signed int type_offset = 258;
+	signed int type_offset = 2;
 	unsigned long current_pos = OFFSET_DATA + type_offset;
-	unsigned int current_type = (unsigned int)INodeType::INT_UNSET;
+	uint16_t current_type = (uint16_t)INodeType::INT_UNSET;
 	this->fd->seekg(current_pos);
-	this->fd->read(reinterpret_cast<char *>(&current_type), 2);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&current_type), 2);
 	while (!this->fd->eof())
 	{
-		if (current_type == (unsigned int)INodeType::INT_UNSET)
+		if (current_type == (uint16_t)INodeType::INT_UNSET)
 		{
 			// Error reading.
 			Logging::showErrorW("Unable to read block at position %i.", current_pos - type_offset);
 			current_pos += 512;
-			current_type = (unsigned int)INodeType::INT_UNSET;
+			current_type = (uint16_t)INodeType::INT_UNSET;
 			this->fd->seekg(current_pos);
-			this->fd->read(reinterpret_cast<char *>(&current_type), 2);
+			Endian::doR(this->fd, reinterpret_cast<char *>(&current_type), 2);
 			continue;
 		}
 
-		if (current_type == (unsigned int)INodeType::INT_FREEBLOCK &&
+		if (current_type == (uint16_t)INodeType::INT_FREEBLOCK &&
 			type == INodeType::INT_FILE)
 		{
 			// Found free block.
@@ -173,9 +180,9 @@ unsigned long FS::getFirstFreeBlock(INodeType type)
 		}
 
 		current_pos += 512;
-		current_type = (unsigned int)INodeType::INT_UNSET;
+		current_type = (uint16_t)INodeType::INT_UNSET;
 		this->fd->seekg(current_pos);
-		this->fd->read(reinterpret_cast<char *>(&current_type), 2);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&current_type), 2);
 	}
 
 	Logging::showInfoW("The next free block is outside the current filesize.");
@@ -184,18 +191,19 @@ unsigned long FS::getFirstFreeBlock(INodeType type)
 	return current_pos - type_offset;
 }
 
-FSResult FS::addChildToDirectoryInode(unsigned int parentid, unsigned int childid)
+FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
 {
-	signed int type_offset = 258;
-	signed int children_offset = 288;
+	signed int type_offset = 2;
+	signed int children_count_offset = 280;
+	signed int children_offset = 282;
 	unsigned long pos = this->getINodePositionByID(parentid);
 	std::streampos oldg = this->fd->tellg();
 	std::streampos oldp = this->fd->tellp();
 
 	// Read to make sure it's a directory.
-	unsigned int parent_type = (unsigned int)INodeType::INT_UNSET;
+	uint16_t parent_type = (uint16_t)INodeType::INT_UNSET;
 	this->fd->seekg(pos + type_offset);
-	this->fd->read(reinterpret_cast<char *>(&parent_type), 2);
+	Endian::doR(this->fd, reinterpret_cast<char *>(&parent_type), 2);
 	if (parent_type != INodeType::INT_DIRECTORY)
 	{
 		this->fd->seekg(oldg);
@@ -208,12 +216,12 @@ FSResult FS::addChildToDirectoryInode(unsigned int parentid, unsigned int childi
 	this->fd->seekp(pos + children_offset);
 
 	// Find the first available child slot.
-	unsigned int ccinode = 0;
-	unsigned int count = 0;
-	this->fd->read(reinterpret_cast<char *>(&ccinode), 2);
+	uint16_t ccinode = 0;
+	uint16_t count = 0;
+	Endian::doR(this->fd, reinterpret_cast<char *>(&ccinode), 2);
 	while (ccinode != 0 && count < DIRECTORY_CHILDREN_MAX - 1)
 	{
-		this->fd->read(reinterpret_cast<char *>(&ccinode), 2);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&ccinode), 2);
 		count += 1;
 	}
 	if (count == DIRECTORY_CHILDREN_MAX - 1 && ccinode != 0)
@@ -226,11 +234,56 @@ FSResult FS::addChildToDirectoryInode(unsigned int parentid, unsigned int childi
 	{
 		unsigned long writeg = this->fd->tellg();
 		this->fd->seekp(writeg - 2);
-		this->fd->write(reinterpret_cast<char *>(&childid), 2);
+		Endian::doW(this->fd, reinterpret_cast<char *>(&childid), 2);
+
+		uint16_t children_count_current = 0;
+		this->fd->seekg(pos + children_count_offset);
+		Endian::doR(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
+		children_count_current += 1;
+		this->fd->seekp(pos + children_count_offset);
+		Endian::doW(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
 		this->fd->seekg(oldg);
 		this->fd->seekp(oldp);
 		return FSResult::E_SUCCESS;
 	}
+}
+
+FSResult FS::filenameIsUnique(uint16_t parentid, char * filename)
+{
+	return FSResult::E_SUCCESS; // Indicates unique.
+}
+
+std::vector<INode> FS::getChildrenOfDirectory(uint16_t parentid)
+{
+	std::vector<INode> inodechildren;
+	INode node = this->getINodeByID(parentid);
+	if (node.type == INodeType::INT_INVALID)
+	{
+		return inodechildren;
+	}
+
+	uint16_t children_looped = 0;
+	uint16_t total_looped = 0;
+	while (children_looped < node.children_count && total_looped < DIRECTORY_CHILDREN_MAX)
+	{
+		uint16_t cinode = node.children[total_looped];
+		total_looped += 1;
+		if (cinode == 0)
+		{
+			continue;
+		}
+		else
+		{
+			children_looped += 1;
+			INode cnode = this->getINodeByID(cinode);
+			if (cnode.type == INodeType::INT_FILE || cnode.type == INodeType::INT_DIRECTORY)
+			{
+				inodechildren.insert(inodechildren.end(), cnode);
+			}
+		}
+	}
+
+	return inodechildren;
 }
 
 void FS::close()

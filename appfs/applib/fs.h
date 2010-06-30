@@ -22,6 +22,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 enum FSResult
 {
@@ -52,35 +53,35 @@ enum INodeType
 class INode
 {
 	public:
-		unsigned int inodeid;
+		uint16_t inodeid;
 		char filename[256];
 		INodeType type;
-		unsigned int uid;
-		unsigned int gid;
-		unsigned int mask;
+		uint16_t uid;
+		uint16_t gid;
+		uint16_t mask;
 		unsigned long atime;
 		unsigned long mtime;
 		unsigned long ctime;
-		unsigned int parent;
-		unsigned int children[DIRECTORY_CHILDREN_MAX];
-		unsigned int children_count;
+		uint16_t parent;
+		uint16_t children[DIRECTORY_CHILDREN_MAX];
+		uint16_t children_count;
 		unsigned long dat_len;
 		unsigned long seg_len;
 
-		inline INode(unsigned int id,
+		inline INode(uint16_t id,
 						char * filename,
 						INodeType type,
-						unsigned int uid,
-						unsigned int gid,
-						unsigned int mask,
+						uint16_t uid,
+						uint16_t gid,
+						uint16_t mask,
 						unsigned long atime,
 						unsigned long mtime,
 						unsigned long ctime)
 		{
 			this->inodeid = id;
-			for (unsigned int i = 0; i < strlen(filename); i += 1)
+			for (uint16_t i = 0; i < strlen(filename); i += 1)
 				this->filename[i] = filename[i];
-			for (unsigned int i = strlen(filename); i < 256; i += 1)
+			for (uint16_t i = strlen(filename); i < 256; i += 1)
 				this->filename[i] = '\0';
 			this->type = type;
 			this->uid = uid;
@@ -92,19 +93,19 @@ class INode
 			this->dat_len = 0;
 			this->seg_len = 0;
 			this->parent = 0;
-			for (unsigned int i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
-				this->children[i] = 0;
 			this->children_count = 0;
+			for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
+				this->children[i] = 0;
 		}
 
-		inline INode(unsigned int id,
+		inline INode(uint16_t id,
 						char * filename,
 						INodeType type)
 		{
 			this->inodeid = id;
-			for (unsigned int i = 0; i < strlen(filename); i += 1)
+			for (uint16_t i = 0; i < strlen(filename); i += 1)
 				this->filename[i] = filename[i];
-			for (unsigned int i = strlen(filename); i < 256; i += 1)
+			for (uint16_t i = strlen(filename); i < 256; i += 1)
 				this->filename[i] = '\0';
 			this->type = type;
 			this->uid = 0;
@@ -116,17 +117,17 @@ class INode
 			this->dat_len = 0;
 			this->seg_len = 0;
 			this->parent = 0;
-			for (unsigned int i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
-				this->children[i] = 0;
 			this->children_count = 0;
+			for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
+				this->children[i] = 0;
 		}
 
 		inline std::string getBinaryRepresentation()
 		{
 			std::stringstream binary_rep;
 			binary_rep.write(reinterpret_cast<char *>(&this->inodeid),  2);
-			binary_rep.write(reinterpret_cast<char *>(&this->filename), 256);
 			binary_rep.write(reinterpret_cast<char *>(&this->type),     2);
+			binary_rep.write(reinterpret_cast<char *>(&this->filename), 256);
 			binary_rep.write(reinterpret_cast<char *>(&this->uid),      2);
 			binary_rep.write(reinterpret_cast<char *>(&this->gid),      2);
 			binary_rep.write(reinterpret_cast<char *>(&this->mask),     2);
@@ -141,8 +142,8 @@ class INode
 			else
 			{
 				binary_rep.write(reinterpret_cast<char *>(&this->parent),   2);
-				binary_rep.write(reinterpret_cast<char *>(&this->children), DIRECTORY_CHILDREN_MAX * 2);
 				binary_rep.write(reinterpret_cast<char *>(&this->children_count), 2);
+				binary_rep.write(reinterpret_cast<char *>(&this->children), DIRECTORY_CHILDREN_MAX * 2);
 			}
 			return binary_rep.str();
 		}
@@ -163,14 +164,14 @@ class FS
 		FSResult writeINode(unsigned long pos, INode node);
 
 		// Retrieves an INode by an ID.
-		INode getINodeByID(unsigned int id);
+		INode getINodeByID(uint16_t id);
 
 		// A return value of 0 indicates that the specified INode
 		// does not exist.
-		unsigned long getINodePositionByID(unsigned int id);
+		unsigned long getINodePositionByID(uint16_t id);
 
 		// Sets the position of an inode in the inode lookup table.
-		FSResult setINodePositionByID(unsigned int id, unsigned long pos);
+		FSResult setINodePositionByID(uint16_t id, unsigned long pos);
 
 		// Find first free block and return that position.  The user specifies
 		// INT_FILE or INT_DIRECTORY to indicate the number of sequential free
@@ -183,12 +184,21 @@ class FS
 		// indicates that there are no free inode numbers available (we can use
 		// a value of 0 since the root inode will always exist and will always
 		// have an ID of 0).
-		unsigned int getFirstFreeInodeNumber();
+		uint16_t getFirstFreeInodeNumber();
 
 		// Adds a child inode to a parent (directory) inode.  Please note that it doesn't
 		// check to see whether or not the child is already attached to the parent, but
 		// it will add the child reference in the lowest available slot.
-		FSResult addChildToDirectoryInode(unsigned int parentid, unsigned int childid);
+		FSResult addChildToDirectoryInode(uint16_t parentid, uint16_t childid);
+
+		// This function returns whether or not a specified filename is unique
+		// inside a directory.  E_SUCCESS indicates unique, E_FAILURE_NOT_UNIQUE
+		// indicates not unique.
+		FSResult filenameIsUnique(uint16_t parentid, char * filename);
+
+		// This function returns an std::vector<INode> list of children within
+		// the specified directory.
+		std::vector<INode> getChildrenOfDirectory(uint16_t parentid);
 
 		// Closes the filesystem.
 		void close();
