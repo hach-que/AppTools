@@ -149,6 +149,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\..\..\applib\endian.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\applib\fs.cpp"
 				>
 			</File>
@@ -168,6 +172,10 @@
 			>
 			<File
 				RelativePath="..\..\..\applib\config.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\applib\endian.h"
 				>
 			</File>
 			<File

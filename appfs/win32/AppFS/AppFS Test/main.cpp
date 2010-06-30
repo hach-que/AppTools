@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <time.h>
+#include <vector>
 
 #include "config.h"
 
@@ -16,7 +17,7 @@ bool file_exists(std::string filename)
 	return (stat(filename.c_str(), &file_info) == 0);
 }
 
-void printListHeaders(unsigned int id, unsigned int total)
+void printListHeaders(uint16_t id, uint16_t total)
 {
 	Logging::showInfoW("inode %i, total %i:", id, total);
 	Logging::showInfoO("MASK       NODID   UID   GID      SIZE DATETIME     FNAME");
@@ -71,7 +72,7 @@ void formatDateTime(unsigned long time, char * out)
 	strcpy_s(out, 13, tstr);
 }
 
-void printListEntry(unsigned int id, char * mask, unsigned int uid, unsigned int gid, unsigned long mtime, char * filename)
+void printListEntry(uint16_t id, char * mask, uint16_t uid, uint16_t gid, unsigned long mtime, char * filename)
 {
 	char tstr[13] = "            ";
 	formatDateTime(mtime, tstr);
@@ -129,6 +130,7 @@ int main(int argc, char* argv[])
 		node.mtime = 1277635895;
 		node.ctime = 1277635895;
 		node.parent = 0;
+		node.children_count = 0;
 		std::string node_rep = node.getBinaryRepresentation();
 		fd->write(node_rep.c_str(), node_rep.length());
 		Logging::showInfoW("Wrote root inode.");
@@ -167,7 +169,7 @@ int main(int argc, char* argv[])
 	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, "..");
 
 	// TEST: Locate the next available inode number.
-	unsigned int inodeid = fs.getFirstFreeInodeNumber();
+	uint16_t inodeid = fs.getFirstFreeInodeNumber();
 	if (inodeid == 0)
 	{
 		Logging::showErrorW("There are no free inodes available.");
@@ -191,8 +193,8 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	// TEST: Add the newly created file inode to the root inode directory.
-	/*if (fs.addChildToDirectoryInode(0, inodeid) == FSResult::E_SUCCESS)
+	// TEST: Get the root inode again and show it's children.
+	if (fs.addChildToDirectoryInode(0, inodeid) == FSResult::E_SUCCESS)
 		Logging::showInfoW("Added child inode %i to root inode.", inodeid);
 	else
 	{
@@ -200,7 +202,23 @@ int main(int argc, char* argv[])
 		fs.close();
 		Logging::showInfoW("Closed test package.");
 		return 1;
-	}*/
+	}
+
+	// TEST: Fetch a list of entries in the root inode.
+	std::vector<INode> inodechildren = fs.getChildrenOfDirectory(0);
+
+	printListHeaders(0, inodechildren.size() + 2);
+	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, ".");
+	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, "..");
+	for (uint16_t i = 0; i < inodechildren.size(); i += 1)
+	{
+		printListEntry(inodechildren[i].inodeid,
+						"drwxrwxrwx",
+						inodechildren[i].uid,
+						inodechildren[i].gid,
+						inodechildren[i].mtime,
+						inodechildren[i].filename);
+	}
 
 	// TODO: Add function for reading the actual children from an inode.
 
