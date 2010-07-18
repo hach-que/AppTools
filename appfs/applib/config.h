@@ -42,6 +42,10 @@ http://code.google.com/p/apptools-dist for more information.
 // directory.
 #define DIRECTORY_CHILDREN_MAX 1903
 
+// Define the sizes of each of the header types.
+#define HSIZE_FILE 310
+#define HSIZE_SEGMENT 12
+
 /************ End Configuration **************/
 
 #if defined(_MSC_VER) 

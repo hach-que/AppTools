@@ -1,0 +1,1 @@
+envset "editor" "C:\\Program Files\\Programmer's Notepad\\pn.exe"

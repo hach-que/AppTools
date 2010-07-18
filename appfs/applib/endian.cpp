@@ -29,7 +29,7 @@ void Endian::detectEndianness()
 	Endian::little_endian = (test_int_raw[0] == 1);
 }
 
-void Endian::doR(std::fstream * fd, char * data, unsigned int size)
+void Endian::doR(std::iostream * fd, char * data, unsigned int size)
 {
 	if (Endian::little_endian)
 		fd->read(data, size);
@@ -44,7 +44,7 @@ void Endian::doR(std::fstream * fd, char * data, unsigned int size)
 	}
 }
 
-void Endian::doW(std::fstream * fd, char * data, unsigned int size)
+void Endian::doW(std::iostream * fd, char * data, unsigned int size)
 {
 	if (Endian::little_endian)
 		fd->write(data, size);
@@ -59,7 +59,7 @@ void Endian::doW(std::fstream * fd, char * data, unsigned int size)
 	}
 }
 
-void Endian::doW(std::fstream * fd, const char * data, unsigned int size)
+void Endian::doW(std::iostream * fd, const char * data, unsigned int size)
 {
 	Endian::doW(fd, const_cast<char*>(data), size);
 }

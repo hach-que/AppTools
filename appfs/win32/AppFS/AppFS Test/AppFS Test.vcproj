@@ -165,6 +165,10 @@
 		</Configuration>
 	</Configurations>
 	<References>
+		<ProjectReference
+			ReferencedProjectIdentifier="{A5E27E23-EA1F-49EF-A68A-508F74806CFF}"
+			RelativePathToProject=".\AppLib\AppLib.vcproj"
+		/>
 	</References>
 	<Files>
 		<Filter

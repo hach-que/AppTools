@@ -2,12 +2,14 @@
 //
 #include "logging.h"
 #include "fs.h"
+#include "fsfile.h"
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
 #include <time.h>
 #include <vector>
+#include <iostream>
 
 #include "config.h"
 
@@ -23,7 +25,49 @@ void printListHeaders(uint16_t id, uint16_t total)
 	Logging::showInfoO("MASK       NODID   UID   GID      SIZE DATETIME     FNAME");
 }
 
-void formatDateTime(unsigned long time, char * out)
+void getFormattedPermissionBlock(uint8_t m, char * out)
+{
+	const char * a = "---";
+	switch (m)
+	{
+		case 0: a = "---"; break;
+		case 1: a = "r--"; break;
+		case 2: a = "-w-"; break;
+		case 3: a = "rw-"; break;
+		case 4: a = "--x"; break;
+		case 5: a = "r-x"; break;
+		case 6: a = "-wx"; break;
+		case 7: a = "rwx"; break;
+	}
+	strcpy(out, a);
+}
+
+void getFormattedPermissionMask(uint16_t mask, INodeType type, char * out)
+{
+	for (int i = 0; i < 11; i += 1)
+		out[i] = '\0';
+	out[0] = '-';
+	switch (type)
+	{
+		case INodeType::INT_FREEBLOCK:	out[0] = '_'; break;
+		case INodeType::INT_FILE:		out[0] = '-'; break;
+		case INodeType::INT_DIRECTORY:	out[0] = 'd'; break;
+		case INodeType::INT_SEGMENT:	out[0] = '#'; break;
+		case INodeType::INT_INVALID:	out[0] = '!'; break;
+	}
+	char a[4] = "---";
+	int umask = (mask >> 6);
+	int gmask = (mask ^ (umask << 6)) >> 3;
+	int omask = ((mask ^ ((mask >> 3) << 3)));
+	getFormattedPermissionBlock(umask, a);
+	out[1] = a[0]; out[2] = a[1]; out[3] = a[2];
+	getFormattedPermissionBlock(gmask, a);
+	out[4] = a[0]; out[5] = a[1]; out[6] = a[2];
+	getFormattedPermissionBlock(omask, a);
+	out[7] = a[0]; out[8] = a[1]; out[9] = a[2];
+}
+
+void formatDateTime(uint32_t time, char * out)
 {
 	time_t tt = time;
 	struct tm * tmepoch = gmtime(&tt);
@@ -72,11 +116,13 @@ void formatDateTime(unsigned long time, char * out)
 	strcpy_s(out, 13, tstr);
 }
 
-void printListEntry(uint16_t id, char * mask, uint16_t uid, uint16_t gid, unsigned long mtime, char * filename)
+void printListEntry(uint16_t id, uint16_t mask, INodeType type, uint16_t uid, uint16_t gid, uint32_t size, unsigned long mtime, char * filename)
 {
 	char tstr[13] = "            ";
 	formatDateTime(mtime, tstr);
-	Logging::showInfoO("%10s %5d %5d %5d %9d %12s %s", mask, id, uid, gid, 0, tstr, filename);
+	char mstr[11] = "          ";
+	getFormattedPermissionMask(mask, type, mstr);
+	Logging::showInfoO("%10s %5d %5d %5d %9d %12s %s", mstr, id, uid, gid, size, tstr, filename);
 }
 
 int main(int argc, char* argv[])
@@ -113,7 +159,7 @@ int main(int argc, char* argv[])
 		{
 			if (i == 0)
 			{
-				unsigned long pos = OFFSET_ROOTINODE;
+				uint32_t pos = OFFSET_ROOTINODE;
 				fd->write(reinterpret_cast<char *>(&pos), 4);
 			}
 			else
@@ -121,14 +167,17 @@ int main(int argc, char* argv[])
 		}
 		Logging::showInfoW("Wrote inode lookup section.");
 
+		time_t rtime;
+		time(&rtime);
+
 		// Write the root inode data.
 		INode node(0, "", INodeType::INT_DIRECTORY);
-		node.uid = 1000;
+		node.uid = 0;
 		node.gid = 1000;
 		node.mask = 0777;
-		node.atime = 1277635895;
-		node.mtime = 1277635895;
-		node.ctime = 1277635895;
+		node.atime = rtime;
+		node.mtime = rtime;
+		node.ctime = rtime;
 		node.parent = 0;
 		node.children_count = 0;
 		std::string node_rep = node.getBinaryRepresentation();
@@ -151,11 +200,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	else
-		Logging::showInfoW("Opened test package.");
+		Logging::showSuccessW("Opened test package.");
 	FS fs(fd);
 
 	// TEST: Inspect the root inode.
-	printListHeaders(0, 2);
 	INode node = fs.getINodeByID(0);
 	if (node.type == INodeType::INT_INVALID)
 	{
@@ -165,8 +213,22 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, ".");
-	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, "..");
+	std::vector<INode> inodechildren = fs.getChildrenOfDirectory(0);
+
+	printListHeaders(0, inodechildren.size() + 2);
+	printListEntry(node.inodeid, node.mask, node.type, node.uid, node.gid, BSIZE_DIRECTORY, node.mtime, ".");
+	printListEntry(node.inodeid, node.mask, node.type, node.uid, node.gid, BSIZE_DIRECTORY, node.mtime, "..");
+	for (uint16_t i = 0; i < inodechildren.size(); i += 1)
+	{
+		printListEntry(inodechildren[i].inodeid,
+						inodechildren[i].mask,
+						inodechildren[i].type,
+						inodechildren[i].uid,
+						inodechildren[i].gid,
+						inodechildren[i].dat_len,
+						inodechildren[i].mtime,
+						inodechildren[i].filename);
+	}
 
 	// TEST: Locate the next available inode number.
 	uint16_t inodeid = fs.getFirstFreeInodeNumber();
@@ -179,12 +241,21 @@ int main(int argc, char* argv[])
 	}
 	Logging::showInfoW("Next free inode number is: %i", inodeid);
 
+	// TEST: Check to see if a specified filename already exists
+	//       in the root directory.
+	if (fs.filenameIsUnique(0, "file") != FSResult::E_SUCCESS)
+	{
+		Logging::showWarningW("The file 'file' already exists in the root directory.");
+	}
+
 	// TEST: Add a new file inode.
-	unsigned long pos = fs.getFirstFreeBlock(INodeType::INT_FILE);
+	uint32_t pos = fs.getFirstFreeBlock(INodeType::INT_FILE);
 	Logging::showInfoW("Next free data block for a file is at: %i", pos);
-	INode node2(inodeid, "file", INodeType::INT_FILE, 1001, 1001, 0755, 1000000000, 1000000000, 1000000000);
+	time_t ltime;
+	time(&ltime);
+	INode node2(inodeid, "file", INodeType::INT_FILE, 1000, 1000, 0725, ltime, ltime, ltime);
 	if (fs.writeINode(pos, node2) == FSResult::E_SUCCESS)
-		Logging::showInfoW("Wrote new file inode to: %i", pos);
+		Logging::showSuccessW("Wrote new file inode to: %i", pos);
 	else
 	{
 		Logging::showErrorW("Unable to write new file inode to: %i", pos);
@@ -193,9 +264,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	// TEST: Get the root inode again and show it's children.
+	// TEST: Add the new file to the root directory.
 	if (fs.addChildToDirectoryInode(0, inodeid) == FSResult::E_SUCCESS)
-		Logging::showInfoW("Added child inode %i to root inode.", inodeid);
+		Logging::showSuccessW("Added child inode %i to root inode.", inodeid);
 	else
 	{
 		Logging::showErrorW("Unable to add child inode %i to root inode.", pos);
@@ -205,25 +276,220 @@ int main(int argc, char* argv[])
 	}
 
 	// TEST: Fetch a list of entries in the root inode.
-	std::vector<INode> inodechildren = fs.getChildrenOfDirectory(0);
+	inodechildren = fs.getChildrenOfDirectory(0);
 
 	printListHeaders(0, inodechildren.size() + 2);
-	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, ".");
-	printListEntry(node.inodeid, "drwxrwxrwx", node.uid, node.gid, node.mtime, "..");
+	printListEntry(node.inodeid, node.mask, node.type, node.uid, node.gid, BSIZE_DIRECTORY, node.mtime, ".");
+	printListEntry(node.inodeid, node.mask, node.type, node.uid, node.gid, BSIZE_DIRECTORY, node.mtime, "..");
 	for (uint16_t i = 0; i < inodechildren.size(); i += 1)
 	{
 		printListEntry(inodechildren[i].inodeid,
-						"drwxrwxrwx",
+						inodechildren[i].mask,
+						inodechildren[i].type,
 						inodechildren[i].uid,
 						inodechildren[i].gid,
+						inodechildren[i].dat_len,
 						inodechildren[i].mtime,
 						inodechildren[i].filename);
 	}
 
-	// TODO: Add function for reading the actual children from an inode.
+	// TEST: Set file contents.
+	std::string test_data = "\
+This is some test data for placement in the test file. Hopefully we can \n\
+store all of this data, and it will store it correctly over multiple \n\
+blocks because the filesize is larger than BSIZE_FILE - HSIZE_FILE. \n\
+We should then be able to read back all of the file data later with \n\
+fs.getFileContents(). \n\
+\n\
+This is some test data for placement in the test file. Hopefully we can \n\
+store all of this data, and it will store it correctly over multiple \n\
+blocks because the filesize is larger than BSIZE_FILE - HSIZE_FILE. \n\
+We should then be able to read back all of the file data later with \n\
+fs.getFileContents(). \n\
+\n\
+This is some test data for placement in the test file. Hopefully we can \n\
+store all of this data, and it will store it correctly over multiple \n\
+blocks because the filesize is larger than BSIZE_FILE - HSIZE_FILE. \n\
+We should then be able to read back all of the file data later with \n\
+fs.getFileContents(). \n\
+\n\
+This is some test data for placement in the test file. Hopefully we can \n\
+store all of this data, and it will store it correctly over multiple \n\
+blocks because the filesize is larger than BSIZE_FILE - HSIZE_FILE. \n\
+We should then be able to read back all of the file data later with \n\
+fs.getFileContents(). \
+";
+	Logging::showInfoW("Test data to be written is %i bytes long.", test_data.length());
+	FSResult res = fs.setFileContents(node2.inodeid, test_data.c_str(), test_data.length());
+	if (res == FSResult::E_SUCCESS)
+		Logging::showSuccessW("Wrote file contents for inode %i.", node2.inodeid);
+	else
+	{
+		Logging::showErrorW("Unable to write file contents for inode %i.", node2.inodeid);
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
 
-	// TODO: Add test for adding new entries to the root inode (and then listing
-	//       the contents of the children).
+	// TEST: Read file contents.
+	char ** data = (char**)malloc(sizeof(char*));
+	uint32_t * len = (uint32_t*)malloc(sizeof(uint32_t));
+	FSResult res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
+	if (res2 == FSResult::E_SUCCESS && data != NULL && len != NULL)
+	{
+		Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
+		bool matches = true;
+//		Logging::showInfoW("The file contents is as follows:");
+		for (uint32_t i = 0; i < *len; i += 1)
+		{
+			if ((*data)[i] != test_data[i])
+			{
+				matches = false;
+				break;
+			}
+/*
+			// Don't really like including <iostream> just to output single characters
+			// but couldn't find a function which allows outputting single characters to
+			// standard output without using \0 as string terminators.
+			if ((*data)[i] == '\0')
+				std::cout << "\\0";
+			else
+				std::cout << ((*data)[i]);
+*/
+		}
+		if (matches)
+			Logging::showSuccessW("File contents matches what was written.");
+		else
+		{
+			Logging::showErrorW("File contents does not match what was written.");
+			fs.close();
+			Logging::showInfoW("Closed test package.");
+			return 1;
+		}
+	}
+	else
+	{
+		Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Overwrite data in an existing file (overlapping multiple segments).
+	// We're going to change 512 bytes at an offset of 20 bytes within both the
+	// test_data memory, and the new file we created (one byte at a time, stream)
+	FSFile f = fs.getFile(node2.inodeid);
+	f.open();
+	f.seekp(20);
+	const char * c = "1";
+	char c2 = '1';
+	for (int i = 0; i < 512; i += 1)
+	{
+		f.write(c, 1);
+		test_data[i + 20] = c2;
+	}
+	f.close();
+	if (f.good())
+		Logging::showSuccessW("Stream writing for file was successful.");
+	else
+	{
+		Logging::showErrorW("Unable to stream write new data into the file.");
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Confirm success of stream writing.
+	data = (char**)malloc(sizeof(char*));
+	len = (uint32_t*)malloc(sizeof(uint32_t));
+	res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
+	if (res2 == FSResult::E_SUCCESS && data != NULL && len != NULL)
+	{
+		Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
+		bool matches = true;
+		for (uint32_t i = 0; i < *len; i += 1)
+		{
+			if ((*data)[i] != test_data[i])
+			{
+				matches = false;
+				break;
+			}
+		}
+		if (matches)
+			Logging::showSuccessW("File contents matches what was written.");
+		else
+		{
+			Logging::showErrorW("File contents does not match what was written.");
+			fs.close();
+			Logging::showInfoW("Closed test package.");
+			return 1;
+		}
+	}
+	else
+	{
+		Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Overwrite data in an existing file (overlapping multiple segments).
+	// We're going to change 492 bytes at an offset of 30 bytes within both the
+	// test_data memory, and the new file we created (all at once, burst)
+	char * data2 = (char*)malloc(493);
+	for (int i = 0; i < 492; i += 1)
+	{
+		data2[i] = '2';
+		test_data[i + 30] = '2';
+	}
+	f = fs.getFile(node2.inodeid);
+	f.open();
+	f.seekp(30);
+	f.write(data2, 492);
+	f.close();
+	if (f.good())
+		Logging::showSuccessW("Burst writing for file was successful.");
+	else
+	{
+		Logging::showErrorW("Unable to burst write new data into the file.");
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Confirm success of burst writing.
+	data = (char**)malloc(sizeof(char*));
+	len = (uint32_t*)malloc(sizeof(uint32_t));
+	res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
+	if (res2 == FSResult::E_SUCCESS && data != NULL && len != NULL)
+	{
+		Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
+		bool matches = true;
+		for (uint32_t i = 0; i < *len; i += 1)
+		{
+			if ((*data)[i] != test_data[i])
+			{
+				matches = false;
+				break;
+			}
+		}
+		if (matches)
+			Logging::showSuccessW("File contents matches what was written.");
+		else
+		{
+			Logging::showErrorW("File contents does not match what was written.");
+			fs.close();
+			Logging::showInfoW("Closed test package.");
+			return 1;
+		}
+	}
+	else
+	{
+		Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		fs.close();
+		Logging::showInfoW("Closed test package.");
+		return 1;
+	}
 
 	fs.close();
 	Logging::showInfoW("Closed test package.");

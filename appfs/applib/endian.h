@@ -27,9 +27,9 @@ class Endian
 	public:
 		static bool little_endian;
 		static void detectEndianness();
-		static void doR(std::fstream * fd, char * data, unsigned int size);
-		static void doW(std::fstream * fd, char * data, unsigned int size);
-		static void doW(std::fstream * fd, const char * data, unsigned int size);
+		static void doR(std::iostream * fd, char * data, unsigned int size);
+		static void doW(std::iostream * fd, char * data, unsigned int size);
+		static void doW(std::iostream * fd, const char * data, unsigned int size);
 };
 
 #endif
