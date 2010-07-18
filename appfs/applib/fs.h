@@ -193,6 +193,13 @@ class FS
 	public:
 		FS(std::fstream * fd);
 
+		// Returns whether the file descriptor is valid.  If this
+		// is false, and you call one of the functions in the class
+		// (other than getTemporaryNode or isValid), the program will
+		// use assert() to ensure the safety of the contents of the
+		// package.
+		bool isValid();
+
 		// Writes an INode to the specified position and then
 		// updates the inode lookup table.
 		FSResult writeINode(uint32_t pos, INode node);
@@ -287,14 +294,15 @@ class FS
 		// Retrieves the temporary block or creates a new one if there is not one currently
 		// located within the package (packages should have no more than one temporary block
 		// at a single time).  The return value is the position to seek to, where you can then
-		// read and write up to BSIZE_FILE bytes.
+		// read and write up to BSIZE_FILE - 4 bytes.
 		//
-		// WARNING: This lookup / creation is *not* fast on large packages as it must search
-		//          through all of the inodes in the inode lookup table to locate the temporary
-		//          block or determine it's non-existance.  Hence this function should be used
-		//          sparingly and it's recommended that applications save the value from this
-		//          function for future use.
-		uint32_t getTemporaryBlock();
+		// WARNING: The lookup / creation is *not* fast on large packages as it must search
+		//          though all of the inodes in the package.  Therefore, this function makes use
+		//          of a static variable to speed up subsequent calls to the function (the first
+		//          call must still search through).  If you want to force the function to research
+		//          the package for the temporary block (i.e. if you delete the temporary block),
+		//          you can use the forceRecheck argument to do so.
+		uint32_t getTemporaryBlock(bool forceRecheck = false);
 
 		// Closes the filesystem.
 		void close();

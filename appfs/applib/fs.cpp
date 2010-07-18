@@ -22,6 +22,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include "logging.h"
 #include "endian.h"
 #include <errno.h>
+#include <assert.h>
 
 FS::FS(std::fstream * fd)
 {
@@ -34,10 +35,44 @@ FS::FS(std::fstream * fd)
 	Endian::detectEndianness();
 
 	this->fd = fd;
+
+#ifdef WIN32
+	// Check for text-mode stream, which will break binary packages.
+	uint32_t tpos = this->getTemporaryBlock();
+	char msg[5];
+	char omsg[5];
+	msg[0] = 'm';
+	msg[1] = '\n';
+	msg[2] = 0;
+	msg[3] = 0;
+	msg[4] = 0;
+	for (int i = 0; i < 5; i++)
+		omsg[i] = 0;
+	this->fd->seekp(tpos);
+	this->fd->write(&msg[0], 4);
+	this->fd->seekg(tpos + 2);
+	this->fd->read(&omsg[2], 4);
+	omsg[0] = 'm';
+	omsg[1] = '\n';
+	if (strcmp(&omsg[0], &msg[0]) != 0)
+	{
+		Logging::showErrorW("Text-mode stream passed to FS constructor.  Make sure");
+		Logging::showErrorO("the stream is in binary mode.");
+		this->fd = NULL;
+		return;
+	}
+#endif
+}
+
+bool FS::isValid()
+{
+	return (this->fd != NULL);
 }
 
 INode FS::getINodeByID(uint16_t id)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	// Retrieve the position using our getINodePositionByID
 	// function.
 	uint32_t ipos = this->getINodePositionByID(id);
@@ -48,6 +83,8 @@ INode FS::getINodeByID(uint16_t id)
 
 INode FS::getINodeByPosition(uint32_t ipos)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	INode node(0, "", INodeType::INT_INVALID);
 
 	// Seek to the inode position
@@ -99,6 +136,8 @@ INode FS::getINodeByPosition(uint32_t ipos)
 
 FSResult FS::writeINode(uint32_t pos, INode node)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	// Check to make sure the position is valid.
 	if (pos < OFFSET_DATA)
 		return FSResult::E_FAILURE_INVALID_POSITION;
@@ -130,6 +169,8 @@ FSResult FS::writeINode(uint32_t pos, INode node)
 
 uint32_t FS::getINodePositionByID(uint16_t id)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::streampos old = this->fd->tellg();
 	this->fd->seekg(OFFSET_LOOKUP + (id * 4));
 	uint32_t ipos = 0;
@@ -140,6 +181,8 @@ uint32_t FS::getINodePositionByID(uint16_t id)
 
 uint16_t FS::getFirstFreeInodeNumber()
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::streampos old = this->fd->tellg();
 	this->fd->seekg(OFFSET_LOOKUP);
 	uint32_t ipos = 0;
@@ -161,6 +204,8 @@ uint16_t FS::getFirstFreeInodeNumber()
 
 FSResult FS::setINodePositionByID(uint16_t id, uint32_t pos)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::streampos old = this->fd->tellp();
 	this->fd->seekp(OFFSET_LOOKUP + (id * 4));
 	Endian::doW(this->fd, reinterpret_cast<char *>(&pos), 4);
@@ -170,6 +215,8 @@ FSResult FS::setINodePositionByID(uint16_t id, uint32_t pos)
 
 uint32_t FS::getFirstFreeBlock(INodeType type)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::streampos old = this->fd->tellg();
 
 	// Since the inode number can be 0, and the filename can be blank, we
@@ -252,6 +299,8 @@ uint32_t FS::getFirstFreeBlock(INodeType type)
 
 FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	signed int type_offset = 2;
 	signed int children_count_offset = 292;
 	signed int children_offset = 294;
@@ -309,6 +358,8 @@ FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
 
 FSResult FS::removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	signed int type_offset = 2;
 	signed int children_count_offset = 292;
 	signed int children_offset = 294;
@@ -367,6 +418,8 @@ FSResult FS::removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid)
 
 FSResult FS::filenameIsUnique(uint16_t parentid, char * filename)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::vector<INode> inodechildren = this->getChildrenOfDirectory(parentid);
 	for (unsigned int i = 0; i < inodechildren.size(); i += 1)
 	{
@@ -380,6 +433,8 @@ FSResult FS::filenameIsUnique(uint16_t parentid, char * filename)
 
 std::vector<INode> FS::getChildrenOfDirectory(uint16_t parentid)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::vector<INode> inodechildren;
 	INode node = this->getINodeByID(parentid);
 	if (node.type == INodeType::INT_INVALID)
@@ -413,6 +468,8 @@ std::vector<INode> FS::getChildrenOfDirectory(uint16_t parentid)
 
 INode FS::getChildOfDirectory(uint16_t parentid, uint16_t childid)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	INode node = this->getINodeByID(parentid);
 	if (node.type == INodeType::INT_INVALID)
 	{
@@ -448,6 +505,8 @@ INode FS::getChildOfDirectory(uint16_t parentid, uint16_t childid)
 
 INode FS::getChildOfDirectory(uint16_t parentid, const char * filename)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	INode node = this->getINodeByID(parentid);
 	if (node.type == INodeType::INT_INVALID)
 	{
@@ -483,6 +542,8 @@ INode FS::getChildOfDirectory(uint16_t parentid, const char * filename)
 
 FSResult FS::setFileContents(uint16_t id, const char * data, uint32_t len)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	// Get the inode and it's position.
 	uint32_t ipos = this->getINodePositionByID(id);
 	INode node = this->getINodeByID(id);
@@ -555,6 +616,8 @@ FSResult FS::setFileContents(uint16_t id, const char * data, uint32_t len)
 
 FSResult FS::getFileContents(uint16_t id, char ** data_out, uint32_t * len_out, uint32_t len_max)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	// Get the inode and it's position.
 	uint32_t ipos = this->getINodePositionByID(id);
 	INode node = this->getINodeByID(id);
@@ -612,6 +675,8 @@ FSResult FS::getFileContents(uint16_t id, char ** data_out, uint32_t * len_out, 
 
 FSResult FS::setFileLengthDirect(uint32_t pos, uint32_t len)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	signed int file_len_offset = 298;
 	signed int seg_len_offset = 4;
 
@@ -658,6 +723,8 @@ FSResult FS::setFileLengthDirect(uint32_t pos, uint32_t len)
 
 FSResult FS::setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	signed int file_next_offset = 306;
 	signed int seg_next_offset = 8;
 
@@ -694,6 +761,8 @@ FSResult FS::setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next)
 
 uint32_t FS::getFileNextBlock(uint32_t pos)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	if (pos == 0 || pos < OFFSET_ROOTINODE)
 		return 0;
 	INode node(0, "", INodeType::INT_INVALID);
@@ -737,6 +806,8 @@ uint32_t FS::getFileNextBlock(uint32_t pos)
 
 FSResult FS::resetBlock(uint32_t pos)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::streampos oldp = this->fd->tellp();
 	this->fd->seekp(pos);
 	const char * zero = "\0";
@@ -750,6 +821,8 @@ FSResult FS::resetBlock(uint32_t pos)
 
 uint32_t FS::resolvePositionInFile(uint16_t inodeid, uint32_t pos)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	uint32_t dpos = 0;
 	uint32_t npos = this->getINodePositionByID(inodeid);
 	uint32_t ppos = npos;
@@ -791,6 +864,8 @@ uint32_t FS::resolvePositionInFile(uint16_t inodeid, uint32_t pos)
 
 int32_t FS::resolvePathnameToInodeID(const char * path)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	std::vector<std::string> components;
 	std::string buf = "";
 	for (int i = 0; i < strlen(path); i += 1)
@@ -839,6 +914,8 @@ int32_t FS::resolvePathnameToInodeID(const char * path)
 
 FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	// Retrieve the INode.
 	INode node = this->getINodeByID(inodeid);
 	uint32_t npos = this->getINodePositionByID(inodeid);
@@ -922,19 +999,78 @@ FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 
 FSFile FS::getFile(uint16_t inodeid)
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	return FSFile(this, this->fd, inodeid);
 }
 
-uint32_t FS::getTemporaryBlock()
+uint32_t FS::getTemporaryBlock(bool forceRecheck)
 {
+	// We use a static variable to speed up later calls.
+	static uint32_t temporary_position = 0;
+	if (temporary_position != 0 && !forceRecheck)
+		return temporary_position;
 
+	uint32_t block_position = OFFSET_DATA + 2;
+	std::streampos oldg = this->fd->tellg();
+	std::streampos oldp = this->fd->tellp();
+
+	// Run through each of the blocks and check to see whether
+	// they are a temporary block or not.
+	this->fd->seekg(block_position);
+	uint16_t type_stor = INodeType::INT_UNSET;
+	uint32_t cpos = this->fd->tellg();
+	while (!this->fd->eof() && cpos == block_position)
+	{
+		Endian::doR(this->fd, reinterpret_cast<char *>(&type_stor),  2);
+		switch (type_stor)
+		{
+			case INodeType::INT_DIRECTORY:
+				block_position += BSIZE_DIRECTORY;
+				this->fd->seekg(block_position);
+				break;
+			case INodeType::INT_FILE:
+			case INodeType::INT_SEGMENT:
+			case INodeType::INT_FREEBLOCK:
+				block_position += BSIZE_FILE;
+				this->fd->seekg(block_position);
+				break;
+			case INodeType::INT_INVALID:
+				this->fd->seekg(oldg);
+				return 0;
+			case INodeType::INT_TEMPORARY:
+				this->fd->seekg(oldg);
+				temporary_position = block_position + 2;
+				return block_position + 2;
+			default:
+				this->fd->seekg(oldg);
+				return 0;
+		}
+	}
+	this->fd->seekg(oldg);
+
+	// No temporary block allocated; allocate a new one.
+	uint32_t newpos = this->getFirstFreeBlock(INodeType::INT_FILE);
+	if (newpos == 0) return 0;
+	this->fd->seekp(newpos);
+	uint16_t zero = 0;
+	uint16_t tempid = INodeType::INT_TEMPORARY;
+	Endian::doW(this->fd, reinterpret_cast<char *>(&zero),  2);
+	Endian::doW(this->fd, reinterpret_cast<char *>(&tempid),  2);
+	this->fd->seekp(oldp);
+	newpos += 4;
+	temporary_position = newpos;
+	return newpos;
 }
 
 void FS::close()
 {
+	assert(/* Check the stream is not in text-mode. */ this->isValid());
+
 	// Close the file stream.
 	this->fd->close();
 }
+
 std::vector<std::string> FS::splitPathBySeperators(std::string path)
 {
 	std::vector<std::string> ret;

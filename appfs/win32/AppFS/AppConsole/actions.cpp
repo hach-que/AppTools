@@ -34,6 +34,16 @@ void doOpen(std::vector<std::string> cmd)
 	}
 	std::cout << "done." << std::endl;
 	currentFilesystem = new FS(fd);
+	if (!currentFilesystem->isValid())
+	{
+		std::cout << "Unable to read file as AppFS package.  Aborting open." << std::endl;
+		delete currentFilesystem;
+		currentFilesystem = NULL;
+		fd->close();
+		delete fd;
+		fd = NULL;
+		return;
+	}
 	openPackage = cmd[1];
 	currentPath = "/";
 	showCurrentOpenPackage();
