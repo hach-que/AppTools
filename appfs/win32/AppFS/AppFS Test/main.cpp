@@ -21,8 +21,8 @@ bool file_exists(std::string filename)
 
 void printListHeaders(uint16_t id, uint16_t total)
 {
-	Logging::showInfoW("inode %i, total %i:", id, total);
-	Logging::showInfoO("MASK       NODID   UID   GID      SIZE DATETIME     FNAME");
+	AppLib::Logging::showInfoW("inode %i, total %i:", id, total);
+	AppLib::Logging::showInfoO("MASK       NODID   UID   GID      SIZE DATETIME     FNAME");
 }
 
 void getFormattedPermissionBlock(uint8_t m, char * out)
@@ -42,18 +42,18 @@ void getFormattedPermissionBlock(uint8_t m, char * out)
 	strcpy(out, a);
 }
 
-void getFormattedPermissionMask(uint16_t mask, INodeType type, char * out)
+void getFormattedPermissionMask(uint16_t mask, AppLib::LowLevel::INodeType type, char * out)
 {
 	for (int i = 0; i < 11; i += 1)
 		out[i] = '\0';
 	out[0] = '-';
 	switch (type)
 	{
-		case INodeType::INT_FREEBLOCK:	out[0] = '_'; break;
-		case INodeType::INT_FILE:		out[0] = '-'; break;
-		case INodeType::INT_DIRECTORY:	out[0] = 'd'; break;
-		case INodeType::INT_SEGMENT:	out[0] = '#'; break;
-		case INodeType::INT_INVALID:	out[0] = '!'; break;
+		case AppLib::LowLevel::INodeType::INT_FREEBLOCK:	out[0] = '_'; break;
+		case AppLib::LowLevel::INodeType::INT_FILE:		out[0] = '-'; break;
+		case AppLib::LowLevel::INodeType::INT_DIRECTORY:	out[0] = 'd'; break;
+		case AppLib::LowLevel::INodeType::INT_SEGMENT:	out[0] = '#'; break;
+		case AppLib::LowLevel::INodeType::INT_INVALID:	out[0] = '!'; break;
 	}
 	char a[4] = "---";
 	int umask = (mask >> 6);
@@ -116,20 +116,20 @@ void formatDateTime(uint32_t time, char * out)
 	strcpy_s(out, 13, tstr);
 }
 
-void printListEntry(uint16_t id, uint16_t mask, INodeType type, uint16_t uid, uint16_t gid, uint32_t size, unsigned long mtime, char * filename)
+void printListEntry(uint16_t id, uint16_t mask, AppLib::LowLevel::INodeType type, uint16_t uid, uint16_t gid, uint32_t size, unsigned long mtime, char * filename)
 {
 	char tstr[13] = "            ";
 	formatDateTime(mtime, tstr);
 	char mstr[11] = "          ";
 	getFormattedPermissionMask(mask, type, mstr);
-	Logging::showInfoO("%10s %5d %5d %5d %9d %12s %s", mstr, id, uid, gid, size, tstr, filename);
+	AppLib::Logging::showInfoO("%10s %5d %5d %5d %9d %12s %s", mstr, id, uid, gid, size, tstr, filename);
 }
 
 int main(int argc, char* argv[])
 {
-	Logging::setApplicationName("testsuite");
-	Logging::verbose = true;
-	Logging::showInfoW("Test suite started.");
+	AppLib::Logging::setApplicationName("testsuite");
+	AppLib::Logging::verbose = true;
+	AppLib::Logging::showInfoW("Test suite started.");
 
 	if (!file_exists("test.afs"))
 	{
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 		std::fstream * fd = new std::fstream("test.afs", std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
 		if (!fd->is_open())
 		{
-			Logging::showErrorW("Unable to create blank AppFS package ./test.afs.");
+			AppLib::Logging::showErrorW("Unable to create blank AppFS package ./test.afs.");
 			return 1;
 		}
 
@@ -146,13 +146,13 @@ int main(int argc, char* argv[])
 #error The test suite is written under the assumption that the bootstrap offset is 0,
 #error hence the test suite will not operate correctly with a different offset.
 #endif
-		Logging::showInfoW("AppFS test package creation required.");
+		AppLib::Logging::showInfoW("AppFS test package creation required.");
 		// Bootstrap section
 		for (int i = 0; i < LENGTH_BOOTSTRAP; i += 1)
 		{
 			fd->write("\0", 1);
 		}
-		Logging::showInfoW("Wrote bootstrap section.");
+		AppLib::Logging::showInfoW("Wrote bootstrap section.");
 
 		// Inode Lookup section
 		for (int i = 0; i < 65536; i += 1)
@@ -165,13 +165,13 @@ int main(int argc, char* argv[])
 			else
 				fd->write("\0\0\0\0", 4);
 		}
-		Logging::showInfoW("Wrote inode lookup section.");
+		AppLib::Logging::showInfoW("Wrote inode lookup section.");
 
 		time_t rtime;
 		time(&rtime);
 
 		// Write the root inode data.
-		INode node(0, "", INodeType::INT_DIRECTORY);
+		AppLib::LowLevel::INode node(0, "", AppLib::LowLevel::INodeType::INT_DIRECTORY);
 		node.uid = 0;
 		node.gid = 1000;
 		node.mask = 0777;
@@ -182,13 +182,13 @@ int main(int argc, char* argv[])
 		node.children_count = 0;
 		std::string node_rep = node.getBinaryRepresentation();
 		fd->write(node_rep.c_str(), node_rep.length());
-		Logging::showInfoW("Wrote root inode.");
+		AppLib::Logging::showInfoW("Wrote root inode.");
 
 		fd->close();
-		Logging::showInfoW("Test package creation complete.");
+		AppLib::Logging::showInfoW("Test package creation complete.");
 #else
-		Logging::showErrorW("The file ./test.afs was not located in the current working");
-		Logging::showErrorO("directory.  Testing can not continue.");
+		AppLib::Logging::showErrorW("The file ./test.afs was not located in the current working");
+		AppLib::Logging::showErrorO("directory.  Testing can not continue.");
 		return 1;
 #endif
 	}
@@ -196,24 +196,24 @@ int main(int argc, char* argv[])
 	std::fstream * fd = new std::fstream("test.afs", std::ios::out | std::ios::in | std::ios::binary);
 	if (!fd->is_open())
 	{
-		Logging::showErrorW("Unable to open test package.");
+		AppLib::Logging::showErrorW("Unable to open test package.");
 		return 1;
 	}
 	else
-		Logging::showSuccessW("Opened test package.");
-	FS fs(fd);
+		AppLib::Logging::showSuccessW("Opened test package.");
+	AppLib::LowLevel::FS fs(fd);
 
 	// TEST: Inspect the root inode.
-	INode node = fs.getINodeByID(0);
-	if (node.type == INodeType::INT_INVALID)
+	AppLib::LowLevel::INode node = fs.getINodeByID(0);
+	if (node.type == AppLib::LowLevel::INodeType::INT_INVALID)
 	{
-		Logging::showErrorW("Root inode is invalid (node.type == INodeType::INT_INVALID).");
+		AppLib::Logging::showErrorW("Root inode is invalid (node.type == INodeType::INT_INVALID).");
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
-	std::vector<INode> inodechildren = fs.getChildrenOfDirectory(0);
+	std::vector<AppLib::LowLevel::INode> inodechildren = fs.getChildrenOfDirectory(0);
 
 	printListHeaders(0, inodechildren.size() + 2);
 	printListEntry(node.inodeid, node.mask, node.type, node.uid, node.gid, BSIZE_DIRECTORY, node.mtime, ".");
@@ -234,44 +234,44 @@ int main(int argc, char* argv[])
 	uint16_t inodeid = fs.getFirstFreeInodeNumber();
 	if (inodeid == 0)
 	{
-		Logging::showErrorW("There are no free inodes available.");
+		AppLib::Logging::showErrorW("There are no free inodes available.");
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
-	Logging::showInfoW("Next free inode number is: %i", inodeid);
+	AppLib::Logging::showInfoW("Next free inode number is: %i", inodeid);
 
 	// TEST: Check to see if a specified filename already exists
 	//       in the root directory.
-	if (fs.filenameIsUnique(0, "file") != FSResult::E_SUCCESS)
+	if (fs.filenameIsUnique(0, "file") != AppLib::LowLevel::FSResult::E_SUCCESS)
 	{
-		Logging::showWarningW("The file 'file' already exists in the root directory.");
+		AppLib::Logging::showWarningW("The file 'file' already exists in the root directory.");
 	}
 
 	// TEST: Add a new file inode.
-	uint32_t pos = fs.getFirstFreeBlock(INodeType::INT_FILE);
-	Logging::showInfoW("Next free data block for a file is at: %i", pos);
+	uint32_t pos = fs.getFirstFreeBlock(AppLib::LowLevel::INodeType::INT_FILE);
+	AppLib::Logging::showInfoW("Next free data block for a file is at: %i", pos);
 	time_t ltime;
 	time(&ltime);
-	INode node2(inodeid, "file", INodeType::INT_FILE, 1000, 1000, 0725, ltime, ltime, ltime);
-	if (fs.writeINode(pos, node2) == FSResult::E_SUCCESS)
-		Logging::showSuccessW("Wrote new file inode to: %i", pos);
+	AppLib::LowLevel::INode node2(inodeid, "file", AppLib::LowLevel::INodeType::INT_FILE, 1000, 1000, 0725, ltime, ltime, ltime);
+	if (fs.writeINode(pos, node2) == AppLib::LowLevel::FSResult::E_SUCCESS)
+		AppLib::Logging::showSuccessW("Wrote new file inode to: %i", pos);
 	else
 	{
-		Logging::showErrorW("Unable to write new file inode to: %i", pos);
+		AppLib::Logging::showErrorW("Unable to write new file inode to: %i", pos);
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
 	// TEST: Add the new file to the root directory.
-	if (fs.addChildToDirectoryInode(0, inodeid) == FSResult::E_SUCCESS)
-		Logging::showSuccessW("Added child inode %i to root inode.", inodeid);
+	if (fs.addChildToDirectoryInode(0, inodeid) == AppLib::LowLevel::FSResult::E_SUCCESS)
+		AppLib::Logging::showSuccessW("Added child inode %i to root inode.", inodeid);
 	else
 	{
-		Logging::showErrorW("Unable to add child inode %i to root inode.", pos);
+		AppLib::Logging::showErrorW("Unable to add child inode %i to root inode.", pos);
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
@@ -319,27 +319,27 @@ blocks because the filesize is larger than BSIZE_FILE - HSIZE_FILE. \n\
 We should then be able to read back all of the file data later with \n\
 fs.getFileContents(). \
 ";
-	Logging::showInfoW("Test data to be written is %i bytes long.", test_data.length());
-	FSResult res = fs.setFileContents(node2.inodeid, test_data.c_str(), test_data.length());
-	if (res == FSResult::E_SUCCESS)
-		Logging::showSuccessW("Wrote file contents for inode %i.", node2.inodeid);
+	AppLib::Logging::showInfoW("Test data to be written is %i bytes long.", test_data.length());
+	AppLib::LowLevel::FSResult res = fs.setFileContents(node2.inodeid, test_data.c_str(), test_data.length());
+	if (res == AppLib::LowLevel::FSResult::E_SUCCESS)
+		AppLib::Logging::showSuccessW("Wrote file contents for inode %i.", node2.inodeid);
 	else
 	{
-		Logging::showErrorW("Unable to write file contents for inode %i.", node2.inodeid);
+		AppLib::Logging::showErrorW("Unable to write file contents for inode %i.", node2.inodeid);
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
 	// TEST: Read file contents.
 	char ** data = (char**)malloc(sizeof(char*));
 	uint32_t * len = (uint32_t*)malloc(sizeof(uint32_t));
-	FSResult res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
-	if (res2 == FSResult::E_SUCCESS && data != NULL && len != NULL)
+	AppLib::LowLevel::FSResult res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
+	if (res2 == AppLib::LowLevel::FSResult::E_SUCCESS && data != NULL && len != NULL)
 	{
-		Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
+		AppLib::Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
 		bool matches = true;
-//		Logging::showInfoW("The file contents is as follows:");
+//		AppLib::Logging::showInfoW("The file contents is as follows:");
 		for (uint32_t i = 0; i < *len; i += 1)
 		{
 			if ((*data)[i] != test_data[i])
@@ -358,27 +358,27 @@ fs.getFileContents(). \
 */
 		}
 		if (matches)
-			Logging::showSuccessW("File contents matches what was written.");
+			AppLib::Logging::showSuccessW("File contents matches what was written.");
 		else
 		{
-			Logging::showErrorW("File contents does not match what was written.");
+			AppLib::Logging::showErrorW("File contents does not match what was written.");
 			fs.close();
-			Logging::showInfoW("Closed test package.");
+			AppLib::Logging::showInfoW("Closed test package.");
 			return 1;
 		}
 	}
 	else
 	{
-		Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		AppLib::Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
 	// TEST: Overwrite data in an existing file (overlapping multiple segments).
 	// We're going to change 512 bytes at an offset of 20 bytes within both the
 	// test_data memory, and the new file we created (one byte at a time, stream)
-	FSFile f = fs.getFile(node2.inodeid);
+	AppLib::LowLevel::FSFile f = fs.getFile(node2.inodeid);
 	f.open();
 	f.seekp(20);
 	const char * c = "1";
@@ -390,12 +390,12 @@ fs.getFileContents(). \
 	}
 	f.close();
 	if (f.good())
-		Logging::showSuccessW("Stream writing for file was successful.");
+		AppLib::Logging::showSuccessW("Stream writing for file was successful.");
 	else
 	{
-		Logging::showErrorW("Unable to stream write new data into the file.");
+		AppLib::Logging::showErrorW("Unable to stream write new data into the file.");
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
@@ -403,9 +403,9 @@ fs.getFileContents(). \
 	data = (char**)malloc(sizeof(char*));
 	len = (uint32_t*)malloc(sizeof(uint32_t));
 	res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
-	if (res2 == FSResult::E_SUCCESS && data != NULL && len != NULL)
+	if (res2 == AppLib::LowLevel::FSResult::E_SUCCESS && data != NULL && len != NULL)
 	{
-		Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
+		AppLib::Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
 		bool matches = true;
 		for (uint32_t i = 0; i < *len; i += 1)
 		{
@@ -416,20 +416,20 @@ fs.getFileContents(). \
 			}
 		}
 		if (matches)
-			Logging::showSuccessW("File contents matches what was written.");
+			AppLib::Logging::showSuccessW("File contents matches what was written.");
 		else
 		{
-			Logging::showErrorW("File contents does not match what was written.");
+			AppLib::Logging::showErrorW("File contents does not match what was written.");
 			fs.close();
-			Logging::showInfoW("Closed test package.");
+			AppLib::Logging::showInfoW("Closed test package.");
 			return 1;
 		}
 	}
 	else
 	{
-		Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		AppLib::Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
@@ -448,12 +448,12 @@ fs.getFileContents(). \
 	f.write(data2, 492);
 	f.close();
 	if (f.good())
-		Logging::showSuccessW("Burst writing for file was successful.");
+		AppLib::Logging::showSuccessW("Burst writing for file was successful.");
 	else
 	{
-		Logging::showErrorW("Unable to burst write new data into the file.");
+		AppLib::Logging::showErrorW("Unable to burst write new data into the file.");
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
@@ -461,9 +461,9 @@ fs.getFileContents(). \
 	data = (char**)malloc(sizeof(char*));
 	len = (uint32_t*)malloc(sizeof(uint32_t));
 	res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
-	if (res2 == FSResult::E_SUCCESS && data != NULL && len != NULL)
+	if (res2 == AppLib::LowLevel::FSResult::E_SUCCESS && data != NULL && len != NULL)
 	{
-		Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
+		AppLib::Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);
 		bool matches = true;
 		for (uint32_t i = 0; i < *len; i += 1)
 		{
@@ -474,24 +474,24 @@ fs.getFileContents(). \
 			}
 		}
 		if (matches)
-			Logging::showSuccessW("File contents matches what was written.");
+			AppLib::Logging::showSuccessW("File contents matches what was written.");
 		else
 		{
-			Logging::showErrorW("File contents does not match what was written.");
+			AppLib::Logging::showErrorW("File contents does not match what was written.");
 			fs.close();
-			Logging::showInfoW("Closed test package.");
+			AppLib::Logging::showInfoW("Closed test package.");
 			return 1;
 		}
 	}
 	else
 	{
-		Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		AppLib::Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
 		fs.close();
-		Logging::showInfoW("Closed test package.");
+		AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
 	fs.close();
-	Logging::showInfoW("Closed test package.");
+	AppLib::Logging::showInfoW("Closed test package.");
 	return 0;
 }

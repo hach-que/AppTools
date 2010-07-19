@@ -22,14 +22,20 @@ http://code.google.com/p/apptools-dist for more information.
 #include <iostream>
 #include <fstream>
 
-class Endian
+namespace AppLib
 {
-	public:
-		static bool little_endian;
-		static void detectEndianness();
-		static void doR(std::iostream * fd, char * data, unsigned int size);
-		static void doW(std::iostream * fd, char * data, unsigned int size);
-		static void doW(std::iostream * fd, const char * data, unsigned int size);
-};
+	namespace LowLevel
+	{
+		class Endian
+		{
+			public:
+				static bool little_endian;
+				static void detectEndianness();
+				static void doR(std::iostream * fd, char * data, unsigned int size);
+				static void doW(std::iostream * fd, char * data, unsigned int size);
+				static void doW(std::iostream * fd, const char * data, unsigned int size);
+		};
+	}
+}
 
 #endif

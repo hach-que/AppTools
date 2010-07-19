@@ -165,6 +165,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\applib\fuse.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\applib\logging.h"
 				>
 			</File>

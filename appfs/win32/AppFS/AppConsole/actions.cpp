@@ -33,7 +33,7 @@ void doOpen(std::vector<std::string> cmd)
 		return;
 	}
 	std::cout << "done." << std::endl;
-	currentFilesystem = new FS(fd);
+	currentFilesystem = new AppLib::LowLevel::FS(fd);
 	if (!currentFilesystem->isValid())
 	{
 		std::cout << "Unable to read file as AppFS package.  Aborting open." << std::endl;
@@ -101,7 +101,7 @@ void doCreate(std::vector<std::string> cmd)
 	time(&rtime);
 
 	// Write the root inode data.
-	INode node(0, "", INodeType::INT_DIRECTORY);
+	AppLib::LowLevel::INode node(0, "", AppLib::LowLevel::INodeType::INT_DIRECTORY);
 	node.uid = 0;
 	node.gid = 1000;
 	node.mask = 0777;
@@ -161,15 +161,15 @@ void doLs(std::vector<std::string> cmd)
 		return;
 	}
 
-	INode node = currentFilesystem->getINodeByID(id);
-	std::vector<INode> inodechildren = currentFilesystem->getChildrenOfDirectory(id);
+	AppLib::LowLevel::INode node = currentFilesystem->getINodeByID(id);
+	std::vector<AppLib::LowLevel::INode> inodechildren = currentFilesystem->getChildrenOfDirectory(id);
 
 	printListHeaders(0, inodechildren.size() + 2);
 	printListEntry(node.inodeid, node.mask, node.type, node.uid, node.gid, BSIZE_DIRECTORY, node.mtime, ".");
 	printListEntry(node.inodeid, node.mask, node.type, node.uid, node.gid, BSIZE_DIRECTORY, node.mtime, "..");
 	for (uint16_t i = 0; i < inodechildren.size(); i += 1)
 	{
-		if (inodechildren[i].type == INodeType::INT_DIRECTORY)
+		if (inodechildren[i].type == AppLib::LowLevel::INodeType::INT_DIRECTORY)
 			inodechildren[i].dat_len = BSIZE_DIRECTORY;
 		printListEntry(inodechildren[i].inodeid,
 						inodechildren[i].mask,
@@ -205,18 +205,18 @@ void doMkdir(std::vector<std::string> cmd)
 	uint16_t newid = currentFilesystem->getFirstFreeInodeNumber();
 
 	// Create the directory.
-	uint32_t pos = currentFilesystem->getFirstFreeBlock(INodeType::INT_DIRECTORY);
+	uint32_t pos = currentFilesystem->getFirstFreeBlock(AppLib::LowLevel::INodeType::INT_DIRECTORY);
 	time_t ltime; time(&ltime);
-	INode node(newid, const_cast<char*>(cmd[1].c_str()), INodeType::INT_DIRECTORY, 1000, 1000, 0755, ltime, ltime, ltime);
+	AppLib::LowLevel::INode node(newid, const_cast<char*>(cmd[1].c_str()), AppLib::LowLevel::INodeType::INT_DIRECTORY, 1000, 1000, 0755, ltime, ltime, ltime);
 	node.parent = id;
-	if (currentFilesystem->writeINode(pos, node) != FSResult::E_SUCCESS)
+	if (currentFilesystem->writeINode(pos, node) != AppLib::LowLevel::FSResult::E_SUCCESS)
 	{
 		std::cout << "Unable to create directory." << std::endl;
 		return;
 	}
 
 	// Add the directory to the current inode id.
-	if (currentFilesystem->addChildToDirectoryInode(id, newid) == FSResult::E_SUCCESS)
+	if (currentFilesystem->addChildToDirectoryInode(id, newid) == AppLib::LowLevel::FSResult::E_SUCCESS)
 	{
 		std::cout << "Successfully created directory." << std::endl;
 		return;
@@ -252,7 +252,7 @@ void doTouch(std::vector<std::string> cmd)
 	}
 
 	// Check to see if file already exists.
-	if (currentFilesystem->filenameIsUnique(id, const_cast<char*>(cmd[1].c_str())) == FSResult::E_FAILURE_NOT_UNIQUE)
+	if (currentFilesystem->filenameIsUnique(id, const_cast<char*>(cmd[1].c_str())) == AppLib::LowLevel::FSResult::E_FAILURE_NOT_UNIQUE)
 	{
 		std::cout << "Unable to create file: filename is not unique." << std::endl;
 		return;
@@ -262,18 +262,18 @@ void doTouch(std::vector<std::string> cmd)
 	uint16_t newid = currentFilesystem->getFirstFreeInodeNumber();
 
 	// Create the file.
-	uint32_t pos = currentFilesystem->getFirstFreeBlock(INodeType::INT_FILE);
+	uint32_t pos = currentFilesystem->getFirstFreeBlock(AppLib::LowLevel::INodeType::INT_FILE);
 	time_t ltime; time(&ltime);
-	INode node(newid, const_cast<char*>(cmd[1].c_str()), INodeType::INT_FILE, 1000, 1000, 0311, ltime, ltime, ltime);
+	AppLib::LowLevel::INode node(newid, const_cast<char*>(cmd[1].c_str()), AppLib::LowLevel::INodeType::INT_FILE, 1000, 1000, 0311, ltime, ltime, ltime);
 	node.parent = id;
-	if (currentFilesystem->writeINode(pos, node) != FSResult::E_SUCCESS)
+	if (currentFilesystem->writeINode(pos, node) != AppLib::LowLevel::FSResult::E_SUCCESS)
 	{
 		std::cout << "Unable to create file." << std::endl;
 		return;
 	}
 
 	// Add the file to the current inode id.
-	if (currentFilesystem->addChildToDirectoryInode(id, newid) == FSResult::E_SUCCESS)
+	if (currentFilesystem->addChildToDirectoryInode(id, newid) == AppLib::LowLevel::FSResult::E_SUCCESS)
 	{
 		std::cout << "Successfully created file." << std::endl;
 		return;
@@ -308,8 +308,8 @@ void doRm(std::vector<std::string> cmd)
 	}
 
 	// Get the inode of the file.
-	INode fnode = currentFilesystem->getChildOfDirectory(id, cmd[1].c_str());
-	if (fnode.type == INodeType::INT_INVALID)
+	AppLib::LowLevel::INode fnode = currentFilesystem->getChildOfDirectory(id, cmd[1].c_str());
+	if (fnode.type == AppLib::LowLevel::INodeType::INT_INVALID)
 	{
 		std::cout << "The specified filename or directory could not be found." << std::endl;
 		return;
@@ -326,7 +326,7 @@ void doRm(std::vector<std::string> cmd)
 	}
 
 	// Now remove the entry from the parent directory.
-	if (currentFilesystem->removeChildFromDirectoryInode(id, fnode.inodeid) != FSResult::E_SUCCESS)
+	if (currentFilesystem->removeChildFromDirectoryInode(id, fnode.inodeid) != AppLib::LowLevel::FSResult::E_SUCCESS)
 	{
 		std::cout << "Unable to remove the child listing in the parent directory." << std::endl;
 		return;
@@ -365,24 +365,24 @@ void doTruncate(std::vector<std::string> cmd)
 	}
 
 	// Get the inode of the file.
-	INode fnode = currentFilesystem->getChildOfDirectory(id, cmd[1].c_str());
-	if (fnode.type == INodeType::INT_INVALID)
+	AppLib::LowLevel::INode fnode = currentFilesystem->getChildOfDirectory(id, cmd[1].c_str());
+	if (fnode.type == AppLib::LowLevel::INodeType::INT_INVALID)
 	{
 		std::cout << "The specified filename or directory could not be found." << std::endl;
 		return;
 	}
-	if (fnode.type != INodeType::INT_FILE)
+	if (fnode.type != AppLib::LowLevel::INodeType::INT_FILE)
 	{
 		std::cout << "The specified filename is not a file." << std::endl;
 		return;
 	}
 
 	// Truncate the file.
-	FSResult res = currentFilesystem->truncateFile(fnode.inodeid, flength);
+	AppLib::LowLevel::FSResult res = currentFilesystem->truncateFile(fnode.inodeid, flength);
 
-	if (res == FSResult::E_SUCCESS)
+	if (res == AppLib::LowLevel::FSResult::E_SUCCESS)
 		std::cout << "Successfully truncated file." << std::endl;
-	else if (res == FSResult::E_FAILURE_PARTIAL_TRUNCATION)
+	else if (res == AppLib::LowLevel::FSResult::E_FAILURE_PARTIAL_TRUNCATION)
 		std::cout << "File was partially truncated." << std::endl;
 	else
 		std::cout << "Unable to truncate file." << std::endl;
@@ -409,8 +409,8 @@ void doEdit(std::vector<std::string> cmd)
 	}
 
 	// Get the inode of the file.
-	INode fnode = currentFilesystem->getChildOfDirectory(id, cmd[1].c_str());
-	if (fnode.type == INodeType::INT_INVALID)
+	AppLib::LowLevel::INode fnode = currentFilesystem->getChildOfDirectory(id, cmd[1].c_str());
+	if (fnode.type == AppLib::LowLevel::INodeType::INT_INVALID)
 	{
 		std::cout << "The specified filename or directory could not be found." << std::endl;
 		return;
@@ -429,7 +429,7 @@ void doEdit(std::vector<std::string> cmd)
 	for (int i = 0; i < 513; i += 1)
 		data[i] = 0;
 	std::streamsize rlen = 0;
-	FSFile filer = currentFilesystem->getFile(fnode.inodeid);
+	AppLib::LowLevel::FSFile filer = currentFilesystem->getFile(fnode.inodeid);
 	filer.open();
 	filer.seekg(0);
 
@@ -493,7 +493,7 @@ void doEdit(std::vector<std::string> cmd)
 
 	// Open the file again.
 	char stor = '\0';
-	FSFile filew = currentFilesystem->getFile(fnode.inodeid);
+	AppLib::LowLevel::FSFile filew = currentFilesystem->getFile(fnode.inodeid);
 	filew.open();
 	filew.seekp(0);
 	

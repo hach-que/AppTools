@@ -9,7 +9,7 @@ std::map<std::string, std::string> environmentMappings;
 std::map<std::string, commandFunc> availableCommands;
 std::vector<std::string> commandHistory;
 bool usedHistory = false;
-FS * currentFilesystem = NULL;
+AppLib::LowLevel::FS * currentFilesystem = NULL;
 std::fstream * fd = NULL;
 std::string currentPath = "/";
 

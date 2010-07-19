@@ -18,12 +18,17 @@ http://code.google.com/p/apptools-dist for more information.
 
 #include "fs.h"
 
-class FuseLink
+namespace AppLib
 {
-	public:
-		static FS filesystem;
-		static int getattr(const char* path, struct stat *stbuf);
-		// TODO: Implement other FUSE callbacks here
-};
-
+	namespace FUSE
+	{
+		class FuseLink
+		{
+			public:
+				static LowLevel::FS filesystem;
+				static int getattr(const char* path, struct stat *stbuf);
+				// TODO: Implement other FUSE callbacks here
+		};
+	}
+}
 #endif
