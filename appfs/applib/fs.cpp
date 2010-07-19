@@ -43,27 +43,30 @@ namespace AppLib
 #ifdef WIN32
 			// Check for text-mode stream, which will break binary packages.
 			uint32_t tpos = this->getTemporaryBlock();
-			char msg[5];
-			char omsg[5];
-			msg[0] = 'm';
-			msg[1] = '\n';
-			msg[2] = 0;
-			msg[3] = 0;
-			msg[4] = 0;
-			for (int i = 0; i < 5; i++)
-				omsg[i] = 0;
-			this->fd->seekp(tpos);
-			this->fd->write(&msg[0], 3);
-			this->fd->seekg(tpos + 2);
-			this->fd->read(&omsg[2], 3);
-			omsg[0] = 'm';
-			omsg[1] = '\n';
-			if (strcmp(&omsg[0], &msg[0]) != 0)
+			if (tpos != 0)
 			{
-				Logging::showErrorW("Text-mode stream passed to FS constructor.  Make sure");
-				Logging::showErrorO("the stream is in binary mode.");
-				this->fd = NULL;
-				return;
+				char msg[5];
+				char omsg[5];
+				msg[0] = 'm';
+				msg[1] = '\n';
+				msg[2] = 0;
+				msg[3] = 0;
+				msg[4] = 0;
+				for (int i = 0; i < 5; i++)
+					omsg[i] = 0;
+				this->fd->seekp(tpos);
+				this->fd->write(&msg[0], 3);
+				this->fd->seekg(tpos + 2);
+				this->fd->read(&omsg[2], 3);
+				omsg[0] = 'm';
+				omsg[1] = '\n';
+				if (strcmp(&omsg[0], &msg[0]) != 0)
+				{
+					Logging::showErrorW("Text-mode stream passed to FS constructor.  Make sure");
+					Logging::showErrorO("the stream is in binary mode.");
+					this->fd = NULL;
+					return;
+				}
 			}
 #endif
 		}
@@ -138,7 +141,7 @@ namespace AppLib
 			return node;
 		}
 
-		FSResult FS::writeINode(uint32_t pos, INode node)
+		FSResult::FSResult FS::writeINode(uint32_t pos, INode node)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -206,7 +209,7 @@ namespace AppLib
 			return ret;
 		}
 
-		FSResult FS::setINodePositionByID(uint16_t id, uint32_t pos)
+		FSResult::FSResult FS::setINodePositionByID(uint16_t id, uint32_t pos)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -217,7 +220,7 @@ namespace AppLib
 			return FSResult::E_SUCCESS;
 		}
 
-		uint32_t FS::getFirstFreeBlock(INodeType type)
+		uint32_t FS::getFirstFreeBlock(INodeType::INodeType type)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -301,7 +304,7 @@ namespace AppLib
 			return current_pos - type_offset;
 		}
 
-		FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
+		FSResult::FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -360,7 +363,7 @@ namespace AppLib
 			}
 		}
 
-		FSResult FS::removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid)
+		FSResult::FSResult FS::removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -420,7 +423,7 @@ namespace AppLib
 			}
 		}
 
-		FSResult FS::filenameIsUnique(uint16_t parentid, char * filename)
+		FSResult::FSResult FS::filenameIsUnique(uint16_t parentid, char * filename)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -544,7 +547,7 @@ namespace AppLib
 			return INode(0, "", INodeType::INT_INVALID);
 		}
 
-		FSResult FS::setFileContents(uint16_t id, const char * data, uint32_t len)
+		FSResult::FSResult FS::setFileContents(uint16_t id, const char * data, uint32_t len)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -567,7 +570,7 @@ namespace AppLib
 			std::streampos oldp = this->fd->tellp();
 			if (len <= BSIZE_FILE - HSIZE_FILE)
 			{
-				FSResult length_set_result = this->setFileLengthDirect(ipos, len);
+				FSResult::FSResult length_set_result = this->setFileLengthDirect(ipos, len);
 				if (length_set_result != FSResult::E_SUCCESS)
 					return length_set_result;
 
@@ -580,7 +583,7 @@ namespace AppLib
 			}
 			else
 			{
-				FSResult length_set_result = this->setFileLengthDirect(ipos, len);
+				FSResult::FSResult length_set_result = this->setFileLengthDirect(ipos, len);
 				if (length_set_result != FSResult::E_SUCCESS)
 					return length_set_result;
 
@@ -618,7 +621,7 @@ namespace AppLib
 			}
 		}
 
-		FSResult FS::getFileContents(uint16_t id, char ** data_out, uint32_t * len_out, uint32_t len_max)
+		FSResult::FSResult FS::getFileContents(uint16_t id, char ** data_out, uint32_t * len_out, uint32_t len_max)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -677,7 +680,7 @@ namespace AppLib
 			}
 		}
 
-		FSResult FS::setFileLengthDirect(uint32_t pos, uint32_t len)
+		FSResult::FSResult FS::setFileLengthDirect(uint32_t pos, uint32_t len)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -725,7 +728,7 @@ namespace AppLib
 			}
 		}
 
-		FSResult FS::setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next)
+		FSResult::FSResult FS::setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -808,7 +811,7 @@ namespace AppLib
 			return node.seg_next;
 		}
 
-		FSResult FS::resetBlock(uint32_t pos)
+		FSResult::FSResult FS::resetBlock(uint32_t pos)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -916,7 +919,7 @@ namespace AppLib
 			return id;
 		}
 
-		FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
+		FSResult::FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
@@ -1046,6 +1049,8 @@ namespace AppLib
 						this->fd->seekg(oldg);
 						temporary_position = block_position + 2;
 						return block_position + 2;
+					case INodeType::INT_UNSET:
+						break;
 					default:
 						this->fd->seekg(oldg);
 						return 0;

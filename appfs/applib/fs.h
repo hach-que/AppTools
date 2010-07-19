@@ -212,7 +212,7 @@ namespace AppLib
 
 				// Writes an INode to the specified position and then
 				// updates the inode lookup table.
-				FSResult writeINode(uint32_t pos, INode node);
+				FSResult::FSResult writeINode(uint32_t pos, INode node);
 
 				// Retrieves an INode by an ID.
 				INode getINodeByID(uint16_t id);
@@ -225,14 +225,14 @@ namespace AppLib
 				uint32_t getINodePositionByID(uint16_t id);
 
 				// Sets the position of an inode in the inode lookup table.
-				FSResult setINodePositionByID(uint16_t id, uint32_t pos);
+				FSResult::FSResult setINodePositionByID(uint16_t id, uint32_t pos);
 
 				// Find first free block and return that position.  The user specifies
 				// INT_FILE or INT_DIRECTORY to indicate the number of sequential free
 				// blocks to find.  A return value of 0 indicates that the file was either
 				// at the maximum filesize, or the function could not otherwise find
 				// a free block.
-				uint32_t getFirstFreeBlock(INodeType type);
+				uint32_t getFirstFreeBlock(INodeType::INodeType type);
 
 				// Find the first free inode number and return it.  A return value of 0
 				// indicates that there are no free inode numbers available (we can use
@@ -243,15 +243,15 @@ namespace AppLib
 				// Adds a child inode to a parent (directory) inode.  Please note that it doesn't
 				// check to see whether or not the child is already attached to the parent, but
 				// it will add the child reference in the lowest available slot.
-				FSResult addChildToDirectoryInode(uint16_t parentid, uint16_t childid);
+				FSResult::FSResult addChildToDirectoryInode(uint16_t parentid, uint16_t childid);
 
 				// Removes a child inode from a parent (directory) inode.
-				FSResult removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid);
+				FSResult::FSResult removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid);
 
 				// Returns whether or not a specified filename is unique
 				// inside a directory.  E_SUCCESS indicates unique, E_FAILURE_NOT_UNIQUE
 				// indicates not unique.
-				FSResult filenameIsUnique(uint16_t parentid, char * filename);
+				FSResult::FSResult filenameIsUnique(uint16_t parentid, char * filename);
 
 				// Returns an std::vector<INode> list of children within
 				// the specified directory.
@@ -266,19 +266,19 @@ namespace AppLib
 				INode getChildOfDirectory(uint16_t parentid, const char * filename);
 
 				// Sets a file's contents (replacing the current contents).
-				FSResult setFileContents(uint16_t id, const char * data, uint32_t len);
+				FSResult::FSResult setFileContents(uint16_t id, const char * data, uint32_t len);
 
 				// Returns a file's contents.
-				FSResult getFileContents(uint16_t id, char ** out, uint32_t * len_out, uint32_t len_max);
+				FSResult::FSResult getFileContents(uint16_t id, char ** out, uint32_t * len_out, uint32_t len_max);
 
 				// Sets the length of a file (the dat_len and seg_len) fields, without actually
 				// adjusting the length of the file data or allocating new blocks (it only changes
 				// the field values).
-				FSResult setFileLengthDirect(uint32_t pos, uint32_t len);
+				FSResult::FSResult setFileLengthDirect(uint32_t pos, uint32_t len);
 
 				// Sets the seg_next field for a FILE or SEGMENT block, without actually
 				// allocating a new block or validating the seg_next position.
-				FSResult setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next);
+				FSResult::FSResult setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next);
 
 				// This function returns the position of the next block for file data after the current block.
 				uint32_t getFileNextBlock(uint32_t pos);
@@ -286,7 +286,7 @@ namespace AppLib
 				// Erase a specified block (CAUTION:  This simply erases BSIZE_FILE bytes from the
 				// specified position.  It does not check to make sure the position is actually
 				// the start of a block!)
-				FSResult resetBlock(uint32_t pos);
+				FSResult::FSResult resetBlock(uint32_t pos);
 
 				// Resolves a position in a file to a position in the disk image.
 				uint32_t resolvePositionInFile(uint16_t inodeid, uint32_t pos);
@@ -295,7 +295,7 @@ namespace AppLib
 				int32_t resolvePathnameToInodeID(const char * path);
 
 				// Sets the length of a file, allocating or erasing blocks / data where necessary.
-				FSResult truncateFile(uint16_t inodeid, uint32_t len);
+				FSResult::FSResult truncateFile(uint16_t inodeid, uint32_t len);
 
 				// Returns a FSFile object for interacting with the specified file at
 				// the specified inode.

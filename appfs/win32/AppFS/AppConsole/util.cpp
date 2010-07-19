@@ -36,7 +36,7 @@ void getFormattedPermissionBlock(uint8_t m, char * out)
 	strcpy(out, a);
 }
 
-void getFormattedPermissionMask(uint16_t mask, AppLib::LowLevel::INodeType type, char * out)
+void getFormattedPermissionMask(uint16_t mask, AppLib::LowLevel::INodeType::INodeType type, char * out)
 {
 	for (int i = 0; i < 11; i += 1)
 		out[i] = '\0';
@@ -110,7 +110,7 @@ void formatDateTime(uint32_t time, char * out)
 	strcpy_s(out, 13, tstr);
 }
 
-void printListEntry(uint16_t id, uint16_t mask, AppLib::LowLevel::INodeType type, uint16_t uid, uint16_t gid, uint32_t size, unsigned long mtime, char * filename)
+void printListEntry(uint16_t id, uint16_t mask, AppLib::LowLevel::INodeType::INodeType type, uint16_t uid, uint16_t gid, uint32_t size, unsigned long mtime, char * filename)
 {
 	char tstr[13] = "            ";
 	formatDateTime(mtime, tstr);

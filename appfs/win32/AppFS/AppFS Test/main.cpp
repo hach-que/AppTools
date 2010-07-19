@@ -42,7 +42,7 @@ void getFormattedPermissionBlock(uint8_t m, char * out)
 	strcpy(out, a);
 }
 
-void getFormattedPermissionMask(uint16_t mask, AppLib::LowLevel::INodeType type, char * out)
+void getFormattedPermissionMask(uint16_t mask, AppLib::LowLevel::INodeType::INodeType type, char * out)
 {
 	for (int i = 0; i < 11; i += 1)
 		out[i] = '\0';
@@ -116,7 +116,7 @@ void formatDateTime(uint32_t time, char * out)
 	strcpy_s(out, 13, tstr);
 }
 
-void printListEntry(uint16_t id, uint16_t mask, AppLib::LowLevel::INodeType type, uint16_t uid, uint16_t gid, uint32_t size, unsigned long mtime, char * filename)
+void printListEntry(uint16_t id, uint16_t mask, AppLib::LowLevel::INodeType::INodeType type, uint16_t uid, uint16_t gid, uint32_t size, unsigned long mtime, char * filename)
 {
 	char tstr[13] = "            ";
 	formatDateTime(mtime, tstr);
@@ -320,7 +320,7 @@ We should then be able to read back all of the file data later with \n\
 fs.getFileContents(). \
 ";
 	AppLib::Logging::showInfoW("Test data to be written is %i bytes long.", test_data.length());
-	AppLib::LowLevel::FSResult res = fs.setFileContents(node2.inodeid, test_data.c_str(), test_data.length());
+	AppLib::LowLevel::FSResult::FSResult res = fs.setFileContents(node2.inodeid, test_data.c_str(), test_data.length());
 	if (res == AppLib::LowLevel::FSResult::E_SUCCESS)
 		AppLib::Logging::showSuccessW("Wrote file contents for inode %i.", node2.inodeid);
 	else
@@ -334,7 +334,7 @@ fs.getFileContents(). \
 	// TEST: Read file contents.
 	char ** data = (char**)malloc(sizeof(char*));
 	uint32_t * len = (uint32_t*)malloc(sizeof(uint32_t));
-	AppLib::LowLevel::FSResult res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
+	AppLib::LowLevel::FSResult::FSResult res2 = fs.getFileContents(node2.inodeid, data, len, 2048);
 	if (res2 == AppLib::LowLevel::FSResult::E_SUCCESS && data != NULL && len != NULL)
 	{
 		AppLib::Logging::showSuccessW("Read file contents for inode %i:", node2.inodeid);

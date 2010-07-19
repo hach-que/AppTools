@@ -378,7 +378,7 @@ void doTruncate(std::vector<std::string> cmd)
 	}
 
 	// Truncate the file.
-	AppLib::LowLevel::FSResult res = currentFilesystem->truncateFile(fnode.inodeid, flength);
+	AppLib::LowLevel::FSResult::FSResult res = currentFilesystem->truncateFile(fnode.inodeid, flength);
 
 	if (res == AppLib::LowLevel::FSResult::E_SUCCESS)
 		std::cout << "Successfully truncated file." << std::endl;

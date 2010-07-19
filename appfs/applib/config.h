@@ -25,8 +25,8 @@ http://code.google.com/p/apptools-dist for more information.
 #define OFFSET_LOOKUP    (1024 * 1024)
 #define LENGTH_LOOKUP    (256 * 1024)
 #define OFFSET_ROOTINODE (1024 * 1024 + 256 * 1024)
-#define LENGTH_ROOTINODE (4376)
-#define OFFSET_DATA      (1024 * 1024 + 256 * 1024 + 4376)
+#define LENGTH_ROOTINODE (4096)
+#define OFFSET_DATA      (1024 * 1024 + 256 * 1024 + 4096)
 
 // Defines whether or not the test suite should automatically
 // create a blank AppFS file for testing if it doesn't exist
