@@ -17,7 +17,7 @@ http://code.google.com/p/apptools-dist for more information.
 
 int main(int argc, char *argv[])
 {
-	Logging.setApplicationName(std::string("appfs"));
-	Logging.showErrorW("This software is not implemented ;)");
+	AppLib::Logging::setApplicationName(std::string("appfs"));
+	AppLib::Logging::showErrorW("This software is not implemented ;)");
 	return 0;
 }

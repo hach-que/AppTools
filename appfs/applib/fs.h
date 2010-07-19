@@ -29,45 +29,51 @@ http://code.google.com/p/apptools-dist for more information.
 namespace AppLib
 {
 	namespace LowLevel
-	{	
-		enum FSResult
+	{
+		namespace FSResult
 		{
-			E_SUCCESS,
-			E_FAILURE_GENERAL,
-			E_FAILURE_INVALID_FILENAME,
-			E_FAILURE_INVALID_POSITION,
-			E_FAILURE_INODE_ALREADY_ASSIGNED,
-			E_FAILURE_NOT_A_DIRECTORY,
-			E_FAILURE_NOT_A_FILE,
-			E_FAILURE_NOT_UNIQUE,
-			E_FAILURE_NOT_IMPLEMENTED,
-			E_FAILURE_MAXIMUM_CHILDREN_REACHED,
-			E_FAILURE_PARTIAL_TRUNCATION,
-			E_FAILURE_UNKNOWN
-		};
+			enum FSResult
+			{
+				E_SUCCESS,
+				E_FAILURE_GENERAL,
+				E_FAILURE_INVALID_FILENAME,
+				E_FAILURE_INVALID_POSITION,
+				E_FAILURE_INODE_ALREADY_ASSIGNED,
+				E_FAILURE_NOT_A_DIRECTORY,
+				E_FAILURE_NOT_A_FILE,
+				E_FAILURE_NOT_UNIQUE,
+				E_FAILURE_NOT_IMPLEMENTED,
+				E_FAILURE_MAXIMUM_CHILDREN_REACHED,
+				E_FAILURE_PARTIAL_TRUNCATION,
+				E_FAILURE_UNKNOWN
+			};
+		}
 
 		// WARN: The values here are also used to store the types
 		//       in the actual AppFS packages.  Therefore, you should
 		//       not change the values for INT_FREEBLOCK, INT_FILE,
 		//       INT_DIRECTORY, INT_SEGMENT or INT_TEMPORARY since
 		//       it will break the ability to read existing packages.
-		enum INodeType
+		namespace INodeType
 		{
-			INT_FREEBLOCK = 0,
-			INT_FILE = 1,
-			INT_DIRECTORY = 2,
-			INT_SEGMENT = 3,
-			INT_TEMPORARY = 4,
-			INT_INVALID = 5,
-			INT_UNSET = 255
-		};
+			enum INodeType
+			{
+				INT_FREEBLOCK = 0,
+				INT_FILE = 1,
+				INT_DIRECTORY = 2,
+				INT_SEGMENT = 3,
+				INT_TEMPORARY = 4,
+				INT_INVALID = 5,
+				INT_UNSET = 255
+			};
+		}
 
 		class INode
 		{
 			public:
 				uint16_t inodeid;
 				char filename[256];
-				INodeType type;
+				INodeType::INodeType type;
 				uint16_t uid;
 				uint16_t gid;
 				uint16_t mask;
@@ -87,7 +93,7 @@ namespace AppLib
 
 				inline INode(uint16_t id,
 								char * filename,
-								INodeType type,
+								INodeType::INodeType type,
 								uint16_t uid,
 								uint16_t gid,
 								uint16_t mask,
@@ -122,7 +128,7 @@ namespace AppLib
 
 				inline INode(uint16_t id,
 								char * filename,
-								INodeType type)
+								INodeType::INodeType type)
 				{
 					this->inodeid = id;
 					for (uint16_t i = 0; i < strlen(filename); i += 1)
