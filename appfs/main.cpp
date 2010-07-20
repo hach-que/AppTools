@@ -6,7 +6,7 @@ This file is the main entry point for the AppFS / AppMount
 programs.
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                21th June 2010
+                20th July 2010
 
 This software is licensed under an MIT license.  See
 http://code.google.com/p/apptools-dist for more information.
@@ -14,10 +14,16 @@ http://code.google.com/p/apptools-dist for more information.
 */
 
 #include "applib/logging.h"
+#include "config.h"
+
+int appmount(int argc, char *argv[]);
+int appfs(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
-	AppLib::Logging::setApplicationName(std::string("appfs"));
-	AppLib::Logging::showErrorW("This software is not implemented ;)");
-	return 0;
+#ifdef APPMOUNT
+	return appmount(argc, argv);
+#else
+	return appfs(argc, argv);
+#endif
 }
