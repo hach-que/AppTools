@@ -30,6 +30,60 @@ namespace AppLib
 	{
 		LowLevel::FS FuseLink::filesystem = NULL;
 
+		extern "C"
+		{
+			static const struct fuse_operations appfs_ops = {
+				.getattr	= FuseLink::getattr,
+				.readlink	= FuseLink::readlink,
+				.mknod		= FuseLink::mknod,
+				.mkdir		= FuseLink::mkdir,
+				.unlink		= FuseLink::unlink,
+				.rmdir		= FuseLink::rmdir,
+				.symlink	= FuseLink::symlink,
+				.rename		= FuseLink::rename,
+				.link		= FuseLink::link,
+				.chmod		= FuseLink::chmod,
+				.chown		= FuseLink::chown,
+				.truncate	= FuseLink::truncate,
+				.open		= FuseLink::open,
+				.read		= FuseLink::read,
+				.write		= FuseLink::write,
+				.statfs		= FuseLink::statfs,
+				.flush		= FuseLink::flush,
+				.release	= FuseLink::release,
+				.fsync		= FuseLink::fsync,
+				.setxattr	= NULL
+				.getxattr	= NULL
+				.listxattr	= NULL
+				.removexattr= NULL
+				.opendir	= FuseLink::opendir,
+				.readdir	= FuseLink::readdir,
+				.releasedir	= FuseLink::releasedir,
+				.fsyncdir	= FuseLink::fsyncdir,
+				.init		= FuseLink::init,
+				.destroy	= FuseLink::destroy,
+				.access		= FuseLink::access,
+				.create		= FuseLink::create,
+				.ftruncate	= FuseLink::ftruncate,
+				.fgetattr	= FuseLink::fgetattr,
+				.lock		= NULL,
+				.utimens	= FuseLink::utimens,
+				.bmap		= NULL
+			}
+		}
+
+		Mounter::Mounter(const char *disk_image,
+						const char *mount_path,
+						bool foreground,
+						void (*continue_func)(void))
+		{
+			// Mounts the specified disk image at the
+			// specified mount path using FUSE.
+			struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
+
+			fuse_main(fargs.argc, fargs.argv, &appfs_ops);
+		}
+
 		int FuseLink::getattr(const char* path, struct stat *stbuf)
 		{
 			int result = 0;

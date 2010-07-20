@@ -29,6 +29,13 @@ namespace AppLib
 				static int getattr(const char* path, struct stat *stbuf);
 				// TODO: Implement other FUSE callbacks here
 		};
+
+		class Mounter
+		{
+			public:
+				Mounter(const char* disk_image, char const* mount_path,
+						bool foreground, void (*continue_func)(void));
+		}
 	}
 }
 #endif
