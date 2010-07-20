@@ -15,15 +15,13 @@ http://code.google.com/p/apptools-dist for more information.
 
 #include "applib/logging.h"
 #include "config.h"
-
-int appmount(int argc, char *argv[]);
-int appfs(int argc, char *argv[]);
+#include "funcdefs.h"
 
 int main(int argc, char *argv[])
 {
 #ifdef APPMOUNT
-	return appmount(argc, argv);
+	return appmount_start(argc, argv);
 #else
-	return appfs(argc, argv);
+	return appfs_start(argc, argv);
 #endif
 }
