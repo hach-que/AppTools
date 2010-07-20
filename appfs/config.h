@@ -32,6 +32,8 @@ http://code.google.com/p/apptools-dist for more information.
 #include <ext2fs/ext2fs.h>
 #include <sys/signal.h>
 
+#define FUSE_USE_VERSION	26
+
 /************************* BEGIN CONFIGURATION **************************/
 
 // Uncomment the lines below to get different levels of verbosity.
