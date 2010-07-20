@@ -12,6 +12,8 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
+#define FUSE_USE_VERSION 26
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,8 +33,6 @@ http://code.google.com/p/apptools-dist for more information.
 #include <sys/mount.h>
 #include <ext2fs/ext2fs.h>
 #include <sys/signal.h>
-
-#define FUSE_USE_VERSION	26
 
 /************************* BEGIN CONFIGURATION **************************/
 

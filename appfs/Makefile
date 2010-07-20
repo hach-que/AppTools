@@ -5,25 +5,26 @@ EXE_APPFS	= appfs
 EXE_APPMOUNT	= appmount
 BUILD_APPFS	=
 BUILD_APPMOUNT	= -DAPPMOUNT
-OBJS	= main.o 
+OBJS_APPFS	= main.o appfs.o
+OBJS_APPMOUNT	= main.o appmount.o
 OBJLIBS	= libapp.a
 LIBS	= -L. /lib/libfuse.a /lib/libargtable2.a -lpthread -lext2fs -lstdc++ -ldl -lrt ./libapp.a
 
 all: appfs appmount
 
-appfs: main.o $(OBJLIBS)
+appfs: main.o appfs.o $(OBJLIBS)
 	@$(ECHO) g++ $(CPPFLAGS) $(BUILD_APPFS) -c -o main.o main.cpp
 	@g++ $(CPPFLAGS) $(BUILD_APPFS) -c -o main.o main.cpp
-	@$(ECHO) gcc -o $(EXE_APPFS) $(OBJS) $(LIBS)
-	@gcc -o $(EXE_APPFS) $(OBJS) $(LIBS)
+	@$(ECHO) gcc -o $(EXE_APPFS) $(OBJS_APPFS) $(LIBS)
+	@gcc -o $(EXE_APPFS) $(OBJS_APPFS) $(LIBS)
 	@$(ECHO) rm main.o
 	@rm main.o
 
-appmount: main.o $(OBJLIBS)
+appmount: main.o appmount.o $(OBJLIBS)
 	@$(ECHO) g++ $(CPPFLAGS) $(BUILD_APPMOUNT) -c -o main.o main.cpp
 	@g++ $(CPPFLAGS) $(BUILD_APPMOUNT) -c -o main.o main.cpp
-	@$(ECHO) gcc -o $(EXE_APPMOUNT) $(OBJS) $(LIBS)
-	@gcc -o $(EXE_APPMOUNT) $(OBJS) $(LIBS)
+	@$(ECHO) gcc -o $(EXE_APPMOUNT) $(OBJS_APPMOUNT) $(LIBS)
+	@gcc -o $(EXE_APPMOUNT) $(OBJS_APPMOUNT) $(LIBS)
 	@$(ECHO) rm main.o
 	@rm main.o
 
