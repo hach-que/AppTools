@@ -75,7 +75,6 @@ namespace AppLib
 								struct fuse_file_info *, unsigned int flags, void *data);
 				static int poll(const char *, struct fuse_file_info *,
 								struct fuse_pollhandle *ph, unsigned *reventsp);
-				// TODO: Implement other FUSE callbacks here
 		};
 
 		class Mounter

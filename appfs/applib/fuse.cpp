@@ -137,6 +137,10 @@ namespace AppLib
 					return -ENOENT;
 				}
 			}
+			if (buf.type == LowLevel::INodeType::INT_INVALID)
+			{
+				return -ENOENT;
+			}
 
 			// Set the values of the stat structure.
 			stbuf->st_dev = buf.dev;
@@ -152,6 +156,7 @@ namespace AppLib
 				stbuf->st_blksize = BSIZE_FILE;
 				stbuf->st_blocks = buf.blocks;
 #endif
+				stbuf->st_mode = S_IFREG | stbuf->st_mode;
 			}
 			else if (buf.type == LowLevel::INodeType::INT_DIRECTORY)
 			{
@@ -160,12 +165,11 @@ namespace AppLib
 				stbuf->st_blksize = BSIZE_FILE;
 				stbuf->st_blocks = BSIZE_DIRECTORY / BSIZE_FILE;
 #endif
+				stbuf->st_mode = S_IFDIR | stbuf->st_mode;
 			}
 			stbuf->st_atime = buf.atime;
 			stbuf->st_mtime = buf.mtime;
 			stbuf->st_ctime = buf.ctime;
-
-			// TODO: Implement this function.
 
 			return 0;
 		}
@@ -286,32 +290,44 @@ namespace AppLib
 
 		int FuseLink::release(const char * path, struct fuse_file_info *)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::fsync(const char * path, int, struct fuse_file_info *)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::opendir(const char * path, struct fuse_file_info *)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::readdir(const char * path, void *, fuse_fill_dir_t, off_t,
 						struct fuse_file_info *)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::releasedir(const char * path, struct fuse_file_info *)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+			
 			return -ENOTSUP;
 		}
 
 		int FuseLink::fsyncdir(const char * path, int, struct fuse_file_info *)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
@@ -327,44 +343,72 @@ namespace AppLib
 
 		int FuseLink::access(const char * path, int)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::create(const char * path, mode_t mode, struct fuse_file_info * options)
 		{
+			APPFS_CHECK_PATH_NOT_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::ftruncate(const char * path, off_t len, struct fuse_file_info * options)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::fgetattr(const char * path, struct stat * st, struct fuse_file_info * options)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::utimens(const char * path, const struct timespec tv[2])
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::ioctl(const char * path, int cmd, void *arg,
 						struct fuse_file_info *, unsigned int flags, void *data)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int FuseLink::poll(const char * path, struct fuse_file_info * options,
 						struct fuse_pollhandle *ph, unsigned *reventsp)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
 			return -ENOTSUP;
 		}
 
 		int Macros::checkPathExists(const char *path)
 		{
-			return -ENOENT;
+			std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
+			LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
+			for (unsigned int i = 0; i < ret.size(); i += 1)
+			{
+				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
+				if (buf.type == LowLevel::INodeType::INT_INVALID)
+				{
+					return -ENOENT;
+				}
+			}
+			if (buf.type == LowLevel::INodeType::INT_INVALID)
+			{
+				return -ENOENT;
+			}
+			return 0;
 		}
 
 		int Macros::checkPathNotExists(const char* path)
@@ -374,12 +418,28 @@ namespace AppLib
 			// except the last one do not exist.  Returns -EEXIST
 			// if the entire path exists.  Returns 0 if all except
 			// the last component of the path exists.
-			return -EEXIST;
+			std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
+			LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
+			for (unsigned int i = 0; i < ret.size() - 1; i += 1)
+			{
+				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
+				if (buf.type == LowLevel::INodeType::INT_INVALID)
+				{
+					return -ENOENT;
+				}
+			}
+			if (ret.size() != 0)
+				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[ret.size() - 1].c_str());
+			if (buf.type != LowLevel::INodeType::INT_INVALID)
+			{
+				return -EEXIST;
+			}
+			return 0;
 		}
 
 		int Macros::checkPathIsValid(const char *path)
 		{
-			return -EIO;
+			return 0;
 		}
 
 		int Macros::checkPermission(const char *path, char op, int uid, int gid)
