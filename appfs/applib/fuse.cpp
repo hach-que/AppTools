@@ -57,7 +57,7 @@ namespace AppLib
 			appfs_ops.getxattr		= NULL;
 			appfs_ops.listxattr		= NULL;
 			appfs_ops.removexattr		= NULL;
-			appfs_ops.opendir		= &FuseLink::opendir;
+//			appfs_ops.opendir		= &FuseLink::opendir;
 			appfs_ops.readdir		= &FuseLink::readdir;
 			appfs_ops.releasedir		= &FuseLink::releasedir;
 			appfs_ops.fsyncdir		= &FuseLink::fsyncdir;
@@ -309,7 +309,7 @@ namespace AppLib
 			return -ENOTSUP;
 		}
 
-		int FuseLink::readdir(const char * path, void * buf, fuse_fill_dir_t filler, off_t offset,
+		int FuseLink::readdir(const char * path, void * dbuf, fuse_fill_dir_t filler, off_t offset,
 						struct fuse_file_info * fi)
 		{
 			APPFS_CHECK_PATH_EXISTS();
@@ -337,14 +337,14 @@ namespace AppLib
 			}
 
 			// Retrieve the INode's children.
-			std::vector<INode> children = FuseLink::filesystem->getChildrenOfDirectory(buf.inode);
+			std::vector<LowLevel::INode> children = FuseLink::filesystem->getChildrenOfDirectory(buf.inodeid);
 
 			// Use the filler() function to report the entries back to FUSE.
-			filler(buf, ".", NULL);
-			filler(buf, "..", NULL);
+			filler(dbuf, ".", NULL, 0);
+			filler(dbuf, "..", NULL, 0);
 			for (int i = 0; i < children.size(); i += 1)
 			{
-				filler(buf, children[i].filename, NULL, 0);
+				filler(dbuf, children[i].filename, NULL, 0);
 			}
 
 			return 0;
