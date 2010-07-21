@@ -34,7 +34,7 @@ libapp.a: force_look
 
 clean:
 	@$(ECHO) cleaning up in .
-	@-$(RM) -f $(EXE_APPFS) $(EXE_APPMOUNT) $(OBJS) $(OBJLIBS)
+	@-$(RM) -f $(EXE_APPFS) $(EXE_APPMOUNT) $(OBJS_APPFS) $(OBJS_APPMOUNT) $(OBJLIBS)
 	@-for d in $(DIRS); do (cd $$d; $(MAKE) clean ); done
 
 force_look:

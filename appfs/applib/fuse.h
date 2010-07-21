@@ -30,7 +30,7 @@ namespace AppLib
 		class FuseLink
 		{
 			public:
-				static LowLevel::FS filesystem;
+				static LowLevel::FS * filesystem;
 				static int getattr(const char* path, struct stat *stbuf);
 				static int readlink(const char * path, char * out, size_t size);
 				static int mknod(const char * path, mode_t mask, dev_t devid);
@@ -81,7 +81,7 @@ namespace AppLib
 		class Mounter
 		{
 			public:
-				Mounter(const char* disk_image, char const* mount_path,
+				Mounter(const char* disk_image, char const* mount_point,
 						bool foreground, void (*continue_func)(void));
 				int getResult();
 
@@ -96,6 +96,14 @@ namespace AppLib
 				static int checkPathNotExists(const char* path);
 				static int checkPathIsValid(const char* path);
 				static int checkPermission(const char* path, char op, int uid, int gid);
+		};
+
+		struct FUSEData
+		{
+			std::string diskImage;
+			std::string mountPoint;
+			AppLib::LowLevel::FS * filesystem;
+			bool readonly;
 		};
 	}
 }

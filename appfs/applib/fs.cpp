@@ -1091,7 +1091,7 @@ namespace AppLib
 					ret.insert(ret.end(), buf);
 					buf = "";
 				}
-				else
+				else if (path[i] != '/')
 				{
 					buf += path[i];
 				}
