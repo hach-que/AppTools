@@ -309,12 +309,45 @@ namespace AppLib
 			return -ENOTSUP;
 		}
 
-		int FuseLink::readdir(const char * path, void *, fuse_fill_dir_t, off_t,
-						struct fuse_file_info *)
+		int FuseLink::readdir(const char * path, void * buf, fuse_fill_dir_t filler, off_t offset,
+						struct fuse_file_info * fi)
 		{
 			APPFS_CHECK_PATH_EXISTS();
+			
+			// Resolve the pathname to an inode.
+			std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
+			LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
+			for (unsigned int i = 0; i < ret.size(); i += 1)
+			{
+				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
+				if (buf.type == LowLevel::INodeType::INT_INVALID)
+				{
+					return -ENOENT;
+				}
+			}
+			if (buf.type == LowLevel::INodeType::INT_INVALID)
+			{
+				return -ENOENT;
+			}
 
-			return -ENOTSUP;
+			// Check to make sure the inode is a directory.
+			if (buf.type != LowLevel::INodeType::INT_DIRECTORY)
+			{
+				return -ENOTDIR;
+			}
+
+			// Retrieve the INode's children.
+			std::vector<INode> children = FuseLink::filesystem->getChildrenOfDirectory(buf.inode);
+
+			// Use the filler() function to report the entries back to FUSE.
+			filler(buf, ".", NULL);
+			filler(buf, "..", NULL);
+			for (int i = 0; i < children.size(); i += 1)
+			{
+				filler(buf, children[i].filename, NULL, 0);
+			}
+
+			return 0;
 		}
 
 		int FuseLink::releasedir(const char * path, struct fuse_file_info *)
