@@ -14,10 +14,7 @@ http://code.google.com/p/apptools-dist for more information.
 
 int main(int argc, char *argv[]);
 
-#ifdef APPMOUNT
 int appmount_start(int argc, char *argv[]);
 void appmount_continue();
-#else
 int appfs_start(int argc, char *argv[]);
 void appfs_continue();
-#endif

@@ -13,6 +13,7 @@ http://code.google.com/p/apptools-dist for more information.
 */
 
 #include "applib/logging.h"
+#include "applib/fuse.h"
 #include "config.h"
 #include "funcdefs.h"
 
@@ -76,12 +77,13 @@ int appmount_start(int argc, char *argv[])
 	int ret = 1;
 	if (lockres != -1)
 	{
-		ret = AppLib::FUSE::Mounter(
-			disk_path.c_str(),
-			mount_path.c_str(),
-			true,
-			appmount_continue
-			);
+		AppLib::FUSE::Mounter * mnt = new AppLib::FUSE::Mounter(
+						disk_path,
+						mount_path,
+						true,
+						appmount_continue
+					);
+		ret = mnt->getResult();
 		return ret;
 	}
 	else

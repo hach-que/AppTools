@@ -1,6 +1,7 @@
 include ../Makefile.inc
 
 CPPFLAGS+= -I.. -I/usr/include/fuse
+LDFLAGS = /lib/libfuse.a
 OBJLIBS = ../libapp.a
 OBJS    = endian.o fs.o fsfile.o fuse.o logging.o
  

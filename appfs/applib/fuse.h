@@ -83,6 +83,10 @@ namespace AppLib
 			public:
 				Mounter(const char* disk_image, char const* mount_path,
 						bool foreground, void (*continue_func)(void));
+				int getResult();
+
+			private:
+				int mountResult;
 		};
 
 		class Macros

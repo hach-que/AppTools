@@ -29,6 +29,7 @@ namespace AppLib
 						bool foreground,
 						void (*continue_func)(void))
 		{
+			this->mountResult = -EALREADY;
 			// Define the fuse_operations structure.
 			static fuse_operations appfs_ops;
 			appfs_ops.getattr		= &FuseLink::getattr;
@@ -72,7 +73,12 @@ namespace AppLib
 			// specified mount path using FUSE.
 			struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
 
-			fuse_main(fargs.argc, fargs.argv, appfs_ops);
+			this->mountResult = fuse_main(fargs.argc, fargs.argv, &appfs_ops, NULL);
+		}
+
+		int Mounter::getResult()
+		{
+			return this->mountResult;
 		}
 
 		int FuseLink::getattr(const char* path, struct stat *stbuf)
@@ -225,54 +231,54 @@ namespace AppLib
 			return -ENOTSUP;
 		}
 
-		int FuseLink::statfs(const char *, struct statvfs *)
+		int FuseLink::statfs(const char * path, struct statvfs *)
 		{
 			APPFS_CHECK_PATH_EXISTS();
 
 			return -ENOTSUP;
 		}
 
-		int FuseLink::flush(const char *, struct fuse_file_info *)
+		int FuseLink::flush(const char * path, struct fuse_file_info *)
 		{
 			APPFS_CHECK_PATH_EXISTS();
 
 			return -ENOTSUP;
 		}
 
-		int FuseLink::release(const char *, struct fuse_file_info *)
+		int FuseLink::release(const char * path, struct fuse_file_info *)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::fsync(const char *, int, struct fuse_file_info *)
+		int FuseLink::fsync(const char * path, int, struct fuse_file_info *)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::opendir(const char *, struct fuse_file_info *)
+		int FuseLink::opendir(const char * path, struct fuse_file_info *)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::readdir(const char *, void *, fuse_fill_dir_t, off_t,
+		int FuseLink::readdir(const char * path, void *, fuse_fill_dir_t, off_t,
 						struct fuse_file_info *)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::releasedir(const char *, struct fuse_file_info *)
+		int FuseLink::releasedir(const char * path, struct fuse_file_info *)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::fsyncdir(const char *, int, struct fuse_file_info *)
+		int FuseLink::fsyncdir(const char * path, int, struct fuse_file_info *)
 		{
 			return -ENOTSUP;
 		}
 
 		void * FuseLink::init(struct fuse_conn_info *conn)
 		{
-			return;
+			return NULL;
 		}
 
 		void FuseLink::destroy(void *)
@@ -280,38 +286,38 @@ namespace AppLib
 			return;
 		}
 
-		int FuseLink::access(const char *, int)
+		int FuseLink::access(const char * path, int)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::create(const char *, mode_t, struct fuse_file_info *)
+		int FuseLink::create(const char * path, mode_t mode, struct fuse_file_info * options)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::ftruncate(const char *, off_t, struct fuse_file_info *)
+		int FuseLink::ftruncate(const char * path, off_t len, struct fuse_file_info * options)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::fgetattr(const char *, struct stat *, struct fuse_file_info *)
+		int FuseLink::fgetattr(const char * path, struct stat * st, struct fuse_file_info * options)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::utimens(const char *, const struct timespec tv[2])
+		int FuseLink::utimens(const char * path, const struct timespec tv[2])
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::ioctl(const char *, int cmd, void *arg,
+		int FuseLink::ioctl(const char * path, int cmd, void *arg,
 						struct fuse_file_info *, unsigned int flags, void *data)
 		{
 			return -ENOTSUP;
 		}
 
-		int FuseLink::poll(const char *, struct fuse_file_info *,
+		int FuseLink::poll(const char * path, struct fuse_file_info * options,
 						struct fuse_pollhandle *ph, unsigned *reventsp)
 		{
 			return -ENOTSUP;

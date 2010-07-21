@@ -27,3 +27,4 @@ if (appfs_check_path_is_valid_ret != 0) return appfs_check_path_is_valid_ret;
 #define APPFS_CHECK_PERMISSION(op, uid, gid) \
 int appfs_check_path_permission_ret = AppLib::FUSE::Macros::checkPermission(path, op, uid, gid); \
 if (appfs_check_path_permission_ret != 0) return appfs_check_path_permission_ret;
+
