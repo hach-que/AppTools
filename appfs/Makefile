@@ -8,7 +8,7 @@ BUILD_APPMOUNT	= -DAPPMOUNT
 OBJS_APPFS	= main.o appfs.o
 OBJS_APPMOUNT	= main.o appmount.o
 OBJLIBS	= libapp.a
-LIBS	= -L. /lib/libfuse.a /lib/libargtable2.a -lpthread -lext2fs -lstdc++ -ldl -lrt ./libapp.a
+LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 -lfuse ./libapp.a
 
 all: appfs appmount
 
