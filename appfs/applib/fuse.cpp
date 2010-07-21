@@ -6,7 +6,7 @@ This class recieves callbacks from FUSE and handles each operation
 by passing them to the actual FS class in a C++ friendly way.
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                22nd June 2010
+                20th July 2010
 
 This software is licensed under an MIT license.  See
 http://code.google.com/p/apptools-dist for more information.
@@ -14,14 +14,8 @@ http://code.google.com/p/apptools-dist for more information.
 */
 
 #include "config.h"
-
-#ifndef WIN32
-#include <fuse.h>
-#endif
-#include <stdio.h>
-#include <errno.h>
 #include "fuse.h"
-
+#include "fsmacro.h"
 #include <string>
 
 namespace AppLib
@@ -30,58 +24,55 @@ namespace AppLib
 	{
 		LowLevel::FS FuseLink::filesystem = NULL;
 
-		extern "C"
-		{
-			static const struct fuse_operations appfs_ops = {
-				.getattr	= FuseLink::getattr,
-				.readlink	= FuseLink::readlink,
-				.mknod		= FuseLink::mknod,
-				.mkdir		= FuseLink::mkdir,
-				.unlink		= FuseLink::unlink,
-				.rmdir		= FuseLink::rmdir,
-				.symlink	= FuseLink::symlink,
-				.rename		= FuseLink::rename,
-				.link		= FuseLink::link,
-				.chmod		= FuseLink::chmod,
-				.chown		= FuseLink::chown,
-				.truncate	= FuseLink::truncate,
-				.open		= FuseLink::open,
-				.read		= FuseLink::read,
-				.write		= FuseLink::write,
-				.statfs		= FuseLink::statfs,
-				.flush		= FuseLink::flush,
-				.release	= FuseLink::release,
-				.fsync		= FuseLink::fsync,
-				.setxattr	= NULL
-				.getxattr	= NULL
-				.listxattr	= NULL
-				.removexattr= NULL
-				.opendir	= FuseLink::opendir,
-				.readdir	= FuseLink::readdir,
-				.releasedir	= FuseLink::releasedir,
-				.fsyncdir	= FuseLink::fsyncdir,
-				.init		= FuseLink::init,
-				.destroy	= FuseLink::destroy,
-				.access		= FuseLink::access,
-				.create		= FuseLink::create,
-				.ftruncate	= FuseLink::ftruncate,
-				.fgetattr	= FuseLink::fgetattr,
-				.lock		= NULL,
-				.utimens	= FuseLink::utimens,
-				.bmap		= NULL
-			}
-		}
-
 		Mounter::Mounter(const char *disk_image,
 						const char *mount_path,
 						bool foreground,
 						void (*continue_func)(void))
 		{
+			// Define the fuse_operations structure.
+			static fuse_operations appfs_ops;
+			appfs_ops.getattr		= &FuseLink::getattr;
+			appfs_ops.readlink		= &FuseLink::readlink;
+			appfs_ops.mknod			= &FuseLink::mknod;
+			appfs_ops.mkdir			= &FuseLink::mkdir;
+			appfs_ops.unlink		= &FuseLink::unlink;
+			appfs_ops.rmdir			= &FuseLink::rmdir;
+			appfs_ops.symlink		= &FuseLink::symlink;
+			appfs_ops.rename		= &FuseLink::rename;
+			appfs_ops.link			= &FuseLink::link;
+			appfs_ops.chmod			= &FuseLink::chmod;
+			appfs_ops.chown			= &FuseLink::chown;
+			appfs_ops.truncate		= &FuseLink::truncate;
+			appfs_ops.open			= &FuseLink::open;
+			appfs_ops.read			= &FuseLink::read;
+			appfs_ops.write			= &FuseLink::write;
+			appfs_ops.statfs		= &FuseLink::statfs;
+			appfs_ops.flush			= &FuseLink::flush;
+			appfs_ops.release		= &FuseLink::release;
+			appfs_ops.fsync			= &FuseLink::fsync;
+			appfs_ops.setxattr		= NULL;
+			appfs_ops.getxattr		= NULL;
+			appfs_ops.listxattr		= NULL;
+			appfs_ops.removexattr	= NULL;
+			appfs_ops.opendir		= &FuseLink::opendir;
+			appfs_ops.readdir		= &FuseLink::readdir;
+			appfs_ops.releasedir	= &FuseLink::releasedir;
+			appfs_ops.fsyncdir		= &FuseLink::fsyncdir;
+			appfs_ops.init			= &FuseLink::init;
+			appfs_ops.destroy		= &FuseLink::destroy;
+			appfs_ops.access		= &FuseLink::access;
+			appfs_ops.create		= &FuseLink::create;
+			appfs_ops.ftruncate		= &FuseLink::ftruncate;
+			appfs_ops.fgetattr		= &FuseLink::fgetattr;
+			appfs_ops.lock			= NULL;
+			appfs_ops.utimens		= &FuseLink::utimens;
+			appfs_ops.bmap			= NULL;
+
 			// Mounts the specified disk image at the
 			// specified mount path using FUSE.
 			struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
 
-			fuse_main(fargs.argc, fargs.argv, &appfs_ops);
+			fuse_main(fargs.argc, fargs.argv, appfs_ops);
 		}
 
 		int FuseLink::getattr(const char* path, struct stat *stbuf)
@@ -134,55 +125,221 @@ namespace AppLib
 			return 0;
 		}
 
-#if 0 == 1
 		int FuseLink::readlink(const char * path, char * out, size_t size)
 		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
 		}
 
-		int FuseLink::mknod(const char * path, mode_t mask, dev_t devid);
-		int FuseLink::mkdir(const char * path, mode_t mask);
-		int FuseLink::unlink(const char * path);
-		int FuseLink::rmdir(const char * path);
-		int FuseLink::symlink(const char * path, const char * source);
-		int FuseLink::rename(const char * path, const char * dest);
-		int FuseLink::link(const char * path, const char * source);
-		int FuseLink::chmod(const char * path, mode_t mode);
-		int FuseLink::chown(const char * path, uid_t user, gid_t group);
-		int FuseLink::truncate(const char * path, off_t size);
-		int FuseLink::open(const char * path, struct fuse_file_info * options);
+		int FuseLink::mknod(const char * path, mode_t mask, dev_t devid)
+		{
+			APPFS_CHECK_PATH_NOT_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::mkdir(const char * path, mode_t mask)
+		{
+			APPFS_CHECK_PATH_NOT_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::unlink(const char * path)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::rmdir(const char * path)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::symlink(const char * path, const char * source)
+		{
+			APPFS_CHECK_PATH_NOT_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::rename(const char * path, const char * dest)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::link(const char * path, const char * source)
+		{
+			APPFS_CHECK_PATH_NOT_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::chmod(const char * path, mode_t mode)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::chown(const char * path, uid_t user, gid_t group)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::truncate(const char * path, off_t size)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::open(const char * path, struct fuse_file_info * options)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
 		int FuseLink::read(const char * path, char * out, size_t length, off_t offset,
-						struct fuse_file_info * options);
-		int FuseLink::write(const char *, const char *, size_t, off_t,
-						struct fuse_file_info *);
-		int FuseLink::statfs(const char *, struct statvfs *);
-		int FuseLink::flush(const char *, struct fuse_file_info *);
-		int FuseLink::release(const char *, struct fuse_file_info *);
-		int FuseLink::fsync(const char *, int, struct fuse_file_info *);
-		int FuseLink::setxattr(const char *, const char *, const char *, size_t, int);
-		int FuseLink::getxattr(const char *, const char *, char *, size_t);
-		int FuseLink::listxattr(const char *, char *, size_t);
-		int FuseLink::removexattr(const char *, const char *);
-		int FuseLink::opendir(const char *, struct fuse_file_info *);
+						struct fuse_file_info * options)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::write(const char * path, const char * in, size_t length, off_t offset,
+						struct fuse_file_info * options)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::statfs(const char *, struct statvfs *)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::flush(const char *, struct fuse_file_info *)
+		{
+			APPFS_CHECK_PATH_EXISTS();
+
+			return -ENOTSUP;
+		}
+
+		int FuseLink::release(const char *, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::fsync(const char *, int, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::opendir(const char *, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
 		int FuseLink::readdir(const char *, void *, fuse_fill_dir_t, off_t,
-						struct fuse_file_info *);
-		int FuseLink::releasedir(const char *, struct fuse_file_info *);
-		int FuseLink::fsyncdir(const char *, int, struct fuse_file_info *);
-		void FuseLink::init(struct fuse_conn_info *conn);
-		void FuseLink::destroy(void *);
-		int FuseLink::access(const char *, int);
-		int FuseLink::create(const char *, mode_t, struct fuse_file_info *);
-		int FuseLink::ftruncate(const char *, off_t, struct fuse_file_info *);
-		int FuseLink::fgetattr(const char *, struct stat *, struct fuse_file_info *);
-		int FuseLink::lock(const char *, struct fuse_file_info *, int cmd,
-						struct flock *);
-		int FuseLink::utimens(const char *, const struct timespec tv[2]);
-		int FuseLink::bmap(const char *, size_t blocksize, uint64_t *idx);
-		unsigned int FuseLink::flag_nullpath_ok : 1;
-		unsigned int FuseLink::flag_reserved : 31;
+						struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::releasedir(const char *, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::fsyncdir(const char *, int, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		void * FuseLink::init(struct fuse_conn_info *conn)
+		{
+			return;
+		}
+
+		void FuseLink::destroy(void *)
+		{
+			return;
+		}
+
+		int FuseLink::access(const char *, int)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::create(const char *, mode_t, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::ftruncate(const char *, off_t, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::fgetattr(const char *, struct stat *, struct fuse_file_info *)
+		{
+			return -ENOTSUP;
+		}
+
+		int FuseLink::utimens(const char *, const struct timespec tv[2])
+		{
+			return -ENOTSUP;
+		}
+
 		int FuseLink::ioctl(const char *, int cmd, void *arg,
-						struct fuse_file_info *, unsigned int flags, void *data);
+						struct fuse_file_info *, unsigned int flags, void *data)
+		{
+			return -ENOTSUP;
+		}
+
 		int FuseLink::poll(const char *, struct fuse_file_info *,
-						struct fuse_pollhandle *ph, unsigned *reventsp);
-#endif
+						struct fuse_pollhandle *ph, unsigned *reventsp)
+		{
+			return -ENOTSUP;
+		}
+
+		int Macros::checkPathExists(const char *path)
+		{
+			return -ENOENT;
+		}
+
+		int Macros::checkPathNotExists(const char* path)
+		{
+			// Assumes the context is file creation, so returns
+			// -ENOENT if any of the components of the path
+			// except the last one do not exist.  Returns -EEXIST
+			// if the entire path exists.  Returns 0 if all except
+			// the last component of the path exists.
+			return -EEXIST;
+		}
+
+		int Macros::checkPathIsValid(const char *path)
+		{
+			return -EIO;
+		}
+
+		int Macros::checkPermission(const char *path, char op, int uid, int gid)
+		{
+			return -EACCES;
+		}
 	}
 }

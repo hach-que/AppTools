@@ -6,7 +6,7 @@ This class reads AppFS packages and their contents.  The FuseLink
 class uses this class to read and write data.
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                22nd June 2010
+                20th July 2010
 
 This software is licensed under an MIT license.  See
 http://code.google.com/p/apptools-dist for more information.
@@ -51,9 +51,15 @@ namespace AppLib
 
 		// WARN: The values here are also used to store the types
 		//       in the actual AppFS packages.  Therefore, you should
-		//       not change the values for INT_FREEBLOCK, INT_FILE,
-		//       INT_DIRECTORY, INT_SEGMENT or INT_TEMPORARY since
-		//       it will break the ability to read existing packages.
+		//       not change the values for:
+		//       INT_FREEBLOCK,
+		//       INT_FILE,
+		//       INT_DIRECTORY,
+		//       INT_SEGMENT,
+		//       INT_TEMPORARY or
+		//       INT_SYMLINK
+		//       since it will break the ability to read existing
+		//       packages.
 		namespace INodeType
 		{
 			enum INodeType
@@ -63,7 +69,8 @@ namespace AppLib
 				INT_DIRECTORY = 2,
 				INT_SEGMENT = 3,
 				INT_TEMPORARY = 4,
-				INT_INVALID = 5,
+				INT_SYMLINK = 5,
+				INT_INVALID = 6,
 				INT_UNSET = 255
 			};
 		}

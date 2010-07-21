@@ -13,6 +13,8 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
+#define FUSE_USE_VERSION 26
+
 #ifndef APPFS_CONFIG
 #define APPFS_CONFIG
 
@@ -57,6 +59,11 @@ typedef unsigned __int8 uint8_t;
 typedef unsigned __int16 uint16_t; 
 typedef unsigned __int32 uint32_t; 
 typedef unsigned __int64 uint64_t; 
+typedef unsigned int mode_t;
+typedef unsigned int uid_t;
+typedef unsigned int gid_t;
+typedef unsigned int pid_t;
+#define ENOTSUP 95
 #else
 #include <stdint.h>
 #include <stdio.h>

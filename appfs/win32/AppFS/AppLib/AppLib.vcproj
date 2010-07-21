@@ -40,7 +40,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="-D_FILE_OFFSET_BITS=64"
 				Optimization="0"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\FUSE_Include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -102,8 +104,10 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				AdditionalOptions="-D_FILE_OFFSET_BITS=64"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
+				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\FUSE_Include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -162,6 +166,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\applib\fsfile.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\applib\fsmacro.h"
 				>
 			</File>
 			<File
