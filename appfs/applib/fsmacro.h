@@ -27,4 +27,11 @@ if (appfs_check_path_is_valid_ret != 0) return appfs_check_path_is_valid_ret;
 #define APPFS_CHECK_PERMISSION(op, uid, gid) \
 int appfs_check_path_permission_ret = AppLib::FUSE::Macros::checkPermission(path, op, uid, gid); \
 if (appfs_check_path_permission_ret != 0) return appfs_check_path_permission_ret;
+#define APPFS_RETRIEVE_PATH_TO_INODE(buf) \
+AppLib::LowLevel::INode buf(0, "", AppLib::LowLevel::INodeType::INT_INVALID); \
+int appfs_retrieve_path_to_inode = AppLib::FUSE::Macros::retrievePathToINode(path, &buf); \
+if (appfs_retrieve_path_to_inode != 0) return appfs_retrieve_path_to_inode;
+#define APPFS_SAVE_INODE(buf) \
+int appfs_save_inode = AppLib::FUSE::Macros::saveINode(&buf); \
+if (appfs_retrieve_path_to_inode != 0) return appfs_save_inode;
 

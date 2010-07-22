@@ -233,8 +233,11 @@ namespace AppLib
 		int FuseLink::chmod(const char * path, mode_t mode)
 		{
 			APPFS_CHECK_PATH_EXISTS();
+			APPFS_RETRIEVE_PATH_TO_INODE(buf);
+			buf.mask = mode;
+			APPFS_SAVE_INODE(buf);
 
-			return -ENOTSUP;
+			return 0;
 		}
 
 		int FuseLink::chown(const char * path, uid_t user, gid_t group)
@@ -313,22 +316,7 @@ namespace AppLib
 						struct fuse_file_info * fi)
 		{
 			APPFS_CHECK_PATH_EXISTS();
-			
-			// Resolve the pathname to an inode.
-			std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
-			LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
-			for (unsigned int i = 0; i < ret.size(); i += 1)
-			{
-				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
-				if (buf.type == LowLevel::INodeType::INT_INVALID)
-				{
-					return -ENOENT;
-				}
-			}
-			if (buf.type == LowLevel::INodeType::INT_INVALID)
-			{
-				return -ENOENT;
-			}
+			APPFS_RETRIEVE_PATH_TO_INODE(buf);
 
 			// Check to make sure the inode is a directory.
 			if (buf.type != LowLevel::INodeType::INT_DIRECTORY)
@@ -478,6 +466,40 @@ namespace AppLib
 		int Macros::checkPermission(const char *path, char op, int uid, int gid)
 		{
 			return -EACCES;
+		}
+
+		int Macros::retrievePathToINode(const char *path, LowLevel::INode * out)
+		{
+			out = new LowLevel::INode(0, "", LowLevel::INodeType::INT_INVALID);
+			std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
+			LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
+			for (unsigned int i = 0; i < ret.size(); i += 1)
+			{
+				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
+				if (buf.type == LowLevel::INodeType::INT_INVALID)
+				{
+					*out = buf;
+					return -ENOENT;
+				}
+			}
+			if (buf.type == LowLevel::INodeType::INT_INVALID)
+			{
+				*out = buf;
+				return -ENOENT;
+			}
+			return 0;
+		}
+
+		int Macros::saveINode(LowLevel::INode * buf)
+		{
+			if (buf->type == LowLevel::INodeType::INT_INVALID ||
+				buf->type == LowLevel::INodeType::INT_UNSET)
+			{
+				return -EIO;
+			}
+			uint32_t pos = FuseLink::filesystem->getINodePositionByID(buf->inodeid);
+			FuseLink::filesystem->writeINode(pos, *buf);
+			return 0;
 		}
 	}
 }

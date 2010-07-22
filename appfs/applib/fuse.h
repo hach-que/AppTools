@@ -95,6 +95,8 @@ namespace AppLib
 				static int checkPathNotExists(const char* path);
 				static int checkPathIsValid(const char* path);
 				static int checkPermission(const char* path, char op, int uid, int gid);
+				static int retrievePathToINode(const char* path, LowLevel::INode* out);
+				static int saveINode(LowLevel::INode* buf);
 		};
 
 		struct FUSEData
