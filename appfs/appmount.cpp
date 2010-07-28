@@ -24,6 +24,7 @@ int appmount_start(int argc, char *argv[])
 
 	// Set the application name.
 	AppLib::Logging::setApplicationName(std::string("appmount"));
+	AppLib::Logging::verbose = true;
 
 	// Parse the arguments provided.
 	struct arg_lit *is_readonly = arg_lit0("r", "read-only", "mount the file readonly");

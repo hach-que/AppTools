@@ -96,7 +96,11 @@ namespace AppLib
 				static int checkPathIsValid(const char* path);
 				static int checkPermission(const char* path, char op, int uid, int gid);
 				static int retrievePathToINode(const char* path, LowLevel::INode* out);
+				static int retrieveParentPathToINode(const char* path, LowLevel::INode* out);
 				static int saveINode(LowLevel::INode* buf);
+				static int extractMaskFromMode(mode_t mode);
+				static const char* extractBasenameFromPath(const char* path);
+				static int assignNewINode(LowLevel::INode* buf, LowLevel::INodeType::INodeType type);
 		};
 
 		struct FUSEData

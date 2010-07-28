@@ -1,5 +1,6 @@
 #include "fsfile.h"
 #include "fs.h"
+#include "logging.h"
 #include <map>
 #include <math.h>
 
@@ -53,8 +54,30 @@ namespace AppLib
 
 			if ((int)pos == 0)
 			{
-				this->clear(std::ios::badbit | std::ios::eofbit);
-				return;
+				// We need to allocate enough blank blocks to reach the new
+				// write area.
+				uint32_t ppos = this->filesystem->getINodePositionByID(this->inodeid);
+				uint32_t balloc = 0;
+				while (this->filesystem->getFileNextBlock(ppos) != 0)
+					ppos = this->filesystem->getFileNextBlock(ppos);
+				while ((int)pos == 0)
+				{
+					uint32_t npos = this->filesystem->getFirstFreeBlock(INodeType::INT_FILE);
+					Logging::showInternalW("Allocating block at %i", npos);
+					INode nnode(this->inodeid, "", INodeType::INT_SEGMENT);
+					nnode.seg_len = BSIZE_FILE - HSIZE_SEGMENT;
+					nnode.seg_next = 0;
+					this->filesystem->setFileNextSegmentDirect(ppos, npos);
+					ppos = npos;
+					FSResult::FSResult res = this->filesystem->writeINode(npos, nnode);
+					Logging::showInternalW("Result of new INode allocation is %i", res);
+					balloc += 1;
+					Logging::showInternalW("%i more blocks allocated during FSFile::write().", balloc);
+
+					pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
+				}
+				FSResult::FSResult resw = this->filesystem->setFileLengthDirect(ppos, pos - posp);
+				Logging::showInternalW("Result of length adjustment is %i", resw);
 			}
 
 			// Our inode start position will be (pos - OFFSET_DATA) / BSIZE_FILE, since we know the

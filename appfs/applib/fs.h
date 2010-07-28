@@ -39,6 +39,8 @@ namespace AppLib
 				E_FAILURE_INVALID_FILENAME,
 				E_FAILURE_INVALID_POSITION,
 				E_FAILURE_INODE_ALREADY_ASSIGNED,
+				E_FAILURE_INODE_NOT_ASSIGNED,
+				E_FAILURE_INODE_NOT_VALID,
 				E_FAILURE_NOT_A_DIRECTORY,
 				E_FAILURE_NOT_A_FILE,
 				E_FAILURE_NOT_UNIQUE,
@@ -220,6 +222,10 @@ namespace AppLib
 				// Writes an INode to the specified position and then
 				// updates the inode lookup table.
 				FSResult::FSResult writeINode(uint32_t pos, INode node);
+
+				// Updates an INode.  The node must exist in the inode
+				// position lookup table.
+				FSResult::FSResult updateINode(INode node);
 
 				// Retrieves an INode by an ID.
 				INode getINodeByID(uint16_t id);

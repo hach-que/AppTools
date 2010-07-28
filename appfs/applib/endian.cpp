@@ -19,6 +19,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include <iostream>
 #include <fstream>
 #include "endian.h"
+#include "logging.h"
 
 namespace AppLib
 {
@@ -46,6 +47,18 @@ namespace AppLib
 					data[i] = dStorage[size - i];
 				}
 			}
+			if (fd->fail() && fd->eof())
+				fd->clear(std::ios::eofbit);
+			else if (fd->fail() && fd->bad())
+			{
+				Logging::showErrorW("I/O error occurred while reading from file.");
+				fd->clear();
+			}
+			else if (fd->fail())
+			{
+				Logging::showWarningW("Unexpected failure while reading from file.");
+				fd->clear();
+			}
 		}
 
 		void Endian::doW(std::iostream * fd, char * data, unsigned int size)
@@ -60,6 +73,18 @@ namespace AppLib
 					dStorage[size - i] = data[i];
 				}
 				fd->write(dStorage, size);
+			}
+			if (fd->fail() && fd->eof())
+				fd->clear(std::ios::eofbit);
+			else if (fd->fail() && fd->bad())
+			{
+				Logging::showErrorW("I/O error occurred while writing to file.");
+				fd->clear();
+			}
+			else if (fd->fail())
+			{
+				Logging::showWarningW("Unexpected failure while writing to file.");
+				fd->clear();
 			}
 		}
 

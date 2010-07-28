@@ -150,15 +150,22 @@ namespace AppLib
 				return FSResult::E_FAILURE_INVALID_POSITION;
 
 			// Check to make sure the inode ID is not already assigned.
-			if (this->getINodePositionByID(node.inodeid) != 0)
+			if (node.type != INodeType::INT_SEGMENT && this->getINodePositionByID(node.inodeid) != 0)
 				return FSResult::E_FAILURE_INODE_ALREADY_ASSIGNED;
 
 			std::streampos old = this->fd->tellp();
 			std::string data = node.getBinaryRepresentation();
 			this->fd->seekp(pos);
-			Endian::doW(this->fd, data.c_str(), data.length());
+			this->fd->write(data.c_str(), data.length());
+			if (this->fd->fail())
+				Logging::showErrorW("Write failure on write of new INode.");
+			if (this->fd->bad())
+				Logging::showErrorW("Write bad on write of new INode.");
+			if (this->fd->eof())
+				Logging::showErrorW("Write EOF on write of new INode.");
 			const char* z = ""; // a const char* always has a \0 terminator, which we use to write into the file.
-			if (node.type == INodeType::INT_FILE)
+			if (node.type == INodeType::INT_FILE || node.type == INodeType::INT_SEGMENT ||
+				node.type == INodeType::INT_SYMLINK)
 			{
 				for (int i = 0; i < BSIZE_FILE - data.length(); i += 1)
 					Endian::doW(this->fd, z, 1);
@@ -169,20 +176,52 @@ namespace AppLib
 				for (int i = 0; i < target; i += 1)
 					Endian::doW(this->fd, z, 1);
 			}
-			this->setINodePositionByID(node.inodeid, pos);
+			else
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
+			if (node.type == INodeType::INT_FILE || node.type == INodeType::INT_SEGMENT ||
+				node.type == INodeType::INT_SYMLINK)
+				this->setINodePositionByID(node.inodeid, pos);
 			this->fd->seekp(old);
 			return FSResult::E_SUCCESS;
 		}
+
+		FSResult::FSResult FS::updateINode(INode node)
+                {
+                        assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+                        // Check to make sure the inode ID is not already assigned.
+			uint32_t pos = this->getINodePositionByID(node.inodeid);
+                        if (pos == 0)
+                                return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
+
+                        std::streampos old = this->fd->tellp();
+                        std::string data = node.getBinaryRepresentation();
+                        this->fd->seekp(pos);
+                        this->fd->write(data.c_str(), data.length());
+			// We do not write out the file data with zeros
+			// as in writeINode because we want to keep the
+			// content.
+                        this->setINodePositionByID(node.inodeid, pos);
+                        this->fd->seekp(old);
+                        return FSResult::E_SUCCESS;
+                }
 
 		uint32_t FS::getINodePositionByID(uint16_t id)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
+			this->fd->clear();
 			std::streampos old = this->fd->tellg();
-			this->fd->seekg(OFFSET_LOOKUP + (id * 4));
+//			Logging::showInternalW("current file position is %i", (uint32_t)old);
+			uint32_t newp = OFFSET_LOOKUP + (id * 4);
+			this->fd->seekg(newp);
+//			Logging::showInternalW("seeked to %i", (uint32_t)newp);
 			uint32_t ipos = 0;
 			Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
+//			Logging::showInternalW("seeking back to %i", (uint32_t)old);
 			this->fd->seekg(old);
+//			Logging::showInternalW("returned position is %i", (uint32_t)ipos);
+			Logging::showInternalW("position of %i is %i", id, (uint32_t)ipos);
 			return ipos;
 		}
 
@@ -190,6 +229,7 @@ namespace AppLib
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
+			this->fd->clear();
 			std::streampos old = this->fd->tellg();
 			this->fd->seekg(OFFSET_LOOKUP);
 			uint32_t ipos = 0;
@@ -312,6 +352,7 @@ namespace AppLib
 			signed int children_count_offset = 292;
 			signed int children_offset = 294;
 			uint32_t pos = this->getINodePositionByID(parentid);
+			Logging::showInternalW("position of inode %i is %i", parentid, pos);
 			std::streampos oldg = this->fd->tellg();
 			std::streampos oldp = this->fd->tellp();
 
@@ -319,6 +360,7 @@ namespace AppLib
 			uint16_t parent_type = (uint16_t)INodeType::INT_UNSET;
 			this->fd->seekg(pos + type_offset);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&parent_type), 2);
+			Logging::showInternalW("parent type is %i", parent_type);
 			if (parent_type != INodeType::INT_DIRECTORY)
 			{
 				this->fd->seekg(oldg);
@@ -451,6 +493,7 @@ namespace AppLib
 
 			uint16_t children_looped = 0;
 			uint16_t total_looped = 0;
+			Logging::showInternalW("Total children in directory: %i", node.children_count);
 			while (children_looped < node.children_count && total_looped < DIRECTORY_CHILDREN_MAX)
 			{
 				uint16_t cinode = node.children[total_looped];
