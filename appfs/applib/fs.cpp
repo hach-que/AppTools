@@ -1055,6 +1055,50 @@ namespace AppLib
 				else
 					return FSResult::E_SUCCESS;
 			}
+			else if (len > node.dat_len)
+			{
+				// Adding null characters.  Determine amount to add.
+				uint32_t amount_to_add = (int64_t)len - (int64_t)node.dat_len;
+
+				// We know how many solid INT_SEGMENTs we are going
+				// to have to add by the ceil'd division of
+				// amount_to_add by (BSIZE_FILE - HSIZE_SEGMENT).
+				int32_t blocks_to_add = div(amount_to_add, BSIZE_FILE - HSIZE_SEGMENT).quot + 1;
+
+				// Locate the last segment in the file (stored in spos).
+				uint32_t spos = npos;
+				uint32_t sppos = spos;
+				while (spos != 0)
+				{
+					sppos = spos;
+					spos = this->getFileNextBlock(spos);
+				}
+				spos = sppos;
+
+				// Add blocks_to_add new segments to the file.
+				uint32_t nepos = 0;
+				uint32_t amount_to_add_remaining = amount_to_add;
+				for (int i = 0; i < blocks_to_add; i++)
+				{
+					uint32_t segment_size = BSIZE_FILE - HSIZE_SEGMENT;
+					if (amount_to_add_remaining < BSIZE_FILE - HSIZE_SEGMENT)
+						segment_size = amount_to_add_remaining;
+					amount_to_add_remaining -= segment_size;
+
+					nepos = this->getFirstFreeBlock(INodeType::INT_FILE);
+					INode nenode(inodeid, "", INodeType::INT_SEGMENT);
+					nenode.seg_len = segment_size;
+					this->writeINode(nepos, nenode);
+					this->setFileNextSegmentDirect(spos, nepos);
+					spos = nepos;
+				}
+
+				// Now set the new length of the file inode.
+				node.dat_len = (int64_t)node.dat_len + (int64_t)amount_to_add;
+				this->setFileLengthDirect(npos, node.dat_len);
+
+				return FSResult::E_SUCCESS;
+			}
 			else
 				return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
