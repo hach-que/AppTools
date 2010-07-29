@@ -59,7 +59,8 @@ namespace AppLib
 				pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
 				if ((int)pos == 0)
 				{
-					this->clear(std::ios::eofbit | std::ios::failbit);
+					Logging::showErrorW("Unable to expand file for write() operation.");
+					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);
 					return;
 				}
 			}
