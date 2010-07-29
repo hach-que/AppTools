@@ -2,7 +2,7 @@ include ../Makefile.inc
 
 CPPFLAGS+= -I.. -I/usr/include/fuse
 OBJLIBS = ../libapp.a
-OBJS    = endian.o fs.o fsfile.o fuse.o logging.o
+OBJS    = endian.o fs.o fsfile.o fuse.o logging.o util.o
  
 all: $(OBJLIBS)
 

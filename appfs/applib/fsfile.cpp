@@ -1,5 +1,6 @@
 #include "fsfile.h"
 #include "fs.h"
+#include "util.h"
 #include "logging.h"
 #include <map>
 #include <math.h>
@@ -54,12 +55,24 @@ namespace AppLib
 
 			if ((int)pos == 0)
 			{
+				this->clear(std::ios::eofbit | std::ios::failbit);
+				return;
+			}
+
+/*			if ((int)pos == 0)
+			{
 				// We need to allocate enough blank blocks to reach the new
 				// write area.
 				uint32_t ppos = this->filesystem->getINodePositionByID(this->inodeid);
 				uint32_t balloc = 0;
-				while (this->filesystem->getFileNextBlock(ppos) != 0)
-					ppos = this->filesystem->getFileNextBlock(ppos);
+				uint32_t tpos = this->filesystem->getFileNextBlock(ppos);
+				Logging::showInternalW("INode position is %i.", ppos);
+				while (tpos != 0)
+				{
+					Logging::showInternalO("Segment position is %i.", tpos);
+					ppos = tpos;
+					tpos = this->filesystem->getFileNextBlock(tpos);
+				}
 				while ((int)pos == 0)
 				{
 					uint32_t npos = this->filesystem->getFirstFreeBlock(INodeType::INT_FILE);
@@ -67,18 +80,25 @@ namespace AppLib
 					INode nnode(this->inodeid, "", INodeType::INT_SEGMENT);
 					nnode.seg_len = BSIZE_FILE - HSIZE_SEGMENT;
 					nnode.seg_next = 0;
-					this->filesystem->setFileNextSegmentDirect(ppos, npos);
+					Logging::showInternalW("Assigning link: %i -> links to -> %i", ppos, npos);
+					FSResult::FSResult res = this->filesystem->setFileNextSegmentDirect(ppos, npos);
+					Logging::showInternalW("Result of set next segment is %i", res);
 					ppos = npos;
-					FSResult::FSResult res = this->filesystem->writeINode(npos, nnode);
+					res = this->filesystem->writeINode(npos, nnode);
 					Logging::showInternalW("Result of new INode allocation is %i", res);
 					balloc += 1;
 					Logging::showInternalW("%i more blocks allocated during FSFile::write().", balloc);
 
 					pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
 				}
-				FSResult::FSResult resw = this->filesystem->setFileLengthDirect(ppos, pos - posp);
-				Logging::showInternalW("Result of length adjustment is %i", resw);
+				FSResult::FSResult resw = this->filesystem->setFileLengthDirect(ppos, pos - ppos);
+				Logging::showInternalW("Result of segment length adjustment (set to %i) is %i", (int)(pos - ppos), resw);
+				resw = this->filesystem->setFileLengthDirect(
+					this->filesystem->getINodePositionByID(this->inodeid),
+					this->posp);
+				Logging::showInternalW("Result of file length adjustment (set to %i) is %i", (int)(this->posp), resw);
 			}
+*/
 
 			// Our inode start position will be (pos - OFFSET_DATA) / BSIZE_FILE, since we know the
 			// position won't be pointing inside a directory inode.
@@ -114,13 +134,13 @@ namespace AppLib
 			{
 				// The data we are writing is going to fit inside the
 				// first block, so just write it and return.
-				this->fd->seekp(pos);
+				Util::seekp_ex(this->fd, pos);
 				this->fd->write(data, count);
 				this->posp += count;
 			
 				// Seek back to the old position.
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 
 				// Update the dat_len field of the file because we
 				// may have now extended the file length.
@@ -147,7 +167,7 @@ namespace AppLib
 
 			// The data we are writing is going to be written out over
 			// multiple blocks.  We write the first section directly.
-			this->fd->seekp(pos);
+			Util::seekp_ex(this->fd, pos);
 			this->fd->write(data, node.seg_len - dstart);
 			this->posp += node.seg_len - dstart;
 
@@ -174,7 +194,7 @@ namespace AppLib
 					ppos = pos;
 
 					// Write the file data.
-					this->fd->seekp(pos);
+					Util::seekp_ex(this->fd, pos);
 					std::string nnode_str = nnode.getBinaryRepresentation();
 					this->fd->write(nnode_str.c_str(), nnode_str.length());
 					
@@ -199,7 +219,7 @@ namespace AppLib
 
 					// Seek to the start of the data.  This will always be a
 					// SEGMENT node since we're already written in the first block.
-					this->fd->seekp(pos + HSIZE_SEGMENT);
+					Util::seekp_ex(this->fd, pos + HSIZE_SEGMENT);
 
 					// Write the data to the inode.
 					this->fd->write(data + data_position, amount_to_write);
@@ -211,7 +231,7 @@ namespace AppLib
 
 			// Seek back to the old position.
 			this->fd->seekg(oldg);
-			this->fd->seekp(oldp);
+			Util::seekp_ex(this->fd, oldp);
 		}
 
 		std::streamsize FSFile::read(char * out, std::streamsize count)
@@ -265,7 +285,7 @@ namespace AppLib
 			{
 				// The data we are reading is all contained within the
 				// first block.  Read it and then return.
-				this->fd->seekp(pos);
+				Util::seekp_ex(this->fd, pos);
 
 				// Read either count blocks or node.seg_dat blocks, which
 				// ever is smaller.
@@ -282,7 +302,7 @@ namespace AppLib
 			
 				// Seek back to the old position.
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 
 				if (count < node.dat_len)
 					return count;
@@ -292,7 +312,7 @@ namespace AppLib
 
 			// The data we are reading is going to be read over
 			// multiple blocks.  We read the first section directly.
-			this->fd->seekp(pos);
+			Util::seekp_ex(this->fd, pos);
 			this->fd->read(out, node.seg_len - dstart);
 			this->posg += node.seg_len - dstart;
 
@@ -319,7 +339,7 @@ namespace AppLib
 
 					// Seek to the start of the data.  This will always be a
 					// SEGMENT node since we're already read in the first block.
-					this->fd->seekp(pos + HSIZE_SEGMENT);
+					Util::seekp_ex(this->fd, pos + HSIZE_SEGMENT);
 
 					// Read the data from the inode.
 					this->fd->read(out + data_position, amount_to_read);
@@ -331,7 +351,7 @@ namespace AppLib
 
 			// Seek back to the old position.
 			this->fd->seekg(oldg);
-			this->fd->seekp(oldp);
+			Util::seekp_ex(this->fd, oldp);
 
 			return count;
 		}

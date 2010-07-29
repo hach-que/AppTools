@@ -1,2 +1,2 @@
 * DONE: Make the write() function of FSFile allocate new blocks when the position is outside of the currently allocated blocks.
-* Under Linux, it appears the write() function will trigger std::ios::eof bit if writing past the end of the file, unlike Windows.  Need to go online (IRC) to ask how to either turn on automatic resizing, or find a way to change the size of a file.
+* Investigate the difference between assigning the next link and the position resolution code and how they can be out-of-sync with each other.

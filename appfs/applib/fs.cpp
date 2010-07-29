@@ -21,6 +21,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include "fs.h"
 #include "logging.h"
 #include "endian.h"
+#include "util.h"
 #include <errno.h>
 #include <assert.h>
 
@@ -54,7 +55,7 @@ namespace AppLib
 				msg[4] = 0;
 				for (int i = 0; i < 5; i++)
 					omsg[i] = 0;
-				this->fd->seekp(tpos);
+				Util::seekp_ex(this->fd, tpos);
 				this->fd->write(&msg[0], 3);
 				this->fd->seekg(tpos + 2);
 				this->fd->read(&omsg[2], 3);
@@ -155,7 +156,7 @@ namespace AppLib
 
 			std::streampos old = this->fd->tellp();
 			std::string data = node.getBinaryRepresentation();
-			this->fd->seekp(pos);
+			Util::seekp_ex(this->fd, pos);
 			this->fd->write(data.c_str(), data.length());
 			if (this->fd->fail())
 				Logging::showErrorW("Write failure on write of new INode.");
@@ -178,10 +179,9 @@ namespace AppLib
 			}
 			else
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
-			if (node.type == INodeType::INT_FILE || node.type == INodeType::INT_SEGMENT ||
-				node.type == INodeType::INT_SYMLINK)
+			if (node.type == INodeType::INT_FILE || node.type == INodeType::INT_SYMLINK)
 				this->setINodePositionByID(node.inodeid, pos);
-			this->fd->seekp(old);
+			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
 		}
 
@@ -196,13 +196,13 @@ namespace AppLib
 
                         std::streampos old = this->fd->tellp();
                         std::string data = node.getBinaryRepresentation();
-                        this->fd->seekp(pos);
+                        Util::seekp_ex(this->fd, pos);
                         this->fd->write(data.c_str(), data.length());
 			// We do not write out the file data with zeros
 			// as in writeINode because we want to keep the
 			// content.
                         this->setINodePositionByID(node.inodeid, pos);
-                        this->fd->seekp(old);
+                        Util::seekp_ex(this->fd, old);
                         return FSResult::E_SUCCESS;
                 }
 
@@ -254,9 +254,9 @@ namespace AppLib
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
 			std::streampos old = this->fd->tellp();
-			this->fd->seekp(OFFSET_LOOKUP + (id * 4));
+			Util::seekp_ex(this->fd, OFFSET_LOOKUP + (id * 4));
 			Endian::doW(this->fd, reinterpret_cast<char *>(&pos), 4);
-			this->fd->seekp(old);
+			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
 		}
 
@@ -364,13 +364,13 @@ namespace AppLib
 			if (parent_type != INodeType::INT_DIRECTORY)
 			{
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_FAILURE_NOT_A_DIRECTORY;
 			}
 
 			// Now seek to the start of the list of directory children.
 			this->fd->seekg(pos + children_offset);
-			this->fd->seekp(pos + children_offset);
+			Util::seekp_ex(this->fd, pos + children_offset);
 
 			// Find the first available child slot.
 			uint16_t ccinode = 0;
@@ -384,23 +384,23 @@ namespace AppLib
 			if (count == DIRECTORY_CHILDREN_MAX - 1 && ccinode != 0)
 			{
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED;
 			}
 			else
 			{
 				uint32_t writeg = this->fd->tellg();
-				this->fd->seekp(writeg - 2);
+				Util::seekp_ex(this->fd, writeg - 2);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&childid), 2);
 
 				uint16_t children_count_current = 0;
 				this->fd->seekg(pos + children_count_offset);
 				Endian::doR(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
 				children_count_current += 1;
-				this->fd->seekp(pos + children_count_offset);
+				Util::seekp_ex(this->fd, pos + children_count_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_SUCCESS;
 			}
 		}
@@ -423,13 +423,13 @@ namespace AppLib
 			if (parent_type != INodeType::INT_DIRECTORY)
 			{
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_FAILURE_NOT_A_DIRECTORY;
 			}
 
 			// Now seek to the start of the list of directory children.
 			this->fd->seekg(pos + children_offset);
-			this->fd->seekp(pos + children_offset);
+			Util::seekp_ex(this->fd, pos + children_offset);
 
 			// Find the slot that the child inode is in.
 			uint16_t ccinode = 0;
@@ -443,13 +443,13 @@ namespace AppLib
 			if (count == DIRECTORY_CHILDREN_MAX - 1 && ccinode != childid)
 			{
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_FAILURE_INVALID_FILENAME;
 			}
 			else
 			{
 				uint32_t writeg = this->fd->tellg();
-				this->fd->seekp(writeg - 2);
+				Util::seekp_ex(this->fd, writeg - 2);
 				uint16_t zeroid = 0;
 				Endian::doW(this->fd, reinterpret_cast<char *>(&zeroid), 2);
 
@@ -457,10 +457,10 @@ namespace AppLib
 				this->fd->seekg(pos + children_count_offset);
 				Endian::doR(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
 				children_count_current -= 1;
-				this->fd->seekp(pos + children_count_offset);
+				Util::seekp_ex(this->fd, pos + children_count_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_SUCCESS;
 			}
 		}
@@ -618,10 +618,10 @@ namespace AppLib
 					return length_set_result;
 
 				// Our data will completely fit into the first block.
-				this->fd->seekp(ipos + HSIZE_FILE);
+				Util::seekp_ex(this->fd, ipos + HSIZE_FILE);
 				this->fd->write(data, len);
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_SUCCESS;
 			}
 			else
@@ -632,7 +632,7 @@ namespace AppLib
 
 				// We have to spread the file out over multiple blocks.
 				// Write the first BSIZE_FILE - HSIZE_FILE bytes.
-				this->fd->seekp(ipos + HSIZE_FILE);
+				Util::seekp_ex(this->fd, ipos + HSIZE_FILE);
 				this->fd->write(data, BSIZE_FILE - HSIZE_FILE);
 
 				// Now allocate more blocks.
@@ -649,7 +649,7 @@ namespace AppLib
 					this->setFileNextSegmentDirect(ppos, pos);
 					ppos = pos;
 					// Write the file data.
-					this->fd->seekp(pos);
+					Util::seekp_ex(this->fd, pos);
 					std::string nnode_str = nnode.getBinaryRepresentation();
 					this->fd->write(nnode_str.c_str(), nnode_str.length());
 					// We don't need to seek here because our current write position will be
@@ -659,7 +659,7 @@ namespace AppLib
 					data_position += nnode.seg_len;
 				}
 				this->fd->seekg(oldg);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_SUCCESS;
 			}
 		}
@@ -730,6 +730,8 @@ namespace AppLib
 			signed int file_len_offset = 298;
 			signed int seg_len_offset = 4;
 
+			this->fd->clear();
+
 			std::streampos oldg = this->fd->tellg();
 			std::streampos oldp = this->fd->tellp();
 
@@ -740,7 +742,7 @@ namespace AppLib
 
 			if (type_raw == INodeType::INT_FILE)
 			{
-				this->fd->seekp(pos + file_len_offset);
+				Util::seekp_ex(this->fd, pos + file_len_offset);
 				if (len > BSIZE_FILE - HSIZE_FILE)
 				{
 					Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
@@ -752,15 +754,15 @@ namespace AppLib
 					Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
 					Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
 				}
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
 				return FSResult::E_SUCCESS;
 			}
 			else if (type_raw == INodeType::INT_SEGMENT)
 			{
-				this->fd->seekp(pos + seg_len_offset);
+				Util::seekp_ex(this->fd, pos + seg_len_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
 				return FSResult::E_SUCCESS;
 			}
@@ -778,27 +780,33 @@ namespace AppLib
 			signed int file_next_offset = 306;
 			signed int seg_next_offset = 8;
 
+			this->fd->clear();
+
 			std::streampos oldg = this->fd->tellg();
 			std::streampos oldp = this->fd->tellp();
 
 			// Get the type directly.
 			uint16_t type_raw = (uint16_t)INodeType::INT_INVALID;
+			this->fd->seekg(pos);
+			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
+			Logging::showInternalW("INode number is %i", type_raw);
 			this->fd->seekg(pos + 2);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
+			Logging::showInternalW("INode type is %i", type_raw);
 
 			if (type_raw == INodeType::INT_FILE)
 			{
-				this->fd->seekp(pos + file_next_offset);
+				Util::seekp_ex(this->fd, pos + file_next_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next),  4);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
 				return FSResult::E_SUCCESS;
 			}
 			else if (type_raw == INodeType::INT_SEGMENT)
 			{
-				this->fd->seekp(pos + seg_next_offset);
+				Util::seekp_ex(this->fd, pos + seg_next_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next),  4);
-				this->fd->seekp(oldp);
+				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
 				return FSResult::E_SUCCESS;
 			}
@@ -859,13 +867,13 @@ namespace AppLib
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
 			std::streampos oldp = this->fd->tellp();
-			this->fd->seekp(pos);
+			Util::seekp_ex(this->fd, pos);
 			const char * zero = "\0";
 			for (int i = 0; i < BSIZE_FILE; i += 1)
 			{
 				this->fd->write(zero, 1);
 			}
-			this->fd->seekp(oldp);
+			Util::seekp_ex(this->fd, oldp);
 			return FSResult::E_SUCCESS;
 		}
 
@@ -878,11 +886,14 @@ namespace AppLib
 			uint32_t ppos = npos;
 			INode node = this->getINodeByPosition(npos);
 			uint32_t tpos = 0;
+			Logging::showInternalW("Position resolution: Looking for position %i in inode %i.", pos, inodeid);
 			while (tpos < pos)// && pos < tpos + node.seg_len)
 			{
+				Logging::showInternalW("Position resolution: tpos (%i) < pos (%i)", tpos, pos);
 				tpos += node.seg_len;
 				ppos = npos;
 				npos = this->getFileNextBlock(npos);
+				Logging::showInternalW("Position resolution: %i -> links to -> %i", ppos, npos);
 				if (npos == 0)
 				{
 					if (tpos < pos)
@@ -1026,13 +1037,13 @@ namespace AppLib
 					}
 					// TODO: Any additional checks we should be making here before erasing?
 					std::streampos posp = this->fd->tellp();
-					this->fd->seekp(rpos);
+					Util::seekp_ex(this->fd, rpos);
 					for (int i = 0; i < chars_to_erase; i += 1)
 					{
 						char zero = '\0';
 						this->fd->write(&zero, 1);
 					}
-					this->fd->seekp(rpos);
+					Util::seekp_ex(this->fd, rpos);
 					
 					// Set the new file length.
 					this->setFileLengthDirect(npos, (int64_t)node.dat_len - (int64_t)chars_to_erase);
@@ -1104,12 +1115,12 @@ namespace AppLib
 			// No temporary block allocated; allocate a new one.
 			uint32_t newpos = this->getFirstFreeBlock(INodeType::INT_FILE);
 			if (newpos == 0) return 0;
-			this->fd->seekp(newpos);
+			Util::seekp_ex(this->fd, newpos);
 			uint16_t zero = 0;
 			uint16_t tempid = INodeType::INT_TEMPORARY;
 			Endian::doW(this->fd, reinterpret_cast<char *>(&zero),  2);
 			Endian::doW(this->fd, reinterpret_cast<char *>(&tempid),  2);
-			this->fd->seekp(oldp);
+			Util::seekp_ex(this->fd, oldp);
 			newpos += 4;
 			temporary_position = newpos;
 			return newpos;
