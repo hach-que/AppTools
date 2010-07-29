@@ -55,8 +55,13 @@ namespace AppLib
 
 			if ((int)pos == 0)
 			{
-				this->clear(std::ios::eofbit | std::ios::failbit);
-				return;
+				this->truncate(this->posp);
+				pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
+				if ((int)pos == 0)
+				{
+					this->clear(std::ios::eofbit | std::ios::failbit);
+					return;
+				}
 			}
 
 /*			if ((int)pos == 0)
