@@ -887,42 +887,42 @@ namespace AppLib
 			uint32_t npos = this->getINodePositionByID(inodeid);
 			uint32_t ppos = npos;
 			INode node = this->getINodeByPosition(npos);
+			uint32_t ptpos = 0;
 			uint32_t tpos = 0;
 			//Logging::showInternalW("Position resolution: Looking for position %i in inode %i.", pos, inodeid);
 			while (tpos < pos)// && pos < tpos + node.seg_len)
 			{
 				//Logging::showInternalW("Position resolution: tpos (%i) < pos (%i)", tpos, pos);
+				ptpos = tpos;
 				tpos += node.seg_len;
-				ppos = npos;
-				npos = this->getFileNextBlock(npos);
-				//Logging::showInternalW("Position resolution: %i -> links to -> %i", ppos, npos);
-				if (npos == 0)
+				if (tpos < pos)
 				{
-					if (tpos < pos)
+					ppos = npos;
+					npos = this->getFileNextBlock(npos);
+					//Logging::showInternalW("Position resolution: %i -> links to -> %i", ppos, npos);
+					if (npos == 0)
 						return 0; // Invalid position.
-					else
-					{
-						// Partial segment.
-						npos = ppos;
-						tpos -= node.seg_len;
-						break;
-					}
+					node = this->getINodeByPosition(npos);
 				}
-				node = this->getINodeByPosition(npos);
+				else
+					break;
 			}
 			uint32_t noff = 0;
 			if (node.type == INodeType::INT_FILE)
 				noff = HSIZE_FILE;
-			else if (node.type == INodeType::INT_DIRECTORY)
+			else if (node.type == INodeType::INT_SEGMENT)
 				noff = HSIZE_SEGMENT;
+			else
+				return 0;
 
+			// TODO: Update this description :P
 			// Now npos is the segment in which the specified file position
-			// is located.  pos - tpos indicates the number of bytes inside
+			// is located.  pos - ptpos indicates the number of bytes inside
 			// the segment the specified file position is.  noff indicates
 			// the size of the headers for the specified block.  Hence
-			// (npos + noff + (pos - tpos)) is the location, on disk, of the
+			// (npos + noff + (pos - ptpos) - 1) is the location, on disk, of the
 			// specified file position.
-			return npos + noff + (pos - tpos) - 1;
+			return npos + noff + (pos - ptpos) - 1;
 		}
 
 		int32_t FS::resolvePathnameToInodeID(const char * path)
@@ -1061,23 +1061,53 @@ namespace AppLib
 				// Adding null characters.  Determine amount to add.
 				uint32_t amount_to_add = (int64_t)len - (int64_t)node.dat_len;
 
-				// We know how many solid INT_SEGMENTs we are going
-				// to have to add by the ceil'd division of
-				// amount_to_add by (BSIZE_FILE - HSIZE_SEGMENT).
-				int32_t blocks_to_add = div(amount_to_add, BSIZE_FILE - HSIZE_SEGMENT).quot + 1;
-
 				// Create a variable to hold the FSResult's from operations.
 				FSResult::FSResult fres;
 
 				// Locate the last segment in the file (stored in spos).
 				uint32_t spos = npos;
 				uint32_t sppos = spos;
+				uint32_t bytes_counted = 0;
+				INode snode(0, "", INodeType::INT_INVALID);
 				while (spos != 0)
 				{
+					snode = this->getINodeByPosition(spos);
+					bytes_counted += snode.seg_len;
 					sppos = spos;
 					spos = this->getFileNextBlock(spos);
 				}
+				if (snode.type != INodeType::INT_INVALID)
+					bytes_counted -= snode.seg_len;
 				spos = sppos;
+
+				// Determine the current size of the last segment; we'll need to increase
+				// it's length.
+				if (snode.seg_len < BSIZE_FILE - HSIZE_SEGMENT && spos != npos)
+				{
+					// Check to see if we can finish the operation just by increasing the size
+					// of the last segment.
+					if (snode.seg_len + (len - (int64_t)bytes_counted) < BSIZE_FILE - HSIZE_SEGMENT)
+					{
+						// Now set the new length of the file inode.
+						fres = this->setFileLengthDirect(spos, snode.seg_len + (len - (int64_t)bytes_counted));
+						Logging::showInternalW("Result of setFileLengthDirect spos operation is %i", fres);
+						return fres;					
+					}
+					else
+					{
+						// It's outside, increase the current last segment to the maximum
+						// size and then continue adding new blocks.
+						fres = this->setFileLengthDirect(spos, BSIZE_FILE - HSIZE_SEGMENT);
+						Logging::showInternalW("Result of setFileLengthDirect spos-nfinal operation is %i", fres);
+						if (fres != FSResult::E_SUCCESS)
+							return fres;
+					}
+				}
+
+				// We know how many solid INT_SEGMENTs we are going
+				// to have to add by the ceil'd division of
+				// amount_to_add by (BSIZE_FILE - HSIZE_SEGMENT).
+				int32_t blocks_to_add = div(amount_to_add, BSIZE_FILE - HSIZE_SEGMENT).quot + 1;
 
 				// Add blocks_to_add new segments to the file.
 				uint32_t nepos = 0;

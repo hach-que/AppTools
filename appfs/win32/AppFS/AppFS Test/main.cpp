@@ -381,10 +381,53 @@ fs.getFileContents(). \
 	AppLib::LowLevel::FSFile f = fs.getFile(node2.inodeid);
 	f.open();
 	f.seekp(20);
-	const char * c = "1";
-	char c2 = '1';
+	const char * c = "9";
+	char c2 = '9';
 	for (int i = 0; i < 512; i += 1)
 	{
+		switch (c2)
+		{
+			case '1':
+				c = "2";
+				c2 = '2';
+				break;
+			case '2':
+				c = "3";
+				c2 = '3';
+				break;
+			case '3':
+				c = "4";
+				c2 = '4';
+				break;
+			case '4':
+				c = "5";
+				c2 = '5';
+				break;
+			case '5':
+				c = "6";
+				c2 = '6';
+				break;
+			case '6':
+				c = "7";
+				c2 = '7';
+				break;
+			case '7':
+				c = "8";
+				c2 = '8';
+				break;
+			case '8':
+				c = "9";
+				c2 = '9';
+				break;
+			case '9':
+				c = "0";
+				c2 = '0';
+				break;
+			case '0':
+				c = "1";
+				c2 = '1';
+				break;
+		}
 		f.write(c, 1);
 		test_data[i + 20] = c2;
 	}
@@ -468,6 +511,111 @@ fs.getFileContents(). \
 		for (uint32_t i = 0; i < *len; i += 1)
 		{
 			if ((*data)[i] != test_data[i])
+			{
+				matches = false;
+				break;
+			}
+		}
+		if (matches)
+			AppLib::Logging::showSuccessW("File contents matches what was written.");
+		else
+		{
+			AppLib::Logging::showErrorW("File contents does not match what was written.");
+			fs.close();
+			AppLib::Logging::showInfoW("Closed test package.");
+			return 1;
+		}
+	}
+	else
+	{
+		AppLib::Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		fs.close();
+		AppLib::Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Locate the next available inode number.
+	inodeid = fs.getFirstFreeInodeNumber();
+	if (inodeid == 0)
+	{
+		AppLib::Logging::showErrorW("There are no free inodes available.");
+		fs.close();
+		AppLib::Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+	AppLib::Logging::showInfoW("Next free inode number is: %i", inodeid);
+
+	// TEST: Check to see if a specified filename already exists
+	//       in the root directory.
+	if (fs.filenameIsUnique(0, "file2") != AppLib::LowLevel::FSResult::E_SUCCESS)
+	{
+		AppLib::Logging::showWarningW("The file 'file2' already exists in the root directory.");
+	}
+
+	// TEST: Add a new file inode.
+	pos = fs.getFirstFreeBlock(AppLib::LowLevel::INodeType::INT_FILE);
+	AppLib::Logging::showInfoW("Next free data block for a file is at: %i", pos);
+	time(&ltime);
+	AppLib::LowLevel::INode node3(inodeid, "file2", AppLib::LowLevel::INodeType::INT_FILE, 1000, 1000, 0725, ltime, ltime, ltime);
+	if (fs.writeINode(pos, node3) == AppLib::LowLevel::FSResult::E_SUCCESS)
+		AppLib::Logging::showSuccessW("Wrote new file inode to: %i", pos);
+	else
+	{
+		AppLib::Logging::showErrorW("Unable to write new file inode to: %i", pos);
+		fs.close();
+		AppLib::Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Add the new file to the root directory.
+	if (fs.addChildToDirectoryInode(0, inodeid) == AppLib::LowLevel::FSResult::E_SUCCESS)
+		AppLib::Logging::showSuccessW("Added child inode %i to root inode.", inodeid);
+	else
+	{
+		AppLib::Logging::showErrorW("Unable to add child inode %i to root inode.", pos);
+		fs.close();
+		AppLib::Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Write data into a new file.
+	// We're going to write 512 bytes at an offset of 0 bytes within both the
+	// temporary memory, and the new file we created (one byte at a time, stream)
+	f = fs.getFile(node3.inodeid);
+	f.open();
+	f.seekp(0);
+	char * verify_temp = (char*)malloc(513);
+	for (int i = 0; i < 513; i += 1)
+		verify_temp[i] = 0;
+	const char * c3 = "1";
+	char c4 = '1';
+	for (int i = 0; i < 512; i += 1)
+	{
+		f.write(c3, 1);
+		verify_temp[i] = c4;
+	}
+	f.close();
+	if (f.good())
+		AppLib::Logging::showSuccessW("Stream writing (new) for file was successful.");
+	else
+	{
+		AppLib::Logging::showErrorW("Unable to stream write new data into the file.");
+		fs.close();
+		AppLib::Logging::showInfoW("Closed test package.");
+		return 1;
+	}
+
+	// TEST: Confirm success of stream writing.
+	data = (char**)malloc(sizeof(char*));
+	len = (uint32_t*)malloc(sizeof(uint32_t));
+	res2 = fs.getFileContents(node3.inodeid, data, len, 2048);
+	if (res2 == AppLib::LowLevel::FSResult::E_SUCCESS && data != NULL && len != NULL)
+	{
+		AppLib::Logging::showSuccessW("Read file contents for inode %i:", node3.inodeid);
+		bool matches = true;
+		for (uint32_t i = 0; i < *len; i += 1)
+		{
+			if ((*data)[i] != verify_temp[i])
 			{
 				matches = false;
 				break;

@@ -370,7 +370,7 @@ namespace AppLib
 		bool FSFile::truncate(std::streamsize len)
 		{
 			FSResult::FSResult fres = this->filesystem->truncateFile(this->inodeid, len);
-			Logging::showInternalW("Result of truncate operation is %i", (int)fres);
+//			Logging::showInternalW("Result of truncate operation is %i", (int)fres);
 			return (fres == FSResult::E_SUCCESS);
 		}
 
