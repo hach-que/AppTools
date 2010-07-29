@@ -16,7 +16,7 @@ namespace AppLib
 			void open(std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
 			void write(const char * data, std::streamsize count);
 			std::streamsize read(char * out, std::streamsize count);
-			void truncate(std::streamsize len);
+			bool truncate(std::streamsize len);
 			void close();
 			void seekp(std::streampos pos);
 			void seekg(std::streampos pos);

@@ -55,11 +55,16 @@ namespace AppLib
 
 			if ((int)pos == 0)
 			{
-				this->truncate(this->posp);
+				if (!this->truncate(this->posp + count))
+				{
+					Logging::showErrorW("Truncate operation failed when expanding file.");
+					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);
+					return;
+				}
 				pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
 				if ((int)pos == 0)
 				{
-					Logging::showErrorW("Unable to expand file for write() operation.");
+					Logging::showErrorW("Truncate operation did not expand file to the required size.");
 					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);
 					return;
 				}
@@ -362,9 +367,11 @@ namespace AppLib
 			return count;
 		}
 
-		void FSFile::truncate(std::streamsize len)
+		bool FSFile::truncate(std::streamsize len)
 		{
-			this->filesystem->truncateFile(this->inodeid, len);
+			FSResult::FSResult fres = this->filesystem->truncateFile(this->inodeid, len);
+			Logging::showInternalW("Result of truncate operation is %i", (int)fres);
+			return (fres == FSResult::E_SUCCESS);
 		}
 
 		void FSFile::close()

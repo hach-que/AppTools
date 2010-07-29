@@ -787,6 +787,7 @@ namespace AppLib
 
 			// Get the type directly.
 			uint16_t type_raw = (uint16_t)INodeType::INT_INVALID;
+			Logging::showInternalW("Reading INode at location %i", pos);
 			this->fd->seekg(pos);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
 			Logging::showInternalW("INode number is %i", type_raw);
@@ -1055,7 +1056,7 @@ namespace AppLib
 				else
 					return FSResult::E_SUCCESS;
 			}
-			else if (len > node.dat_len)
+			else if (len > node.dat_len && len > BSIZE_FILE - HSIZE_FILE)
 			{
 				// Adding null characters.  Determine amount to add.
 				uint32_t amount_to_add = (int64_t)len - (int64_t)node.dat_len;
@@ -1064,6 +1065,9 @@ namespace AppLib
 				// to have to add by the ceil'd division of
 				// amount_to_add by (BSIZE_FILE - HSIZE_SEGMENT).
 				int32_t blocks_to_add = div(amount_to_add, BSIZE_FILE - HSIZE_SEGMENT).quot + 1;
+
+				// Create a variable to hold the FSResult's from operations.
+				FSResult::FSResult fres;
 
 				// Locate the last segment in the file (stored in spos).
 				uint32_t spos = npos;
@@ -1085,19 +1089,39 @@ namespace AppLib
 						segment_size = amount_to_add_remaining;
 					amount_to_add_remaining -= segment_size;
 
+					Logging::showInternalW("Adding %i of %i new blocks...", i + 1, blocks_to_add);
 					nepos = this->getFirstFreeBlock(INodeType::INT_FILE);
+					Logging::showInternalW("New block will be placed at %i", nepos);
 					INode nenode(inodeid, "", INodeType::INT_SEGMENT);
+					Logging::showInternalW("New block size will be %i", segment_size);
 					nenode.seg_len = segment_size;
-					this->writeINode(nepos, nenode);
-					this->setFileNextSegmentDirect(spos, nepos);
+					fres = this->writeINode(nepos, nenode);
+					Logging::showInternalW("Result of writeINode operation is %i", fres);
+					if (fres != FSResult::E_SUCCESS)
+						return fres;
+					fres = this->setFileNextSegmentDirect(spos, nepos);
+					Logging::showInternalW("Result of setFileNextSegmentDirect operation is %i", fres);
+					if (fres != FSResult::E_SUCCESS)
+						return fres;
 					spos = nepos;
 				}
 
 				// Now set the new length of the file inode.
 				node.dat_len = (int64_t)node.dat_len + (int64_t)amount_to_add;
-				this->setFileLengthDirect(npos, node.dat_len);
+				Logging::showInternalW("New file size is %i", node.dat_len);
+				fres = this->setFileLengthDirect(npos, node.dat_len);
+				Logging::showInternalW("Result of setFileLengthDirect operation is %i", fres);
+				if (fres != FSResult::E_SUCCESS)
+					return fres;
 
 				return FSResult::E_SUCCESS;
+			}
+			else if (len > node.dat_len && len <= BSIZE_FILE - HSIZE_FILE)
+			{
+				// Just set the new length of the file inode.
+                                node.dat_len = len;
+                                FSResult::FSResult fres = this->setFileLengthDirect(npos, node.dat_len);
+                                return fres;
 			}
 			else
 				return FSResult::E_FAILURE_NOT_IMPLEMENTED;
