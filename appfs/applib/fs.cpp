@@ -221,7 +221,7 @@ namespace AppLib
 //			Logging::showInternalW("seeking back to %i", (uint32_t)old);
 			this->fd->seekg(old);
 //			Logging::showInternalW("returned position is %i", (uint32_t)ipos);
-			Logging::showInternalW("position of %i is %i", id, (uint32_t)ipos);
+//			Logging::showInternalW("position of %i is %i", id, (uint32_t)ipos);
 			return ipos;
 		}
 
@@ -881,19 +881,20 @@ namespace AppLib
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
+			pos += 1;
 			uint32_t dpos = 0;
 			uint32_t npos = this->getINodePositionByID(inodeid);
 			uint32_t ppos = npos;
 			INode node = this->getINodeByPosition(npos);
 			uint32_t tpos = 0;
-			Logging::showInternalW("Position resolution: Looking for position %i in inode %i.", pos, inodeid);
+			//Logging::showInternalW("Position resolution: Looking for position %i in inode %i.", pos, inodeid);
 			while (tpos < pos)// && pos < tpos + node.seg_len)
 			{
-				Logging::showInternalW("Position resolution: tpos (%i) < pos (%i)", tpos, pos);
+				//Logging::showInternalW("Position resolution: tpos (%i) < pos (%i)", tpos, pos);
 				tpos += node.seg_len;
 				ppos = npos;
 				npos = this->getFileNextBlock(npos);
-				Logging::showInternalW("Position resolution: %i -> links to -> %i", ppos, npos);
+				//Logging::showInternalW("Position resolution: %i -> links to -> %i", ppos, npos);
 				if (npos == 0)
 				{
 					if (tpos < pos)
@@ -920,7 +921,7 @@ namespace AppLib
 			// the size of the headers for the specified block.  Hence
 			// (npos + noff + (pos - tpos)) is the location, on disk, of the
 			// specified file position.
-			return npos + noff + (pos - tpos);
+			return npos + noff + (pos - tpos) - 1;
 		}
 
 		int32_t FS::resolvePathnameToInodeID(const char * path)

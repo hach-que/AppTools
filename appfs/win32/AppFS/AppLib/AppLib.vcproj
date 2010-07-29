@@ -180,6 +180,10 @@
 				RelativePath="..\..\..\applib\logging.h"
 				>
 			</File>
+			<File
+				RelativePath="..\..\..\applib\util.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -210,6 +214,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\applib\logging.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\applib\util.cpp"
 				>
 			</File>
 		</Filter>

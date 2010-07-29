@@ -64,6 +64,7 @@ typedef unsigned int uid_t;
 typedef unsigned int gid_t;
 typedef unsigned int pid_t;
 #define ENOTSUP 95
+#define EALREADY 114
 #else
 #include <stdint.h>
 #include <stdio.h>
