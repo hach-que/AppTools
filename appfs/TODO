@@ -1,2 +1,3 @@
 * DONE: Make the write() function of FSFile allocate new blocks when the position is outside of the currently allocated blocks.
-* Investigate the difference between assigning the next link and the position resolution code and how they can be out-of-sync with each other.
+* DONE: Investigate the difference between assigning the next link and the position resolution code and how they can be out-of-sync with each other.
+* write() appears to drop 5 bytes every 50 bytes written under FUSE.  Investigate the issue.
