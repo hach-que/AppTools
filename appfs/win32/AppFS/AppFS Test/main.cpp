@@ -579,17 +579,17 @@ fs.getFileContents(). \
 	}
 
 	// TEST: Write data into a new file.
-	// We're going to write 512 bytes at an offset of 0 bytes within both the
+	// We're going to write 768 bytes at an offset of 0 bytes within both the
 	// temporary memory, and the new file we created (one byte at a time, stream)
 	f = fs.getFile(node3.inodeid);
 	f.open();
 	f.seekp(0);
-	char * verify_temp = (char*)malloc(513);
-	for (int i = 0; i < 513; i += 1)
+	char * verify_temp = (char*)malloc(769);
+	for (int i = 0; i < 769; i += 1)
 		verify_temp[i] = 0;
 	const char * c3 = "1";
 	char c4 = '1';
-	for (int i = 0; i < 512; i += 1)
+	for (int i = 0; i < 768; i += 1)
 	{
 		f.write(c3, 1);
 		verify_temp[i] = c4;
@@ -611,7 +611,8 @@ fs.getFileContents(). \
 	res2 = fs.getFileContents(node3.inodeid, data, len, 2048);
 	if (res2 == AppLib::LowLevel::FSResult::E_SUCCESS && data != NULL && len != NULL)
 	{
-		AppLib::Logging::showSuccessW("Read file contents for inode %i:", node3.inodeid);
+		std::cout << "Read file contents for inode "  << std::endl;
+//		AppLib::Logging::showSuccessW("Read file contents for inode %i:", node3.inodeid);
 		bool matches = true;
 		for (uint32_t i = 0; i < *len; i += 1)
 		{
@@ -622,24 +623,30 @@ fs.getFileContents(). \
 			}
 		}
 		if (matches)
-			AppLib::Logging::showSuccessW("File contents matches what was written.");
+			std::cout << "File contents matches what was written." << std::endl;
+			//AppLib::Logging::showSuccessW("File contents matches what was written.");
 		else
 		{
-			AppLib::Logging::showErrorW("File contents does not match what was written.");
+			std::cout << "File contents does not match what was written." << std::endl;
+			//AppLib::Logging::showErrorW("File contents does not match what was written.");
 			fs.close();
-			AppLib::Logging::showInfoW("Closed test package.");
+			std::cout << "Closed test package." << std::endl;
+			//AppLib::Logging::showInfoW("Closed test package.");
 			return 1;
 		}
 	}
 	else
 	{
-		AppLib::Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
+		std::cout << "Unable to read file contents for inode %i." << std::endl;
+		//AppLib::Logging::showErrorW("Unable to read file contents for inode %i.", node2.inodeid);
 		fs.close();
-		AppLib::Logging::showInfoW("Closed test package.");
+		std::cout << "Closed test package." << std::endl;
+		//AppLib::Logging::showInfoW("Closed test package.");
 		return 1;
 	}
 
 	fs.close();
-	AppLib::Logging::showInfoW("Closed test package.");
+	std::cout << "Closed test package." << std::endl;
+	//AppLib::Logging::showInfoW("Closed test package.");
 	return 0;
 }

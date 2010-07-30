@@ -53,9 +53,11 @@ namespace AppLib
 			// Write the data to the currently opened inode.
 			std::streampos pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
 
+			Logging::showErrorW("Current position is %i", this->posp);
 			if ((int)pos == 0)
 			{
-				if (!this->truncate(this->posp + count))
+				Logging::showErrorW("Truncating file to %i", this->posp + 1);
+				if (!this->truncate(this->posp + 1))
 				{
 					Logging::showErrorW("Truncate operation failed when expanding file.");
 					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);

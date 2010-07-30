@@ -882,7 +882,6 @@ namespace AppLib
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
-			pos += 1;
 			uint32_t dpos = 0;
 			uint32_t npos = this->getINodePositionByID(inodeid);
 			uint32_t ppos = npos;
@@ -890,12 +889,12 @@ namespace AppLib
 			uint32_t ptpos = 0;
 			uint32_t tpos = 0;
 			//Logging::showInternalW("Position resolution: Looking for position %i in inode %i.", pos, inodeid);
-			while (tpos < pos)// && pos < tpos + node.seg_len)
+			while (tpos <= pos)// && pos < tpos + node.seg_len)
 			{
 				//Logging::showInternalW("Position resolution: tpos (%i) < pos (%i)", tpos, pos);
 				ptpos = tpos;
 				tpos += node.seg_len;
-				if (tpos < pos)
+				if (tpos <= pos)
 				{
 					ppos = npos;
 					npos = this->getFileNextBlock(npos);
@@ -922,7 +921,7 @@ namespace AppLib
 			// the size of the headers for the specified block.  Hence
 			// (npos + noff + (pos - ptpos) - 1) is the location, on disk, of the
 			// specified file position.
-			return npos + noff + (pos - ptpos) - 1;
+			return npos + noff + (pos - ptpos);
 		}
 
 		int32_t FS::resolvePathnameToInodeID(const char * path)
@@ -978,6 +977,8 @@ namespace AppLib
 		FSResult::FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			Logging::showInfoO("File will be truncated to %i length.", len);
 
 			// Retrieve the INode.
 			INode node = this->getINodeByID(inodeid);
@@ -1080,24 +1081,40 @@ namespace AppLib
 					bytes_counted -= snode.seg_len;
 				spos = sppos;
 
+				uint32_t snode_datsize = 0;
+				if (snode.type == INodeType::INT_FILE)
+					snode_datsize = BSIZE_FILE - HSIZE_FILE;
+				else if (snode.type == INodeType::INT_SEGMENT)
+					snode_datsize = BSIZE_FILE - HSIZE_SEGMENT;
+				else
+					return FSResult::E_FAILURE_INODE_NOT_VALID;
+
 				// Determine the current size of the last segment; we'll need to increase
 				// it's length.
-				if (snode.seg_len < BSIZE_FILE - HSIZE_SEGMENT && spos != npos)
+				if (snode.seg_len < snode_datsize)
 				{
 					// Check to see if we can finish the operation just by increasing the size
 					// of the last segment.
-					if (snode.seg_len + (len - (int64_t)bytes_counted) < BSIZE_FILE - HSIZE_SEGMENT)
+					if (len - (int64_t)bytes_counted < snode_datsize)
 					{
-						// Now set the new length of the file inode.
-						fres = this->setFileLengthDirect(spos, snode.seg_len + (len - (int64_t)bytes_counted));
+						// Now set the new length of the segment inode.
+						fres = this->setFileLengthDirect(spos, len - (int64_t)bytes_counted);
 						Logging::showInternalW("Result of setFileLengthDirect spos operation is %i", fres);
+						if (fres != FSResult::E_SUCCESS)
+							return fres;
+
+						// Now set the new length of the file inode.
+						node.dat_len = len;
+						Logging::showInternalW("New file size is %i", node.dat_len);
+						fres = this->setFileLengthDirect(npos, node.dat_len);
+						Logging::showInternalW("Result of setFileLengthDirect operation is %i", fres);
 						return fres;					
 					}
 					else
 					{
 						// It's outside, increase the current last segment to the maximum
 						// size and then continue adding new blocks.
-						fres = this->setFileLengthDirect(spos, BSIZE_FILE - HSIZE_SEGMENT);
+						fres = this->setFileLengthDirect(spos, snode_datsize);
 						Logging::showInternalW("Result of setFileLengthDirect spos-nfinal operation is %i", fres);
 						if (fres != FSResult::E_SUCCESS)
 							return fres;
@@ -1137,7 +1154,7 @@ namespace AppLib
 				}
 
 				// Now set the new length of the file inode.
-				node.dat_len = (int64_t)node.dat_len + (int64_t)amount_to_add;
+				node.dat_len = len;
 				Logging::showInternalW("New file size is %i", node.dat_len);
 				fres = this->setFileLengthDirect(npos, node.dat_len);
 				Logging::showInternalW("Result of setFileLengthDirect operation is %i", fres);
@@ -1149,9 +1166,9 @@ namespace AppLib
 			else if (len > node.dat_len && len <= BSIZE_FILE - HSIZE_FILE)
 			{
 				// Just set the new length of the file inode.
-                                node.dat_len = len;
-                                FSResult::FSResult fres = this->setFileLengthDirect(npos, node.dat_len);
-                                return fres;
+                node.dat_len = len;
+                FSResult::FSResult fres = this->setFileLengthDirect(npos, node.dat_len);
+                return fres;
 			}
 			else
 				return FSResult::E_FAILURE_NOT_IMPLEMENTED;
