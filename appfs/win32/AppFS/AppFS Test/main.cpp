@@ -579,20 +579,20 @@ fs.getFileContents(). \
 	}
 
 	// TEST: Write data into a new file.
-	// We're going to write 768 bytes at an offset of 0 bytes within both the
-	// temporary memory, and the new file we created (one byte at a time, stream)
+	// We're going to write 1000 bytes at an offset of 0 bytes within both the
+	// temporary memory, and the new file we created (ten bytes at a time, stream)
 	f = fs.getFile(node3.inodeid);
 	f.open();
 	f.seekp(0);
-	char * verify_temp = (char*)malloc(769);
-	for (int i = 0; i < 769; i += 1)
+	char * verify_temp = (char*)malloc(1001);
+	for (int i = 0; i < 1001; i += 1)
 		verify_temp[i] = 0;
-	const char * c3 = "1";
-	char c4 = '1';
-	for (int i = 0; i < 768; i += 1)
+	const char * c3 = "0123456789";
+	for (int i = 0; i < 1000 / 10; i += 1)
 	{
-		f.write(c3, 1);
-		verify_temp[i] = c4;
+		f.write(c3, 10);
+		for (int a = 0; a < 10; a += 1)
+			verify_temp[i+a] = c3[a];
 	}
 	f.close();
 	if (f.good())

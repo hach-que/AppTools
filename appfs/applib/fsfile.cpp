@@ -56,8 +56,8 @@ namespace AppLib
 			Logging::showErrorW("Current position is %i", this->posp);
 			if ((int)pos == 0)
 			{
-				Logging::showErrorW("Truncating file to %i", this->posp + 1);
-				if (!this->truncate(this->posp + 1))
+				Logging::showErrorW("Truncating file to %i", this->posp + count);
+				if (!this->truncate(this->posp + count))
 				{
 					Logging::showErrorW("Truncate operation failed when expanding file.");
 					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);
@@ -72,53 +72,15 @@ namespace AppLib
 				}
 			}
 
-/*			if ((int)pos == 0)
-			{
-				// We need to allocate enough blank blocks to reach the new
-				// write area.
-				uint32_t ppos = this->filesystem->getINodePositionByID(this->inodeid);
-				uint32_t balloc = 0;
-				uint32_t tpos = this->filesystem->getFileNextBlock(ppos);
-				Logging::showInternalW("INode position is %i.", ppos);
-				while (tpos != 0)
-				{
-					Logging::showInternalO("Segment position is %i.", tpos);
-					ppos = tpos;
-					tpos = this->filesystem->getFileNextBlock(tpos);
-				}
-				while ((int)pos == 0)
-				{
-					uint32_t npos = this->filesystem->getFirstFreeBlock(INodeType::INT_FILE);
-					Logging::showInternalW("Allocating block at %i", npos);
-					INode nnode(this->inodeid, "", INodeType::INT_SEGMENT);
-					nnode.seg_len = BSIZE_FILE - HSIZE_SEGMENT;
-					nnode.seg_next = 0;
-					Logging::showInternalW("Assigning link: %i -> links to -> %i", ppos, npos);
-					FSResult::FSResult res = this->filesystem->setFileNextSegmentDirect(ppos, npos);
-					Logging::showInternalW("Result of set next segment is %i", res);
-					ppos = npos;
-					res = this->filesystem->writeINode(npos, nnode);
-					Logging::showInternalW("Result of new INode allocation is %i", res);
-					balloc += 1;
-					Logging::showInternalW("%i more blocks allocated during FSFile::write().", balloc);
-
-					pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
-				}
-				FSResult::FSResult resw = this->filesystem->setFileLengthDirect(ppos, pos - ppos);
-				Logging::showInternalW("Result of segment length adjustment (set to %i) is %i", (int)(pos - ppos), resw);
-				resw = this->filesystem->setFileLengthDirect(
-					this->filesystem->getINodePositionByID(this->inodeid),
-					this->posp);
-				Logging::showInternalW("Result of file length adjustment (set to %i) is %i", (int)(this->posp), resw);
-			}
-*/
-
 			// Our inode start position will be (pos - OFFSET_DATA) / BSIZE_FILE, since we know the
 			// position won't be pointing inside a directory inode.
 			std::streampos ipos = floor((float)((float)pos - OFFSET_DATA) / (float)BSIZE_FILE) * BSIZE_FILE + OFFSET_DATA;
 
 			// Now grab the first inode.
 			INode node = this->filesystem->getINodeByPosition(ipos);
+
+			// Determine the number of bytes left in the block.
+			int64_t bremaining = BSIZE_FILE - (pos - ipos);
 
 			// The start of the data will be (pos - ipos) - HSIZE_FILE or (pos - ipos) - HSIZE_SEGMENT
 			// depending on the node type.
@@ -143,7 +105,7 @@ namespace AppLib
 
 			// Check to see whether the data we are going to write all
 			// fits inside the one block.
-			if (count < ((int64_t)BSIZE_FILE - dstart))
+			if (count < bremaining)
 			{
 				// The data we are writing is going to fit inside the
 				// first block, so just write it and return.
@@ -181,13 +143,13 @@ namespace AppLib
 			// The data we are writing is going to be written out over
 			// multiple blocks.  We write the first section directly.
 			Util::seekp_ex(this->fd, pos);
-			this->fd->write(data, node.seg_len - dstart);
-			this->posp += node.seg_len - dstart;
+			this->fd->write(data, bremaining);
+			this->posp += bremaining;
 
 			// Now write the remaining data into the other blocks (allocate
 			// if necessary).
-			uint32_t remaining_bytes = count - (node.seg_len - dstart);
-			uint32_t data_position = node.seg_len - dstart;
+			uint32_t remaining_bytes = count - bremaining;
+			uint32_t data_position = bremaining;
 			uint32_t ppos = ipos;
 			while (remaining_bytes > 0)
 			{
@@ -271,6 +233,9 @@ namespace AppLib
 			// Now grab the first inode.
 			INode node = this->filesystem->getINodeByPosition(ipos);
 
+			// Determine the number of bytes left in the block.
+			int64_t bremaining = BSIZE_FILE - (pos - ipos);
+
 			// The start of the data will be (pos - ipos) - HSIZE_FILE or (pos - ipos) - HSIZE_SEGMENT
 			// depending on the node type.
 			std::streampos dstart = 0;
@@ -294,7 +259,7 @@ namespace AppLib
 
 			// Check to see whether the data we are going to read all
 			// fits inside the one block.
-			if ((count < node.dat_len ? count : node.dat_len) < ((int64_t)BSIZE_FILE - dstart))
+			if (count < bremaining)
 			{
 				// The data we are reading is all contained within the
 				// first block.  Read it and then return.
@@ -326,12 +291,12 @@ namespace AppLib
 			// The data we are reading is going to be read over
 			// multiple blocks.  We read the first section directly.
 			Util::seekp_ex(this->fd, pos);
-			this->fd->read(out, node.seg_len - dstart);
-			this->posg += node.seg_len - dstart;
+			this->fd->read(out, bremaining);
+			this->posg += bremaining;
 
 			// Now read the remaining data from the other blocks.
-			uint32_t remaining_bytes = count - (node.seg_len - dstart);
-			uint32_t data_position = node.seg_len - dstart;
+			uint32_t remaining_bytes = count - bremaining;
+			uint32_t data_position = bremaining;
 			uint32_t ppos = ipos;
 			while (remaining_bytes > 0)
 			{
