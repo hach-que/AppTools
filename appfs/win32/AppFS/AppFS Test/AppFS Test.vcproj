@@ -177,7 +177,47 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath=".\global.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_add_child_to_dir.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_allocate_node.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_file_unique.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_inspect.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_next_id.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_rw_all_0_var.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_rw_burst_30_492.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_rw_stream10_0_1000.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_rw_stream1_20_512.cpp"
 				>
 			</File>
 		</Filter>
@@ -186,6 +226,18 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath=".\global.h"
+				>
+			</File>
+			<File
+				RelativePath=".\test_global.h"
+				>
+			</File>
+			<File
+				RelativePath=".\tests.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
