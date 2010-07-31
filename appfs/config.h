@@ -31,7 +31,6 @@ http://code.google.com/p/apptools-dist for more information.
 #include <fuse.h>
 #include <fuse/fuse_lowlevel.h>
 #include <sys/mount.h>
-#include <ext2fs/ext2fs.h>
 #include <sys/signal.h>
 
 /************************* BEGIN CONFIGURATION **************************/
