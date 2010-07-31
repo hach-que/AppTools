@@ -1,6 +1,6 @@
 #include "test_global.h"
 
-int test_next_id(AppLib::LowLevel::FS * fs, uint16_t & inodeid)
+int test_ll_next_id(AppLib::LowLevel::FS * fs, uint16_t & inodeid)
 {
 	inodeid = fs->getFirstFreeInodeNumber();
 	if (inodeid == 0)

@@ -1,6 +1,6 @@
 #include "test_global.h"
 
-int test_allocate_node(AppLib::LowLevel::FS * fs, uint16_t inodeid, const char* filename)
+int test_ll_allocate_node(AppLib::LowLevel::FS * fs, uint16_t inodeid, const char* filename)
 {
 	uint32_t pos = fs->getFirstFreeBlock(AppLib::LowLevel::INodeType::INT_FILE);
 	AppLib::Logging::showInfoW("Next free data block for a file is at: %i", pos);

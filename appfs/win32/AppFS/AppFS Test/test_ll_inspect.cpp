@@ -1,6 +1,6 @@
 #include "test_global.h"
 
-int test_inspect(AppLib::LowLevel::FS * fs, uint16_t inodeid)
+int test_ll_inspect(AppLib::LowLevel::FS * fs, uint16_t inodeid)
 {
 	AppLib::LowLevel::INode node = fs->getINodeByID(inodeid);
 	if (node.type == AppLib::LowLevel::INodeType::INT_INVALID)

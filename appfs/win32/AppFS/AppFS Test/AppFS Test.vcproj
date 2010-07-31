@@ -185,23 +185,23 @@
 				>
 			</File>
 			<File
-				RelativePath=".\test_add_child_to_dir.cpp"
+				RelativePath=".\test_ll_add_child_to_dir.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\test_allocate_node.cpp"
+				RelativePath=".\test_ll_allocate_node.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\test_file_unique.cpp"
+				RelativePath=".\test_ll_file_unique.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\test_inspect.cpp"
+				RelativePath=".\test_ll_inspect.cpp"
 				>
 			</File>
 			<File
-				RelativePath=".\test_next_id.cpp"
+				RelativePath=".\test_ll_next_id.cpp"
 				>
 			</File>
 			<File
@@ -214,6 +214,10 @@
 			</File>
 			<File
 				RelativePath=".\test_rw_stream10_0_1000.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_rw_stream1_0_1024.cpp"
 				>
 			</File>
 			<File

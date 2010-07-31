@@ -1,30 +1,73 @@
 #include "test_global.h"
 
-int test_rw_stream10_0_1000(AppLib::LowLevel::FS * fs, uint16_t inodeid)
+int test_rw_stream1_0_1024(AppLib::LowLevel::FS * fs, uint16_t inodeid)
 {
 	AppLib::LowLevel::FSFile f = fs->getFile(inodeid);
 	f.open();
 	f.seekp(0);
-	char * verify_temp = (char*)malloc(1001);
-	for (int i = 0; i < 1001; i += 1)
+	char * verify_temp = (char*)malloc(1025);
+	for (int i = 0; i < 1025; i += 1)
 		verify_temp[i] = 0;
-	const char * c3 = "0123456789";
-	for (int i = 0; i < 1000 / 10; i += 1)
+	const char * c = "9";
+	char c2 = '9';
+	for (int i = 0; i < 1024; i += 1)
 	{
-		f.write(c3, 10);
-		for (int a = 0; a < 10; a += 1)
-			verify_temp[i*10+a] = c3[a];
+		switch (c2)
+		{
+			case '1':
+				c = "2";
+				c2 = '2';
+				break;
+			case '2':
+				c = "3";
+				c2 = '3';
+				break;
+			case '3':
+				c = "4";
+				c2 = '4';
+				break;
+			case '4':
+				c = "5";
+				c2 = '5';
+				break;
+			case '5':
+				c = "6";
+				c2 = '6';
+				break;
+			case '6':
+				c = "7";
+				c2 = '7';
+				break;
+			case '7':
+				c = "8";
+				c2 = '8';
+				break;
+			case '8':
+				c = "9";
+				c2 = '9';
+				break;
+			case '9':
+				c = "0";
+				c2 = '0';
+				break;
+			case '0':
+				c = "1";
+				c2 = '1';
+				break;
+		}
+		f.write(c, 1);
+		verify_temp[i] = c2;
 	}
 	f.close();
 	if (f.good())
-		AppLib::Logging::showSuccessW("Stream writing (new) for file was successful.");
+		AppLib::Logging::showSuccessW("Stream writing for file was successful.");
 	else
 	{
 		AppLib::Logging::showErrorW("Unable to stream write new data into the file.");
 		return 1;
 	}
 
-	// TEST: Confirm success of stream writing.
+	// Verify result.
 	char ** data = (char**)malloc(sizeof(char*));
 	uint32_t * len = (uint32_t*)malloc(sizeof(uint32_t));
 	AppLib::LowLevel::FSResult::FSResult res2 = fs->getFileContents(inodeid, data, len, 2048);

@@ -102,24 +102,24 @@ int main(int argc, char* argv[])
 	AppLib::LowLevel::FS fs(fd);
 
 	// TEST: Inspect the root inode.
-	RUN_TEST(test_inspect, 0);
+	RUN_TEST(test_ll_inspect, 0);
 
 	// TEST: Locate the next available inode number.
 	uint16_t inodeid = 0;
-	RUN_TEST(test_next_id, inodeid);
+	RUN_TEST(test_ll_next_id, inodeid);
 
 	// TEST: Check to see if a specified filename already exists
 	//       in the root directory.
-	RUN_TEST(test_file_unique, "file");
+	RUN_TEST(test_ll_file_unique, "file");
 
 	// TEST: Add a new file inode.
-	RUN_TEST(test_allocate_node, inodeid, "file");
+	RUN_TEST(test_ll_allocate_node, inodeid, "file");
 
 	// TEST: Add the new file to the root directory.
-	RUN_TEST(test_add_child_to_dir, inodeid, 0);
+	RUN_TEST(test_ll_add_child_to_dir, inodeid, 0);
 
 	// TEST: Fetch a list of entries in the root inode.
-	RUN_TEST(test_inspect, 0);
+	RUN_TEST(test_ll_inspect, 0);
 
 	// TEST: Set file contents.
 	std::string test_data = "\
@@ -160,17 +160,35 @@ fs.getFileContents(). \
 	RUN_TEST(test_rw_burst_30_492, inodeid, test_data);
 
 	// TEST: Locate the next available inode number.
-	RUN_TEST(test_next_id, inodeid);
+	RUN_TEST(test_ll_next_id, inodeid);
 
 	// TEST: Check to see if a specified filename already exists
 	//       in the root directory.
-	RUN_TEST(test_file_unique, "file2");
+	RUN_TEST(test_ll_file_unique, "file3");
 
 	// TEST: Add a new file inode.
-	RUN_TEST(test_allocate_node, inodeid, "file2");
+	RUN_TEST(test_ll_allocate_node, inodeid, "file3");
 
 	// TEST: Add the new file to the root directory.
-	RUN_TEST(test_add_child_to_dir, inodeid, 0);
+	RUN_TEST(test_ll_add_child_to_dir, inodeid, 0);
+
+	// TEST: Write data into a new file.
+	// We're going to write 1024 bytes at an offset of 0 bytes within both the
+	// temporary memory, and the new file we created (one byte at a time, stream)
+	RUN_TEST(test_rw_stream1_0_1024, inodeid);
+
+	// TEST: Locate the next available inode number.
+	RUN_TEST(test_ll_next_id, inodeid);
+
+	// TEST: Check to see if a specified filename already exists
+	//       in the root directory.
+	RUN_TEST(test_ll_file_unique, "file2");
+
+	// TEST: Add a new file inode.
+	RUN_TEST(test_ll_allocate_node, inodeid, "file2");
+
+	// TEST: Add the new file to the root directory.
+	RUN_TEST(test_ll_add_child_to_dir, inodeid, 0);
 
 	// TEST: Write data into a new file.
 	// We're going to write 1000 bytes at an offset of 0 bytes within both the
