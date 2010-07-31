@@ -173,7 +173,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\applib\fuse.h"
+				RelativePath="..\..\..\applib\fuselink.h"
 				>
 			</File>
 			<File
@@ -209,7 +209,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\applib\fuse.cpp"
+				RelativePath="..\..\..\applib\fuselink.cpp"
 				>
 			</File>
 			<File

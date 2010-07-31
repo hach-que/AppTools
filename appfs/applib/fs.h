@@ -13,10 +13,10 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-#include "config.h"
-
 #ifndef CLASS_FS
 #define CLASS_FS
+
+#include "config.h"
 
 #include <string>
 #include <iostream>

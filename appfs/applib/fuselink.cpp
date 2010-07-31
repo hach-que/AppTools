@@ -14,7 +14,7 @@ http://code.google.com/p/apptools-dist for more information.
 */
 
 #include "config.h"
-#include "fuse.h"
+#include "fuselink.h"
 #include "logging.h"
 #include "fsmacro.h"
 #include <string>
@@ -31,6 +31,9 @@ namespace AppLib
 						bool foreground,
 						void (*continue_func)(void))
 		{
+#ifdef WIN32
+			this->mountResult = -ENOTSUP;
+#else
 			this->mountResult = -EALREADY;
 
 			// Define the fuse_operations structure.
@@ -118,6 +121,7 @@ namespace AppLib
 			appfs_status.diskImage = disk_image;
 
 			this->mountResult = fuse_main(fargs.argc, fargs.argv, &appfs_ops, &appfs_status);
+#endif
 		}
 
 		int Mounter::getResult()
@@ -505,29 +509,29 @@ namespace AppLib
 		int FuseLink::create(const char * path, mode_t mode, struct fuse_file_info * options)
 		{
 			APPFS_CHECK_PATH_NOT_EXISTS();
-                        APPFS_RETRIEVE_PARENT_PATH_TO_INODE(parent);
-                        APPFS_ASSIGN_NEW_INODE(child, LowLevel::INodeType::INT_FILE);
-                        child.mask = Macros::extractMaskFromMode(mode);
-                        child.ctime = APPFS_TIME();
-                        child.mtime = APPFS_TIME();
-                        child.atime = APPFS_TIME();
-                        APPFS_COPY_CONST_CHAR_TO_FILENAME(Macros::extractBasenameFromPath(path), child.filename);
-                        LowLevel::FSResult::FSResult res =
-                                FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
-                        // TODO: If we return an error, we must also delete the child inode
-                        //       that we created with APPFS_ASSIGN_NEW_INODE().  We need to
-                        //       create a new macro to handle this situation.
-                        if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
-                                return -ENOTDIR;
-                        else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
-                        {
-                                Logging::showErrorW("Maximum number of children in directory reached.");
-                                return -EIO;
-                        }
+            APPFS_RETRIEVE_PARENT_PATH_TO_INODE(parent);
+            APPFS_ASSIGN_NEW_INODE(child, LowLevel::INodeType::INT_FILE);
+            child.mask = Macros::extractMaskFromMode(mode);
+            child.ctime = APPFS_TIME();
+            child.mtime = APPFS_TIME();
+            child.atime = APPFS_TIME();
+            APPFS_COPY_CONST_CHAR_TO_FILENAME(Macros::extractBasenameFromPath(path), child.filename);
+            LowLevel::FSResult::FSResult res =
+                    FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
+            // TODO: If we return an error, we must also delete the child inode
+            //       that we created with APPFS_ASSIGN_NEW_INODE().  We need to
+            //       create a new macro to handle this situation.
+            if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
+				return -ENOTDIR;
+            else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
+            {
+                Logging::showErrorW("Maximum number of children in directory reached.");
+                return -EIO;
+            }
 
-                        APPFS_SAVE_INODE(child);
+            APPFS_SAVE_INODE(child);
 
-                        return 0;
+            return 0;
 		}
 
 		int FuseLink::ftruncate(const char * path, off_t len, struct fuse_file_info * options)

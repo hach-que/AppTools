@@ -16,11 +16,10 @@ http://code.google.com/p/apptools-dist for more information.
 // NOTE: Unlike in the Python libraries, messages are not automatically
 //       intended on newline characters.
 
-#include "config.h"
-
 #ifndef CLASS_LOGGING
 #define CLASS_LOGGING
 
+#include "config.h"
 #include <string>
 #include <stdarg.h>
 

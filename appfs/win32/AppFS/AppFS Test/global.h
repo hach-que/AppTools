@@ -1,5 +1,6 @@
 #include "logging.h"
 #include "fs.h"
+#include "fuselink.h"
 #include "fsfile.h"
 #include <string>
 #include <iostream>

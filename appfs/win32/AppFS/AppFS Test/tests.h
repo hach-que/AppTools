@@ -8,3 +8,4 @@ int test_rw_burst_30_492(AppLib::LowLevel::FS * fs, uint16_t inodeid, std::strin
 int test_rw_stream1_20_512(AppLib::LowLevel::FS * fs, uint16_t inodeid, std::string & test_data);
 int test_rw_stream10_0_1000(AppLib::LowLevel::FS * fs, uint16_t inodeid);
 int test_rw_stream1_0_1024(AppLib::LowLevel::FS * fs, uint16_t inodeid);
+int test_op_create(AppLib::LowLevel::FS * fs, const char* filename);

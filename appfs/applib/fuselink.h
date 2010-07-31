@@ -13,14 +13,13 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
+#ifndef CLASS_FUSELINK
+#define CLASS_FUSELINK
+
 #include "config.h"
 #include <fuse.h>
 #include <stdio.h>
 #include <errno.h>
-
-#ifndef CLASS_FUSELINK
-#define CLASS_FUSELINK
-
 #include "fs.h"
 
 namespace AppLib

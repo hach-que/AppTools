@@ -13,11 +13,10 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-#include "config.h"
-
 #ifndef CLASS_UTIL
 #define CLASS_UTIL
 
+#include "config.h"
 #include <string>
 #include <iostream>
 #include <fstream>

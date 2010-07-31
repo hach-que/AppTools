@@ -16,82 +16,101 @@
 #include "tests.h"
 
 #define RUN_TEST(func, ...) \
+	std::cout << std::endl; \
+	std::cout << " /================================================ " << std::endl; \
+	std::cout << " |" << std::endl; \
+	std::cout << " |   EXECUTING TEST '" << #func << "'" << std::endl; \
+	std::cout << " |" << std::endl; \
+	std::cout << " \\================================================ " << std::endl; \
+	std::cout << std::endl; \
 	if (func(&fs, __VA_ARGS__) != 0) \
 	{ \
 		AppLib::Logging::showErrorW("Test failure '%s'.  Test suite will now stop.", #func); \
 		fs.close(); \
+		std::cout << std::endl; \
+		std::cout << " /================================================ " << std::endl; \
+		std::cout << " |" << std::endl; \
+		std::cout << " |  TEST SUITE STOPPED WITH ERRORS " << std::endl; \
+		std::cout << " |" << std::endl; \
+		std::cout << " \\================================================ " << std::endl; \
+		std::cout << std::endl; \
 		return 1; \
 	}
 
 int main(int argc, char* argv[])
 {
+	std::cout << std::endl;
+	std::cout << " /================================================ " << std::endl;
+	std::cout << " |" << std::endl;
+	std::cout << " |  NOW TESTNG: " << std::endl;
+	std::cout << " |" << std::endl;
+	std::cout << " |    * AppLib 1.0 " << std::endl;
+	std::cout << " |" << std::endl;
+	std::cout << " |  TEST SUITE HAS STARTED " << std::endl;
+	std::cout << " |" << std::endl;
+	std::cout << " \\================================================ " << std::endl;
+	std::cout << std::endl;
+
 	AppLib::Logging::setApplicationName("testsuite");
 	AppLib::Logging::verbose = true;
 	AppLib::Logging::showInfoW("Test suite started.");
 
-	if (!file_exists("test.afs"))
+	// Create the file.
+	std::fstream * fd = new std::fstream("test.afs", std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
+	if (!fd->is_open())
 	{
-#ifdef TESTSUITE_AUTOCREATE
-		// Create the file
-		std::fstream * fd = new std::fstream("test.afs", std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
-		if (!fd->is_open())
-		{
-			AppLib::Logging::showErrorW("Unable to create blank AppFS package ./test.afs.");
-			return 1;
-		}
+		AppLib::Logging::showErrorW("Unable to create blank AppFS package ./test.afs.");
+		return 1;
+	}
 
 #if OFFSET_BOOTSTRAP != 0
 #error The test suite is written under the assumption that the bootstrap offset is 0,
 #error hence the test suite will not operate correctly with a different offset.
 #endif
-		AppLib::Logging::showInfoW("AppFS test package creation required.");
-		// Bootstrap section
-		for (int i = 0; i < LENGTH_BOOTSTRAP; i += 1)
-		{
-			fd->write("\0", 1);
-		}
-		AppLib::Logging::showInfoW("Wrote bootstrap section.");
-
-		// Inode Lookup section
-		for (int i = 0; i < 65536; i += 1)
-		{
-			if (i == 0)
-			{
-				uint32_t pos = OFFSET_ROOTINODE;
-				fd->write(reinterpret_cast<char *>(&pos), 4);
-			}
-			else
-				fd->write("\0\0\0\0", 4);
-		}
-		AppLib::Logging::showInfoW("Wrote inode lookup section.");
-
-		time_t rtime;
-		time(&rtime);
-
-		// Write the root inode data.
-		AppLib::LowLevel::INode node(0, "", AppLib::LowLevel::INodeType::INT_DIRECTORY);
-		node.uid = 0;
-		node.gid = 1000;
-		node.mask = 0777;
-		node.atime = rtime;
-		node.mtime = rtime;
-		node.ctime = rtime;
-		node.parent = 0;
-		node.children_count = 0;
-		std::string node_rep = node.getBinaryRepresentation();
-		fd->write(node_rep.c_str(), node_rep.length());
-		AppLib::Logging::showInfoW("Wrote root inode.");
-
-		fd->close();
-		AppLib::Logging::showInfoW("Test package creation complete.");
-#else
-		AppLib::Logging::showErrorW("The file ./test.afs was not located in the current working");
-		AppLib::Logging::showErrorO("directory.  Testing can not continue.");
-		return 1;
-#endif
+	AppLib::Logging::showInfoW("AppFS test package creation required.");
+	// Bootstrap section
+	for (int i = 0; i < LENGTH_BOOTSTRAP; i += 1)
+	{
+		fd->write("\0", 1);
 	}
+	AppLib::Logging::showInfoW("Wrote bootstrap section.");
 
-	std::fstream * fd = new std::fstream("test.afs", std::ios::out | std::ios::in | std::ios::binary);
+	// Inode Lookup section
+	for (int i = 0; i < 65536; i += 1)
+	{
+		if (i == 0)
+		{
+			uint32_t pos = OFFSET_ROOTINODE;
+			fd->write(reinterpret_cast<char *>(&pos), 4);
+		}
+		else
+			fd->write("\0\0\0\0", 4);
+	}
+	AppLib::Logging::showInfoW("Wrote inode lookup section.");
+
+	time_t rtime;
+	time(&rtime);
+
+	// Write the root inode data.
+	AppLib::LowLevel::INode node(0, "", AppLib::LowLevel::INodeType::INT_DIRECTORY);
+	node.uid = 0;
+	node.gid = 1000;
+	node.mask = 0777;
+	node.atime = rtime;
+	node.mtime = rtime;
+	node.ctime = rtime;
+	node.parent = 0;
+	node.children_count = 0;
+	std::string node_rep = node.getBinaryRepresentation();
+	fd->write(node_rep.c_str(), node_rep.length());
+	AppLib::Logging::showInfoW("Wrote root inode.");
+
+	fd->close();
+	delete fd;
+	AppLib::Logging::showInfoW("Test package creation complete.");
+
+	// Open the newly created package.
+	fd = new std::fstream("test.afs", std::ios::out | std::ios::in | std::ios::binary);
 	if (!fd->is_open())
 	{
 		AppLib::Logging::showErrorW("Unable to open test package.");
@@ -100,6 +119,9 @@ int main(int argc, char* argv[])
 	else
 		AppLib::Logging::showSuccessW("Opened test package.");
 	AppLib::LowLevel::FS fs(fd);
+
+	// Set the FuseLink::filesystem for our op_ tests.
+	AppLib::FUSE::FuseLink::filesystem = &fs;
 
 	// TEST: Inspect the root inode.
 	RUN_TEST(test_ll_inspect, 0);
@@ -195,7 +217,16 @@ fs.getFileContents(). \
 	// temporary memory, and the new file we created (ten bytes at a time, stream)
 	RUN_TEST(test_rw_stream10_0_1000, inodeid);
 
+	// TEST: Create a file with FuseLink::create().
+	RUN_TEST(test_op_create, "file4");
+
 	fs.close();
-	std::cout << "Closed test package." << std::endl;
+	std::cout << std::endl;
+	std::cout << " /================================================ " << std::endl;
+	std::cout << " |" << std::endl;
+	std::cout << " |  TEST SUITE FINISHED SUCCESSFULLY " << std::endl;
+	std::cout << " |" << std::endl;
+	std::cout << " \\================================================ " << std::endl;
+	std::cout << std::endl;
 	return 0;
 }
