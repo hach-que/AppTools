@@ -53,10 +53,8 @@ namespace AppLib
 			// Write the data to the currently opened inode.
 			std::streampos pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
 
-			Logging::showErrorW("Current position is %i", this->posp);
 			if ((int)pos == 0)
 			{
-				Logging::showErrorW("Truncating file to %i", this->posp + count);
 				if (!this->truncate(this->posp + count))
 				{
 					Logging::showErrorW("Truncate operation failed when expanding file.");
@@ -337,7 +335,6 @@ namespace AppLib
 		bool FSFile::truncate(std::streamsize len)
 		{
 			FSResult::FSResult fres = this->filesystem->truncateFile(this->inodeid, len);
-//			Logging::showInternalW("Result of truncate operation is %i", (int)fres);
 			return (fres == FSResult::E_SUCCESS);
 		}
 

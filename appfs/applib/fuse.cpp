@@ -335,8 +335,6 @@ namespace AppLib
 			APPFS_RETRIEVE_PATH_TO_INODE(buf);
 			buf.mtime = APPFS_TIME();
                         buf.atime = APPFS_TIME();
-			Logging::showInternalW("User is %i", user);
-			Logging::showInternalW("Group is %i", group);
 			if (user != -1)
 				buf.uid = user;
 			if (group != -1)
@@ -384,7 +382,6 @@ namespace AppLib
 			file.seekg(offset);
 			if (file.fail() && file.bad()) return -EIO;
 			uint32_t amount_read = file.read(out, length);
-			Logging::showInternalW("Read '%s' (%i bytes) from %s", out, amount_read, path);
 			if (file.fail() && file.bad()) return -EIO;
 			file.close();
 			if (file.fail() && file.bad()) return -EIO;
@@ -406,7 +403,6 @@ namespace AppLib
 			file.seekp(offset);
 			if (file.fail() && file.bad()) return -EIO;
 			file.write(in, length);
-			Logging::showInternalW("Wrote '%s' (%i bytes) to %s", in, length, path);
 			if (file.fail() && file.bad()) return -EIO;
 			file.close();
 			if (file.fail() && file.bad()) return -EIO;
@@ -454,8 +450,6 @@ namespace AppLib
 		{
 			APPFS_CHECK_PATH_EXISTS();
 			APPFS_RETRIEVE_PATH_TO_INODE(buf);
-
-			Logging::showInternalW("directory type: %i.", buf.type);
 
 			// Check to make sure the inode is a directory.
 			if (buf.type != LowLevel::INodeType::INT_DIRECTORY)
@@ -634,7 +628,6 @@ namespace AppLib
 
 		int Macros::retrievePathToINode(const char *path, LowLevel::INode * out)
 		{
-			AppLib::Logging::showInternalW("pointer pos: %p", out);
 			std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
 			LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
 			for (unsigned int i = 0; i < ret.size(); i += 1)
@@ -642,49 +635,40 @@ namespace AppLib
 				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
 				if (buf.type == LowLevel::INodeType::INT_INVALID)
 				{
-//					Logging::showInternalW("Returning child inode (failure).");
 					APPFS_COPY_INODE_TO_POINTER(buf, out);
 					return -ENOENT;
 				}
 			}
 			if (buf.type == LowLevel::INodeType::INT_INVALID)
 			{
-//				Logging::showInternalW("Returning root inode (failure).");
 				APPFS_COPY_INODE_TO_POINTER(buf, out);
 				return -ENOENT;
 			}
-//			Logging::showInternalW("Returning inode (successful).");
-			Logging::showInternalW("filename: %s", buf.filename);
-			Logging::showInternalW("type: %i", buf.type);
-			Logging::showInternalW("children_count: %i", buf.children_count);
 			APPFS_COPY_INODE_TO_POINTER(buf, out);
-			Logging::showInternalW("filename: %s", out->filename);
-			Logging::showInternalW("type: %i", out->type);
-			Logging::showInternalW("children_count: %i", out->children_count);
 			return 0;
 		}
 
 		int Macros::retrieveParentPathToINode(const char *path, LowLevel::INode * out)
+        {
+            std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
+            LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
+            for (unsigned int i = 0; i < ret.size() - 1; i += 1)
+            {
+                buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
+                if (buf.type == LowLevel::INodeType::INT_INVALID)
                 {
-                        std::vector<std::string> ret = FuseLink::filesystem->splitPathBySeperators(path);
-                        LowLevel::INode buf = FuseLink::filesystem->getINodeByID(0);
-                        for (unsigned int i = 0; i < ret.size() - 1; i += 1)
-                        {
-                                buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
-                                if (buf.type == LowLevel::INodeType::INT_INVALID)
-                                {
-                                        APPFS_COPY_INODE_TO_POINTER(buf, out);
-                                        return -ENOENT;
-                                }
-                        }
-                        if (buf.type == LowLevel::INodeType::INT_INVALID)
-                        {
-                                APPFS_COPY_INODE_TO_POINTER(buf, out);
-                                return -ENOENT;
-                        }
-                        APPFS_COPY_INODE_TO_POINTER(buf, out);
-                        return 0;
+                    APPFS_COPY_INODE_TO_POINTER(buf, out);
+                    return -ENOENT;
                 }
+            }
+            if (buf.type == LowLevel::INodeType::INT_INVALID)
+            {
+                APPFS_COPY_INODE_TO_POINTER(buf, out);
+                return -ENOENT;
+            }
+            APPFS_COPY_INODE_TO_POINTER(buf, out);
+            return 0;
+        }
 
 		int Macros::saveINode(LowLevel::INode * buf)
 		{
@@ -694,7 +678,6 @@ namespace AppLib
 				return -EIO;
 			}
 			LowLevel::FSResult::FSResult res = FuseLink::filesystem->updateINode(*buf);
-			Logging::showInternalW("Result of write operation was %i", res);
 			if (res != LowLevel::FSResult::E_SUCCESS) return -EIO;
 			return 0;
 		}

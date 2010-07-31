@@ -30,7 +30,7 @@ int test_rw_stream10_0_1000(AppLib::LowLevel::FS * fs, uint16_t inodeid)
 	AppLib::LowLevel::FSResult::FSResult res2 = fs->getFileContents(inodeid, data, len, 2048);
 	if (res2 == AppLib::LowLevel::FSResult::E_SUCCESS && data != NULL && len != NULL)
 	{
-		std::cout << "Read file contents for inode "  << std::endl;
+		AppLib::Logging::showSuccessW("Read file contents for inode %i:", inodeid);
 		bool matches = true;
 		for (uint32_t i = 0; i < *len; i += 1)
 		{
@@ -41,16 +41,16 @@ int test_rw_stream10_0_1000(AppLib::LowLevel::FS * fs, uint16_t inodeid)
 			}
 		}
 		if (matches)
-			std::cout << "File contents matches what was written." << std::endl;
+			AppLib::Logging::showSuccessW("File contents matches what was written.");
 		else
 		{
-			std::cout << "File contents does not match what was written." << std::endl;
+			AppLib::Logging::showErrorW("File contents does not match what was written.");
 			return 1;
 		}
 	}
 	else
 	{
-		std::cout << "Unable to read file contents for inode %i." << std::endl;
+		AppLib::Logging::showErrorW("Unable to read file contents for inode %i.", inodeid);
 		return 1;
 	}
 

@@ -212,16 +212,11 @@ namespace AppLib
 
 			this->fd->clear();
 			std::streampos old = this->fd->tellg();
-//			Logging::showInternalW("current file position is %i", (uint32_t)old);
 			uint32_t newp = OFFSET_LOOKUP + (id * 4);
 			this->fd->seekg(newp);
-//			Logging::showInternalW("seeked to %i", (uint32_t)newp);
 			uint32_t ipos = 0;
 			Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
-//			Logging::showInternalW("seeking back to %i", (uint32_t)old);
 			this->fd->seekg(old);
-//			Logging::showInternalW("returned position is %i", (uint32_t)ipos);
-//			Logging::showInternalW("position of %i is %i", id, (uint32_t)ipos);
 			return ipos;
 		}
 
@@ -352,7 +347,6 @@ namespace AppLib
 			signed int children_count_offset = 292;
 			signed int children_offset = 294;
 			uint32_t pos = this->getINodePositionByID(parentid);
-			Logging::showInternalW("position of inode %i is %i", parentid, pos);
 			std::streampos oldg = this->fd->tellg();
 			std::streampos oldp = this->fd->tellp();
 
@@ -360,7 +354,6 @@ namespace AppLib
 			uint16_t parent_type = (uint16_t)INodeType::INT_UNSET;
 			this->fd->seekg(pos + type_offset);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&parent_type), 2);
-			Logging::showInternalW("parent type is %i", parent_type);
 			if (parent_type != INodeType::INT_DIRECTORY)
 			{
 				this->fd->seekg(oldg);
@@ -493,7 +486,6 @@ namespace AppLib
 
 			uint16_t children_looped = 0;
 			uint16_t total_looped = 0;
-			Logging::showInternalW("Total children in directory: %i", node.children_count);
 			while (children_looped < node.children_count && total_looped < DIRECTORY_CHILDREN_MAX)
 			{
 				uint16_t cinode = node.children[total_looped];
@@ -787,13 +779,8 @@ namespace AppLib
 
 			// Get the type directly.
 			uint16_t type_raw = (uint16_t)INodeType::INT_INVALID;
-			Logging::showInternalW("Reading INode at location %i", pos);
-			this->fd->seekg(pos);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
-			Logging::showInternalW("INode number is %i", type_raw);
 			this->fd->seekg(pos + 2);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
-			Logging::showInternalW("INode type is %i", type_raw);
 
 			if (type_raw == INodeType::INT_FILE)
 			{
@@ -888,17 +875,14 @@ namespace AppLib
 			INode node = this->getINodeByPosition(npos);
 			uint32_t ptpos = 0;
 			uint32_t tpos = 0;
-			//Logging::showInternalW("Position resolution: Looking for position %i in inode %i.", pos, inodeid);
 			while (tpos <= pos)// && pos < tpos + node.seg_len)
 			{
-				//Logging::showInternalW("Position resolution: tpos (%i) < pos (%i)", tpos, pos);
 				ptpos = tpos;
 				tpos += node.seg_len;
 				if (tpos <= pos)
 				{
 					ppos = npos;
 					npos = this->getFileNextBlock(npos);
-					//Logging::showInternalW("Position resolution: %i -> links to -> %i", ppos, npos);
 					if (npos == 0)
 						return 0; // Invalid position.
 					node = this->getINodeByPosition(npos);
@@ -977,8 +961,6 @@ namespace AppLib
 		FSResult::FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			Logging::showInfoO("File will be truncated to %i length.", len);
 
 			// Retrieve the INode.
 			INode node = this->getINodeByID(inodeid);
@@ -1099,15 +1081,12 @@ namespace AppLib
 					{
 						// Now set the new length of the segment inode.
 						fres = this->setFileLengthDirect(spos, len - (int64_t)bytes_counted);
-						Logging::showInternalW("Result of setFileLengthDirect spos operation is %i", fres);
 						if (fres != FSResult::E_SUCCESS)
 							return fres;
 
 						// Now set the new length of the file inode.
 						node.dat_len = len;
-						Logging::showInternalW("New file size is %i", node.dat_len);
 						fres = this->setFileLengthDirect(npos, node.dat_len);
-						Logging::showInternalW("Result of setFileLengthDirect operation is %i", fres);
 						return fres;					
 					}
 					else
@@ -1115,7 +1094,6 @@ namespace AppLib
 						// It's outside, increase the current last segment to the maximum
 						// size and then continue adding new blocks.
 						fres = this->setFileLengthDirect(spos, snode_datsize);
-						Logging::showInternalW("Result of setFileLengthDirect spos-nfinal operation is %i", fres);
 						if (fres != FSResult::E_SUCCESS)
 							return fres;
 					}
@@ -1136,18 +1114,13 @@ namespace AppLib
 						segment_size = amount_to_add_remaining;
 					amount_to_add_remaining -= segment_size;
 
-					Logging::showInternalW("Adding %i of %i new blocks...", i + 1, blocks_to_add);
 					nepos = this->getFirstFreeBlock(INodeType::INT_FILE);
-					Logging::showInternalW("New block will be placed at %i", nepos);
 					INode nenode(inodeid, "", INodeType::INT_SEGMENT);
-					Logging::showInternalW("New block size will be %i", segment_size);
 					nenode.seg_len = segment_size;
 					fres = this->writeINode(nepos, nenode);
-					Logging::showInternalW("Result of writeINode operation is %i", fres);
 					if (fres != FSResult::E_SUCCESS)
 						return fres;
 					fres = this->setFileNextSegmentDirect(spos, nepos);
-					Logging::showInternalW("Result of setFileNextSegmentDirect operation is %i", fres);
 					if (fres != FSResult::E_SUCCESS)
 						return fres;
 					spos = nepos;
@@ -1155,9 +1128,7 @@ namespace AppLib
 
 				// Now set the new length of the file inode.
 				node.dat_len = len;
-				Logging::showInternalW("New file size is %i", node.dat_len);
 				fres = this->setFileLengthDirect(npos, node.dat_len);
-				Logging::showInternalW("Result of setFileLengthDirect operation is %i", fres);
 				if (fres != FSResult::E_SUCCESS)
 					return fres;
 
