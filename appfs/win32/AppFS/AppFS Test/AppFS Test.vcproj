@@ -238,6 +238,10 @@
 				RelativePath=".\test_tc_incdec_400.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\test_tc_incdec_4000.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

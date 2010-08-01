@@ -976,11 +976,6 @@ namespace AppLib
 				// Erasing data.  Determine the amount to erase.
 				uint32_t amount_to_erase = (int64_t)node.dat_len - (int64_t)len;
 
-				// We know how many solid INT_SEGMENTs we are going
-				// to have to erase by the floor'd division of
-				// amount_to_erase by (BSIZE_FILE - HSIZE_SEGMENT).
-				int32_t blocks_to_erase = div(amount_to_erase, BSIZE_FILE - HSIZE_SEGMENT).quot;
-
 				// Use a std::vector to store a list of all of the positions
 				// of the segments in the file, as there is no easy way to
 				// traverse the segments in reverse.
@@ -988,9 +983,26 @@ namespace AppLib
 				uint32_t spos = npos;
 				while (spos != 0)
 				{
-					segpos.insert(segpos.begin(), spos);
+					segpos.insert(segpos.end(), spos);
 					spos = this->getFileNextBlock(spos);
 				}
+
+				// The number of blocks the file currently has allocated will be
+				// equal to segpos.size().  Now we just need to calculate how
+				// many blocks the new filesize will be taking up.
+				int64_t nsize = 0;
+				int64_t nblocks = 0;
+				while (nsize < len)
+				{
+					if (nblocks == 0)
+						nsize += BSIZE_FILE - HSIZE_FILE;
+					else
+						nsize += BSIZE_FILE - HSIZE_SEGMENT;
+					nblocks += 1;
+				}
+
+				// Calculate the number of blocks to erase.
+				int32_t blocks_to_erase = (int64_t)segpos.size() - nblocks;
 
 				// Now traverse the list in reverse, erasing up to blocks_to_erase
 				// blocks.  Do not erase the first position in the list as that
@@ -1000,13 +1012,14 @@ namespace AppLib
 				{
 					if (blocks_to_erase <= 0)
 						break;
+					this->setFileNextSegmentDirect(segpos[i-1], 0);
 					this->resetBlock(segpos[i]);
 					data_blocks_erased += BSIZE_FILE - HSIZE_SEGMENT;
 					blocks_to_erase -= 1;
 				}
 
 				// Now set the new length of the file inode.
-				node.dat_len = (int64_t)node.dat_len - (int64_t)data_blocks_erased;
+				node.dat_len = nsize;
 				this->setFileLengthDirect(npos, node.dat_len);
 
 				// Check to see whether or not we still have more data to erase,
@@ -1014,7 +1027,11 @@ namespace AppLib
 				// to reside on a block boundary.
 				if (len < node.dat_len)
 				{
-					uint32_t chars_to_erase = node.dat_len - len;
+					//uint32_t chars_to_erase = node.dat_len - len;
+
+					// This is all just really wasting time cleaning up
+					// blocks unnecessarily.
+					/*
 					uint32_t rpos = this->resolvePositionInFile(inodeid, len);
 					if (rpos == 0)
 					{
@@ -1029,9 +1046,10 @@ namespace AppLib
 						this->fd->write(&zero, 1);
 					}
 					Util::seekp_ex(this->fd, rpos);
-					
+					*/
+
 					// Set the new file length.
-					this->setFileLengthDirect(npos, (int64_t)node.dat_len - (int64_t)chars_to_erase);
+					this->setFileLengthDirect(npos, len);
 
 					// Return success.
 					return FSResult::E_SUCCESS;

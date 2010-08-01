@@ -10,10 +10,17 @@ bool tc_verify(const char* filename, int intended_size)
 	return (s.st_size == intended_size);
 }
 
+uint32_t tc_getsize(const char* filename)
+{
+	struct stat s;
+	AppLib::FUSE::FuseLink::getattr(filename, &s);
+	return s.st_size;
+}
+
 void tc_scale(uint32_t max)
 {
 	printf("0");
-	printf("% 68i\n", max);
+	printf("% 59i\n", max);
 }
 
 void tc_setup()
