@@ -353,17 +353,17 @@ namespace AppLib
 			APPFS_CHECK_PATH_EXISTS();
 			APPFS_RETRIEVE_PATH_TO_INODE(buf);
 			buf.mtime = APPFS_TIME();
-                        buf.atime = APPFS_TIME();
-                        APPFS_SAVE_INODE(buf);
-                        LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
-                        file.open();
-                        if (file.fail() && file.bad()) return -EIO;
-                        file.truncate(size);
-                        if (file.fail() && file.bad()) return -EIO;
-                        file.close();
-                        if (file.fail() && file.bad()) return -EIO;
+            buf.atime = APPFS_TIME();
+            APPFS_SAVE_INODE(buf);
+            LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
+            file.open();
+            if (file.fail() && file.bad()) return -EIO;
+            file.truncate(size);
+            if (file.fail() && file.bad()) return -EIO;
+            file.close();
+            if (file.fail() && file.bad()) return -EIO;
 
-                        return 0;
+            return 0;
 		}
 
 		int FuseLink::open(const char * path, struct fuse_file_info * options)

@@ -183,6 +183,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\global_tc.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\main.cpp"
 				>
 			</File>
@@ -230,6 +234,10 @@
 				RelativePath=".\test_rw_stream1_20_512.cpp"
 				>
 			</File>
+			<File
+				RelativePath=".\test_tc_incdec_400.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -238,6 +246,10 @@
 			>
 			<File
 				RelativePath=".\global.h"
+				>
+			</File>
+			<File
+				RelativePath=".\global_tc.h"
 				>
 			</File>
 			<File

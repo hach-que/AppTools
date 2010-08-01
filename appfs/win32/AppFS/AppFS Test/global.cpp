@@ -111,3 +111,40 @@ void printListEntry(uint16_t id, uint16_t mask, AppLib::LowLevel::INodeType::INo
 	getFormattedPermissionMask(mask, type, mstr);
 	AppLib::Logging::showInfoO("%10s %5d %5d %5d %9d %12s %s", mstr, id, uid, gid, size, tstr, filename);
 }
+
+const char* getFSResultName(AppLib::LowLevel::FSResult::FSResult res)
+{
+	switch (res)
+	{
+		case AppLib::LowLevel::FSResult::E_SUCCESS:
+			return "E_SUCCESS";
+		case AppLib::LowLevel::FSResult::E_FAILURE_GENERAL:
+			return "E_FAILURE_GENERAL";
+		case AppLib::LowLevel::FSResult::E_FAILURE_INODE_ALREADY_ASSIGNED:
+			return "E_FAILURE_INODE_ALREADY_ASSIGNED";
+		case AppLib::LowLevel::FSResult::E_FAILURE_INODE_NOT_ASSIGNED:
+			return "E_FAILURE_INODE_NOT_ASSIGNED";
+		case AppLib::LowLevel::FSResult::E_FAILURE_INODE_NOT_VALID:
+			return "E_FAILURE_INODE_NOT_VALID";
+		case AppLib::LowLevel::FSResult::E_FAILURE_INVALID_FILENAME:
+			return "E_FAILURE_INVALID_FILENAME";
+		case AppLib::LowLevel::FSResult::E_FAILURE_INVALID_POSITION:
+			return "E_FAILURE_INVALID_POSITION";
+		case AppLib::LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED:
+			return "E_FAILURE_MAXIMUM_CHILDREN_REACHED";
+		case AppLib::LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY:
+			return "E_FAILURE_NOT_A_DIRECTORY";
+		case AppLib::LowLevel::FSResult::E_FAILURE_NOT_A_FILE:
+			return "E_FAILURE_NOT_A_FILE";
+		case AppLib::LowLevel::FSResult::E_FAILURE_NOT_IMPLEMENTED:
+			return "E_FAILURE_NOT_IMPLEMENTED";
+		case AppLib::LowLevel::FSResult::E_FAILURE_NOT_UNIQUE:
+			return "E_FAILURE_NOT_UNIQUE";
+		case AppLib::LowLevel::FSResult::E_FAILURE_PARTIAL_TRUNCATION:
+			return "E_FAILURE_PARTIAL_TRUNCATION";
+		case AppLib::LowLevel::FSResult::E_FAILURE_UNKNOWN:
+			return "E_FAILURE_UNKNOWN";
+		default:
+			return "<Unknown>";
+	}
+}

@@ -217,8 +217,24 @@ fs.getFileContents(). \
 	// temporary memory, and the new file we created (ten bytes at a time, stream)
 	RUN_TEST(test_rw_stream10_0_1000, inodeid);
 
+	// TEST: Locate the next available inode number.
+	RUN_TEST(test_ll_next_id, inodeid);
+
+	// TEST: Check to see if a specified filename already exists
+	//       in the root directory.
+	RUN_TEST(test_ll_file_unique, "file4");
+
+	// TEST: Add a new file inode.
+	RUN_TEST(test_ll_allocate_node, inodeid, "file4");
+
+	// TEST: Add the new file to the root directory.
+	RUN_TEST(test_ll_add_child_to_dir, inodeid, 0);
+
+	// TEST: Run increase-decrease truncation test for file4.
+	RUN_TEST(test_tc_incdec_400, inodeid, "/file4");
+
 	// TEST: Create a file with FuseLink::create().
-	RUN_TEST(test_op_create, "file4");
+	RUN_TEST(test_op_create, "file5");
 
 	fs.close();
 	std::cout << std::endl;
