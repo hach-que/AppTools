@@ -333,8 +333,6 @@ namespace AppLib
 				Endian::doR(this->fd, reinterpret_cast<char *>(&current_type), 2);
 			}
 
-			Logging::showInfoW("The next free block is outside the current filesize.");
-			Logging::showInfoO("Disk size will be increased.");
 			this->fd->seekg(old);
 			return current_pos - type_offset;
 		}

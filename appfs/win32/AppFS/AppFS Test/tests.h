@@ -11,3 +11,4 @@ int test_rw_stream1_0_1024(AppLib::LowLevel::FS * fs, uint16_t inodeid);
 int test_op_create(AppLib::LowLevel::FS * fs, const char* filename);
 int test_tc_incdec_400(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* path);
 int test_tc_incdec_4000(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* path);
+int test_tc_incdec_4000000(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* path);

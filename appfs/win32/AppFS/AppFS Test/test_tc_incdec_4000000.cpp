@@ -2,16 +2,16 @@
 #include <sys/stat.h>
 #include "global_tc.h"
 
-int test_tc_incdec_400(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* path)
+int test_tc_incdec_4000000(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* path)
 {
-	uint32_t FILESIZE = 400;
+	uint32_t FILESIZE = 4000000;
 
 	tc_scale(FILESIZE);
 	tc_setup();
 	for (int a = 1; a <= 10; a += 1)
 	{
 		// Increase
-		for (int i = 0; i <= FILESIZE; i += a)
+		for (int i = 0; i <= FILESIZE; i += a * 10000)
 		{
 			tc_setto(i, FILESIZE, a, 10);
 			AppLib::LowLevel::FSResult::FSResult res = fs->truncateFile(inodeid, i);
@@ -19,9 +19,9 @@ int test_tc_incdec_400(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* 
 			{
 				printf("\n");
 				AppLib::Logging::showErrorW("FuseLink truncate() operation failed for");
-				AppLib::Logging::showErrorO("inode %i to size %i.",
+				AppLib::Logging::showErrorO("inode %i to size %i",
 					inodeid, i);
-				AppLib::Logging::showErrorO("while increasing in blocks of %i.", a);
+				AppLib::Logging::showErrorO("while increasing in blocks of %i.", a * 10000);
 				AppLib::Logging::showErrorO("  Result returned was: %s", getFSResultName(res));
 				return 1;
 			}
@@ -38,7 +38,7 @@ int test_tc_incdec_400(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* 
 		}
 
 		// Decrease
-		for (int i = FILESIZE; i >= 0; i -= a)
+		for (int i = FILESIZE; i >= 0; i -= a * 10000)
 		{
 			tc_setto(i, FILESIZE, a, 10);
 			AppLib::LowLevel::FSResult::FSResult res = fs->truncateFile(inodeid, i);
@@ -48,7 +48,7 @@ int test_tc_incdec_400(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* 
 				AppLib::Logging::showErrorW("FuseLink truncate() operation failed for");
 				AppLib::Logging::showErrorO("inode %i to size %i.",
 					inodeid, i);
-				AppLib::Logging::showErrorO("while decreasing in blocks of %i.", a);
+				AppLib::Logging::showErrorO("while decreasing in blocks of %i.", a * 10000);
 				AppLib::Logging::showErrorO("  Result returned was: %s", getFSResultName(res));
 				return 1;
 			}
