@@ -25,6 +25,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include <vector>
 #include "endian.h"
 #include "fsfile.h"
+#include "blockstream.h"
 
 namespace AppLib
 {
@@ -210,7 +211,7 @@ namespace AppLib
 		class FS
 		{
 			public:
-				FS(std::fstream * fd);
+				FS(LowLevel::BlockStream * fd);
 
 				// Returns whether the file descriptor is valid.  If this
 				// is false, and you call one of the functions in the class
@@ -334,7 +335,7 @@ namespace AppLib
 				std::vector<std::string> splitPathBySeperators(std::string path);
 
 			private:
-				std::fstream * fd;
+				LowLevel::BlockStream * fd;
 		};
 	}
 }

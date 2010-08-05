@@ -22,7 +22,7 @@ void doOpen(std::vector<std::string> cmd)
 	}
 
 	std::cout << "Attempting to open '" << cmd[1] << "' ... ";
-	fd = new std::fstream(cmd[1].c_str(), std::ios::out | std::ios::in | std::ios::binary);
+	fd = new AppLib::LowLevel::BlockStream(cmd[1].c_str());
 	if (fd->bad())
 	{
 		delete fd;

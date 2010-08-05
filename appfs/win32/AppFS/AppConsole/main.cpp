@@ -10,7 +10,7 @@ std::map<std::string, commandFunc> availableCommands;
 std::vector<std::string> commandHistory;
 bool usedHistory = false;
 AppLib::LowLevel::FS * currentFilesystem = NULL;
-std::fstream * fd = NULL;
+AppLib::LowLevel::BlockStream * fd = NULL;
 std::string currentPath = "/";
 
 int main(int argc, char* argv[])

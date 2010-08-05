@@ -76,7 +76,7 @@ namespace AppLib
 			appfs_ops.bmap			= NULL;
 
 			// Attempt to open the specified disk image.
-			std::fstream * fd = new std::fstream(disk_image, std::ios::in | std::ios::out | std::ios::binary);
+			LowLevel::BlockStream * fd = new LowLevel::BlockStream(disk_image);
 			if (!fd->is_open())
 			{
 				Logging::showErrorW("Unable to open specified disk image.");

@@ -2,6 +2,7 @@
 #include "fs.h"
 #include "util.h"
 #include "logging.h"
+#include "blockstream.h"
 #include <map>
 #include <math.h>
 
@@ -9,7 +10,7 @@ namespace AppLib
 {
 	namespace LowLevel
 	{
-		FSFile::FSFile(FS * filesystem, std::fstream * fd, uint16_t inodeid)
+		FSFile::FSFile(FS * filesystem, BlockStream * fd, uint16_t inodeid)
 		{
 			this->inodeid = inodeid;
 			this->filesystem = filesystem;

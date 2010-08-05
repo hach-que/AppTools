@@ -17,6 +17,7 @@ http://code.google.com/p/apptools-dist for more information.
 #define CLASS_FUSELINK
 
 #include "config.h"
+
 #include <fuse.h>
 #include <stdio.h>
 #include <errno.h>

@@ -20,6 +20,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include <string>
 #include <iostream>
 #include <fstream>
+#include "blockstream.h"
 
 namespace AppLib
 {
@@ -28,7 +29,8 @@ namespace AppLib
 		class Util
 		{
 			public:
-				static void seekp_ex(std::iostream * fd, std::streampos pos);
+				static void seekp_ex(LowLevel::BlockStream * fd, std::streampos pos);
+				static bool fileExists(std::string filename);
 		};
 	}
 }

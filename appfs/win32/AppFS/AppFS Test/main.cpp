@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
 	AppLib::Logging::showInfoW("Test suite started.");
 
 	// Create the file.
-	std::fstream * fd = new std::fstream("test.afs", std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
-	if (!fd->is_open())
+	std::fstream * nfd = new std::fstream("test.afs", std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
+	if (!nfd->is_open())
 	{
 		AppLib::Logging::showErrorW("Unable to create blank AppFS package ./test.afs.");
 		return 1;
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	// Bootstrap section
 	for (int i = 0; i < LENGTH_BOOTSTRAP; i += 1)
 	{
-		fd->write("\0", 1);
+		nfd->write("\0", 1);
 	}
 	AppLib::Logging::showInfoW("Wrote bootstrap section.");
 
@@ -81,10 +81,10 @@ int main(int argc, char* argv[])
 		if (i == 0)
 		{
 			uint32_t pos = OFFSET_ROOTINODE;
-			fd->write(reinterpret_cast<char *>(&pos), 4);
+			nfd->write(reinterpret_cast<char *>(&pos), 4);
 		}
 		else
-			fd->write("\0\0\0\0", 4);
+			nfd->write("\0\0\0\0", 4);
 	}
 	AppLib::Logging::showInfoW("Wrote inode lookup section.");
 
@@ -102,15 +102,15 @@ int main(int argc, char* argv[])
 	node.parent = 0;
 	node.children_count = 0;
 	std::string node_rep = node.getBinaryRepresentation();
-	fd->write(node_rep.c_str(), node_rep.length());
+	nfd->write(node_rep.c_str(), node_rep.length());
 	AppLib::Logging::showInfoW("Wrote root inode.");
 
-	fd->close();
-	delete fd;
+	nfd->close();
+	delete nfd;
 	AppLib::Logging::showInfoW("Test package creation complete.");
 
 	// Open the newly created package.
-	fd = new std::fstream("test.afs", std::ios::out | std::ios::in | std::ios::binary);
+	AppLib::LowLevel::BlockStream * fd = new AppLib::LowLevel::BlockStream("test.afs");
 	if (!fd->is_open())
 	{
 		AppLib::Logging::showErrorW("Unable to open test package.");

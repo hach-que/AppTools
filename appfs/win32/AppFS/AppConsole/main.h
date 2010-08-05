@@ -15,7 +15,7 @@ extern std::map<std::string, commandFunc> availableCommands;
 extern std::vector<std::string> commandHistory;
 extern bool usedHistory;
 extern AppLib::LowLevel::FS * currentFilesystem;
-extern std::fstream * fd;
+extern AppLib::LowLevel::BlockStream * fd;
 extern std::string currentPath;
 std::vector<std::string> parseCommand(std::string cmd);
 void showHeaders();

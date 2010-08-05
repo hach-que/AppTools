@@ -22,6 +22,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include "logging.h"
 #include "endian.h"
 #include "util.h"
+#include "blockstream.h"
 #include <errno.h>
 #include <assert.h>
 
@@ -29,7 +30,7 @@ namespace AppLib
 {
 	namespace LowLevel
 	{
-		FS::FS(std::fstream * fd)
+		FS::FS(LowLevel::BlockStream * fd)
 		{
 			if (fd == NULL)
 				Logging::showInternalW("NULL file descriptor passed to FS constructor.");

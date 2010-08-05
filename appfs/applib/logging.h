@@ -20,6 +20,7 @@ http://code.google.com/p/apptools-dist for more information.
 #define CLASS_LOGGING
 
 #include "config.h"
+
 #include <string>
 #include <stdarg.h>
 

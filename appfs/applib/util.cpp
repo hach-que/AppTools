@@ -20,12 +20,15 @@ http://code.google.com/p/apptools-dist for more information.
 #include <fstream>
 #include "util.h"
 #include "logging.h"
+#include "blockstream.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 namespace AppLib
 {
 	namespace LowLevel
 	{
-		void Util::seekp_ex(std::iostream * fd, std::streampos pos)
+		void Util::seekp_ex(LowLevel::BlockStream * fd, std::streampos pos)
 		{
 			fd->clear();
 			fd->seekp(pos);
@@ -46,6 +49,12 @@ namespace AppLib
 					fd->write(&zero, 1);
 				}
 			}
+		}
+
+		bool Util::fileExists(std::string filename)
+		{
+			struct stat file_info;
+			return (stat(filename.c_str(), &file_info) == 0);
 		}
 	}
 }

@@ -1,48 +1,48 @@
 /*
 
-Header file for FSFile.
+Header file for BlockStream.
 
-This class reads and writes to files within AppFS packages, allowing
-applications to modify the contained files similar to how they would
-operate on files through std::fstream.
+This class is capable of caching write and read requests in memory
+on a per-block basis and also allows AppLib to read and write to
+the current executable file (unlike std::fstream).
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                31st July 2010
+                5th August 2010
 
 This software is licensed under an MIT license.  See
 http://code.google.com/p/apptools-dist for more information.
 
 */
 
-#ifndef CLASS_FSFILE
-#define CLASS_FSFILE
+#ifndef CLASS_BLOCKSTREAM
+#define CLASS_BLOCKSTREAM
 
 #include "config.h"
 
+#include <string>
 #include <iostream>
-#include "blockstream.h"
+#include "logging.h"
+#include "endian.h"
+#include <errno.h>
 
 namespace AppLib
 {
 	namespace LowLevel
 	{
-		class FS;
-
-		class FSFile
+		class BlockStream
 		{
 			public:
-				FSFile(FS * filesystem, BlockStream * fd, uint16_t inodeid);
-				void open(std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
+				BlockStream(std::string filename);
 				void write(const char * data, std::streamsize count);
 				std::streamsize read(char * out, std::streamsize count);
-				bool truncate(std::streamsize len);
 				void close();
-				void seekp(std::streampos pos);
-				void seekg(std::streampos pos);
+				void seekp(std::streampos pos, int seekMode = SEEK_SET);
+				void seekg(std::streampos pos, int seekMode = SEEK_SET);
 				std::streampos tellp();
 				std::streampos tellg();
 
 				// State functions.
+				bool is_open();
 				std::ios::iostate rdstate();
 				void clear();
 				void clear(std::ios::iostate state);
@@ -52,16 +52,16 @@ namespace AppLib
 				bool fail();
 
 			private:
-				uint16_t inodeid;
-				FS * filesystem;
-				BlockStream * fd;
+				int fd;
 				bool opened;
 				bool invalid;
-				uint32_t posp;
-				uint32_t posg;
+#ifndef WIN32
+				uint32_t fpos;
+#endif
 				std::ios::iostate state;
 		};
 	}
 }
 
 #endif
+
