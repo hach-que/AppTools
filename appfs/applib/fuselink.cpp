@@ -679,10 +679,15 @@ namespace AppLib
 			if (buf->type == LowLevel::INodeType::INT_INVALID ||
 				buf->type == LowLevel::INodeType::INT_UNSET)
 			{
+				Logging::showErrorW("Attempted to update UNSET or INVALID inode.");
 				return -EIO;
 			}
 			LowLevel::FSResult::FSResult res = FuseLink::filesystem->updateINode(*buf);
-			if (res != LowLevel::FSResult::E_SUCCESS) return -EIO;
+			if (res != LowLevel::FSResult::E_SUCCESS)
+			{
+				Logging::showErrorW("Unable to update inode on disk.");
+				return -EIO;
+			}
 			return 0;
 		}
 

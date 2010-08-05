@@ -234,10 +234,16 @@ fs.getFileContents(). \
 	RUN_TEST(test_tc_incdec_400, inodeid, "/file4");
 
 	// TEST: Run increase-decrease truncation test for file4.
-	RUN_TEST(test_tc_incdec_4000, inodeid, "/file4");
+	//RUN_TEST(test_tc_incdec_4000, inodeid, "/file4");
 
 	// TEST: Run increase-decrease truncation test for file4.
-	RUN_TEST(test_tc_incdec_4000000, inodeid, "/file4");
+	//RUN_TEST(test_tc_incdec_4000000, inodeid, "/file4");
+
+	// TEST: Run random truncation test for file4.
+	RUN_TEST(test_tc_rand_400, inodeid, "/file4");
+
+	// TEST: Run Boundary-205 bug detection.
+	RUN_TEST(test_bg_boundary_205, inodeid, "/file4");
 
 	// TEST: Create a file with FuseLink::create().
 	RUN_TEST(test_op_create, "file5");

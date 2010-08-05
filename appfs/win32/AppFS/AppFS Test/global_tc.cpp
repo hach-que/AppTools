@@ -20,29 +20,29 @@ uint32_t tc_getsize(const char* filename)
 void tc_scale(uint32_t max)
 {
 	printf("0");
-	printf("% 59i\n", max);
+	printf("% 55i\n", max);
 }
 
 void tc_setup()
 {
-	for (int i = 0; i < 69; i += 1)
+	for (int i = 0; i < 56; i += 1)
 		printf(".");
-	for (int i = 0; i < 69; i += 1)
+	for (int i = 0; i < 56; i += 1)
 		printf("\b");
 }
 
 void tc_setto(uint32_t current, uint32_t max, uint32_t iter_current, uint32_t iter_max)
 {
-	for (int i = 0; i < 60; i += 1)
+	for (int i = 0; i < 56; i += 1)
 	{
-		if (floor((double)i / 60.0f * max) < current)
+		if (floor((double)i / 56.0f * max) < current)
 			printf("=");
-		else if (floor((double)i / 60.0f * max) == current)
+		else if (floor((double)i / 56.0f * max) == current)
 			printf("|");
-		else if (floor((double)i / 60.0f * max) > current)
+		else if (floor((double)i / 56.0f * max) > current)
 			printf(".");
 	}
-	printf("% 3i / % 3i", iter_current, iter_max);
+	printf(" %4i / %4i", iter_current, iter_max);
 	for (int i = 0; i < 69; i += 1)
 		printf("\b");
 }

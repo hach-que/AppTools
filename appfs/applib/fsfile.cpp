@@ -50,10 +50,13 @@ namespace AppLib
 				return;
 			}
 
-			// Write the data to the currently opened inode.
-			std::streampos pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
-
-			if ((int)pos == 0)
+			// Check to see whether or not we need to use this->truncate()
+			// to increase the size of the file.  We use this->truncate()
+			// so that we aren't duplicating code used to increase filesizes
+			// and allocating new blocks (and also because it reduces the
+			// chances of bugs occurring in one but not the other).
+			INode fnode = this->filesystem->getINodeByID(this->inodeid);
+			if (fnode.dat_len < this->posp + count)
 			{
 				if (!this->truncate(this->posp + count))
 				{
@@ -61,14 +64,10 @@ namespace AppLib
 					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);
 					return;
 				}
-				pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
-				if ((int)pos == 0)
-				{
-					Logging::showErrorW("Truncate operation did not expand file to the required size.");
-					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);
-					return;
-				}
 			}
+
+			// Resolve the current position to a position within the disk image.
+			std::streampos pos = this->filesystem->resolvePositionInFile(this->inodeid, this->posp);
 
 			// Our inode start position will be (pos - OFFSET_DATA) / BSIZE_FILE, since we know the
 			// position won't be pointing inside a directory inode.
@@ -117,7 +116,7 @@ namespace AppLib
 
 				// Update the dat_len field of the file because we
 				// may have now extended the file length.
-				if (this->filesystem->getFileNextBlock(ipos) == 0)
+				/*if (this->filesystem->getFileNextBlock(ipos) == 0)
 				{
 					// Calculate the new file length.
 					// dstart   is the number of bytes before the writing position
@@ -133,7 +132,7 @@ namespace AppLib
 					{
 						this->filesystem->setFileLengthDirect(ipos, node.dat_len + extsize);
 					}
-				}
+				}*/
 
 				return;
 			}
@@ -153,11 +152,16 @@ namespace AppLib
 			{
 				uint32_t pos = this->filesystem->getFileNextBlock(ppos);
 				
-				// If pos is 0, then we are writing past the end of the file.
-				// Hence, allocate a new block.
+				// If pos is 0, then for some reason the original truncate()
+				// call didn't allocate enough blocks.  This is considered an
+				// IO error.
 				if (pos == 0)
 				{
-					pos = this->filesystem->getFirstFreeBlock(INodeType::INT_FILE); // INT_FILE and INT_SEGMENT both take up a single block.
+					Logging::showErrorW("File not large enough to hold all contents.");
+					this->clear(std::ios::eofbit | std::ios::badbit | std::ios::failbit);
+					return;
+
+					/*pos = this->filesystem->getFirstFreeBlock(INodeType::INT_FILE); // INT_FILE and INT_SEGMENT both take up a single block.
 					INode nnode(node.inodeid, "", INodeType::INT_SEGMENT);
 					nnode.seg_len = (remaining_bytes > (BSIZE_FILE - HSIZE_SEGMENT) ? (BSIZE_FILE - HSIZE_SEGMENT) : remaining_bytes);
 					nnode.seg_next = 0;
@@ -181,7 +185,7 @@ namespace AppLib
 
 					// Update the dat_len field of the file because we have
 					// now extended the file length.
-					this->filesystem->setFileLengthDirect(ipos, data_position);
+					this->filesystem->setFileLengthDirect(ipos, data_position);*/
 				}
 				else
 				{

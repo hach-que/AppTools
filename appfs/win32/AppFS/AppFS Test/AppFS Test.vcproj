@@ -191,6 +191,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\test_bg_boundary_205.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\test_ll_add_child_to_dir.cpp"
 				>
 			</File>
@@ -244,6 +248,10 @@
 			</File>
 			<File
 				RelativePath=".\test_tc_incdec_4000000.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\test_tc_rand_400.cpp"
 				>
 			</File>
 		</Filter>
