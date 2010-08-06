@@ -31,6 +31,7 @@ namespace AppLib
 		{
 			public:
 				static LowLevel::FS * filesystem;
+				static void (*continuefunc)(void);
 				static int getattr(const char* path, struct stat *stbuf);
 				static int readlink(const char * path, char * out, size_t size);
 				static int mknod(const char * path, mode_t mask, dev_t devid);

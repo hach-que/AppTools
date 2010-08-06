@@ -1,3 +1,4 @@
 * DONE: Make the write() function of FSFile allocate new blocks when the position is outside of the currently allocated blocks.
 * DONE: Investigate the difference between assigning the next link and the position resolution code and how they can be out-of-sync with each other.
-* write() appears to drop 5 bytes every 50 bytes written under FUSE.  Investigate the issue.
+* DONE: write() appears to drop 5 bytes every 50 bytes written under FUSE.  Investigate the issue.
+* Find out how to bypass the ETXTBSY error (when open() is called on the current executable binary) so that we can read and write to the attached filesystem.

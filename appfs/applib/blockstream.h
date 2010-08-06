@@ -3,8 +3,7 @@
 Header file for BlockStream.
 
 This class is capable of caching write and read requests in memory
-on a per-block basis and also allows AppLib to read and write to
-the current executable file (unlike std::fstream).
+on a per-block basis.
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
                 5th August 2010
@@ -36,8 +35,8 @@ namespace AppLib
 				void write(const char * data, std::streamsize count);
 				std::streamsize read(char * out, std::streamsize count);
 				void close();
-				void seekp(std::streampos pos, int seekMode = SEEK_SET);
-				void seekg(std::streampos pos, int seekMode = SEEK_SET);
+				void seekp(std::streampos pos, std::ios_base::seekdir dir = std::ios_base::beg);
+				void seekg(std::streampos pos, std::ios_base::seekdir dir = std::ios_base::beg);
 				std::streampos tellp();
 				std::streampos tellg();
 
@@ -52,13 +51,9 @@ namespace AppLib
 				bool fail();
 
 			private:
-				int fd;
+				std::fstream * fd;
 				bool opened;
 				bool invalid;
-#ifndef WIN32
-				uint32_t fpos;
-#endif
-				std::ios::iostate state;
 		};
 	}
 }

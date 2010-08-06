@@ -44,14 +44,9 @@ namespace AppLib
 		{
 			this->opened = false;
 			this->invalid = false;
-			this->state = std::ios::goodbit;
 
-#ifdef WIN32
-			this->fd = _open(filename.c_str(), O_RDWR | O_BINARY);
-#else
-			this->fd = _open(filename.c_str(), O_RDWR);
-#endif
-			if (this->fd == -1)
+			this->fd = new std::fstream(filename.c_str(), std::ios::in | std::ios::out);
+			if (!this->fd->is_open())
 			{
 				Logging::showErrorW("Unable to open specified file as BlockStream.");
 				this->invalid = true;
@@ -74,18 +69,7 @@ namespace AppLib
 				return;
 			}
 
-			int res = _write(this->fd, data, (unsigned int)count);
-			if (res == -1)
-			{
-				this->clear(std::ios::badbit | std::ios::failbit);
-				return;
-			}
-#ifndef WIN32
-			else
-				this->fpos += res;
-#endif
-
-			return;
+			this->fd->write(data, count);
 		}
 
 		std::streamsize BlockStream::read(char * out, std::streamsize count)
@@ -96,36 +80,17 @@ namespace AppLib
 				return 0;
 			}
 
-			int res = _read(this->fd, out, count);
-			if (res == -1)
-			{
-				this->clear(std::ios::badbit | std::ios::failbit);
-				return 0;
-			}
-			else if (res < count)
-			{
-				this->clear(std::ios::eofbit | std::ios::failbit);
-#ifndef WIN32
-				this->fpos += res;
-#endif
-				return res;
-			}
-			else
-			{
-#ifndef WIN32
-				this->fpos += res;
-#endif
-				return res;
-			}
+			this->fd->read(out, count);
+			return this->fd->gcount();
 		}
 		
 		void BlockStream::close()
 		{
-			_close(this->fd);
+			this->fd->close();
 			this->opened = false;
 		}
 
-		void BlockStream::seekp(std::streampos pos, int seekMode)
+		void BlockStream::seekp(std::streampos pos, std::ios_base::seekdir dir)
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
@@ -133,14 +98,10 @@ namespace AppLib
 				return;
 			}
 
-			int res = _lseek(this->fd, pos, seekMode);
-			if (res == -1)
-			{
-				this->clear(std::ios::badbit | std::ios::failbit);
-			}
+			this->fd->seekp(pos, dir);
 		}
 
-		void BlockStream::seekg(std::streampos pos, int seekMode)
+		void BlockStream::seekg(std::streampos pos, std::ios_base::seekdir dir)
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
@@ -148,11 +109,7 @@ namespace AppLib
 				return;
 			}
 
-			int res = _lseek(this->fd, pos, seekMode);
-			if (res == -1)
-			{
-				this->clear(std::ios::badbit | std::ios::failbit);
-			}
+			this->fd->seekg(pos, dir);
 		}
 
 		std::streampos BlockStream::tellp()
@@ -163,18 +120,7 @@ namespace AppLib
 				return 0;
 			}
 
-#ifdef WIN32
-			long res = _tell(this->fd);
-			if (res == -1)
-			{
-				this->clear(std::ios::badbit | std::ios::failbit);
-				return 0;
-			}
-			else
-				return res;
-#else
-			return this->fpos;
-#endif
+			return this->fd->tellp();
 		}
 
 		std::streampos BlockStream::tellg()
@@ -185,58 +131,47 @@ namespace AppLib
 				return 0;
 			}
 
-#ifdef WIN32
-			long res = _tell(this->fd);
-			if (res == -1)
-			{
-				this->clear(std::ios::badbit | std::ios::failbit);
-				return 0;
-			}
-			else
-				return res;
-#else
-			return this->fpos;
-#endif
+			return this->fd->tellg();
 		}
 
 		bool BlockStream::is_open()
 		{
-			return this->opened;
+			return this->fd->is_open();
 		}
 
 		std::ios::iostate BlockStream::rdstate()
 		{
-			return this->state;
+			return this->fd->rdstate();
 		}
 
 		void BlockStream::clear()
 		{
-			this->state = std::ios::goodbit;
+			this->fd->clear();
 		}
 
 		void BlockStream::clear(std::ios::iostate state)
 		{
-			this->state = state;
+			this->fd->clear(state);
 		}
 
 		bool BlockStream::good()
 		{
-			return (this->state == std::ios::goodbit);
+			return this->fd->good();
 		}
 
 		bool BlockStream::bad()
 		{
-			return (this->state & std::ios::badbit != 0);
+			return this->fd->bad();
 		}
 
 		bool BlockStream::eof()
 		{
-			return (this->state & std::ios::eofbit != 0);
+			return this->fd->eof();
 		}
 
 		bool BlockStream::fail()
 		{
-			return (this->state & std::ios::failbit != 0);
+			return this->fd->fail();
 		}
 	}
 }

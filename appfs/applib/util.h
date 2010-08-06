@@ -31,6 +31,9 @@ namespace AppLib
 			public:
 				static void seekp_ex(LowLevel::BlockStream * fd, std::streampos pos);
 				static bool fileExists(std::string filename);
+				static void sanitizeArguments(char ** argv, int argc, std::string & command, int start);
+				static bool extractBootstrap(std::string source, std::string dest);
+				static const char* getProcessFilename();
 		};
 	}
 }

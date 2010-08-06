@@ -16,5 +16,6 @@ int main(int argc, char *argv[]);
 
 int appmount_start(int argc, char *argv[]);
 void appmount_continue();
-int appfs_start(int argc, char *argv[]);
+int appfs_stage1(int argc, char *argv[]);
+int appfs_stage2(int argc, char *argv[]);
 void appfs_continue();

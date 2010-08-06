@@ -25,11 +25,12 @@ namespace AppLib
 	namespace FUSE
 	{
 		LowLevel::FS * FuseLink::filesystem = NULL;
+		void (*FuseLink::continuefunc)(void) = NULL;
 
 		Mounter::Mounter(const char *disk_image,
 						const char *mount_point,
 						bool foreground,
-						void (*continue_func)(void))
+						void (*continuefunc)(void))
 		{
 #ifdef WIN32
 			this->mountResult = -ENOTSUP;
@@ -97,14 +98,33 @@ namespace AppLib
 			}
 			FuseLink::filesystem = filesystem;
 
+			// Set the contination function.
+			FuseLink::continuefunc = continuefunc;
+
 			// Mounts the specified disk image at the
 			// specified mount path using FUSE.
 			struct fuse_args fargs = FUSE_ARGS_INIT(0, NULL);
 
-			if (fuse_opt_add_arg(&fargs, "appfs") == -1 ||
-				fuse_opt_add_arg(&fargs, "-f") == -1 ||
-				fuse_opt_add_arg(&fargs, "-d") == -1 ||
-				fuse_opt_add_arg(&fargs, "-o") == -1 ||
+			if (fuse_opt_add_arg(&fargs, "appfs") == -1)
+			{
+				Logging::showErrorW("Unable to set FUSE options.");
+                                fuse_opt_free_args(&fargs);
+                                this->mountResult = -5;
+                                return;
+			}
+
+			if (foreground)
+			{
+				if (fuse_opt_add_arg(&fargs, "-f") == -1)
+				{
+					Logging::showErrorW("Unable to set FUSE options.");
+	                                fuse_opt_free_args(&fargs);
+	                                this->mountResult = -5;
+	                                return;
+				}
+			}
+
+			if (fuse_opt_add_arg(&fargs, "-o") == -1 ||
 				fuse_opt_add_arg(&fargs, "default_permissions") == -1 ||
 				fuse_opt_add_arg(&fargs, mount_point) == -1)
 			{
@@ -491,6 +511,10 @@ namespace AppLib
 
 		void * FuseLink::init(struct fuse_conn_info *conn)
 		{
+			if (FuseLink::continuefunc != NULL)
+			{
+				FuseLink::continuefunc();
+			}
 			return NULL;
 		}
 
