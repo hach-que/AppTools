@@ -1,4 +1,5 @@
 * DONE: Make the write() function of FSFile allocate new blocks when the position is outside of the currently allocated blocks.
 * DONE: Investigate the difference between assigning the next link and the position resolution code and how they can be out-of-sync with each other.
 * DONE: write() appears to drop 5 bytes every 50 bytes written under FUSE.  Investigate the issue.
-* Find out how to bypass the ETXTBSY error (when open() is called on the current executable binary) so that we can read and write to the attached filesystem.
+* DONE: Find out how to bypass the ETXTBSY error (when open() is called on the current executable binary) so that we can read and write to the attached filesystem.
+* Move AppLib::LowLevel::Util to AppLib::Util to clean up namespaces (and to correct the context of Util).
