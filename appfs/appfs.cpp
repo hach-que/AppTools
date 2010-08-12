@@ -15,6 +15,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include "applib/logging.h"
 #include "applib/util.h"
 #include "applib/fuselink.h"
+#include "applib/environment.h"
 #include "config.h"
 #include "funcdefs.h"
 #include <pthread.h>
@@ -205,7 +206,6 @@ void * appfs_thread(void * ptr)
 		// Check to see if "unionfs-fuse", "uchroot" and "fusermount" are available in the PATH.
 		// TODO: AppLib::Environment::searchForBinaries function needs to be implemented before
 		//       this check will work.
-#if 0
 		std::vector<std::string> search_apps;
 		search_apps.insert(search_apps.end(), "unionfs-fuse");
 		search_apps.insert(search_apps.end(), "uchroot");
@@ -217,7 +217,8 @@ void * appfs_thread(void * ptr)
 		bool found_chrooter = search_result[1] || (search_result[2] && search_result[3]);
 		bool found_unmounter = search_result[4];
 		alternative_sandbox = (!search_result[1] && found_chrooter);
-#endif
+		if (!found_sandboxer || !found_chrooter || !found_unmounter)
+			inside_sandbox = false;
 
 		// Now run the application, or exit (depending on the status of inside_sandbox,
 		// alternative_sandbox and should_run).
@@ -275,12 +276,12 @@ void * appfs_thread(void * ptr)
 		}
 		else
 		{
-			AppLib::Logging::showErrorW("Sandboxing prerequisites not found.  One or more of the following applications:\n");
-                	AppLib::Logging::showErrorO(" * uchroot (or fakechroot AND chroot)\n");
-                	AppLib::Logging::showErrorO(" * unionfs-fuse\n");
-              		AppLib::Logging::showErrorO(" * fusermount\n");
-        	        AppLib::Logging::showErrorO("were not found in PATH.  Since they are not available on the system\n");
-	                AppLib::Logging::showErrorO("you must install the application system-wide to run it.\n");
+			AppLib::Logging::showErrorW("Sandboxing prerequisites not found.  One or more of the following applications:");
+                	AppLib::Logging::showErrorO(" * uchroot (or fakechroot AND chroot)");
+                	AppLib::Logging::showErrorO(" * unionfs-fuse");
+              		AppLib::Logging::showErrorO(" * fusermount");
+        	        AppLib::Logging::showErrorO("were not found in PATH.  Since they are not available on the system");
+	                AppLib::Logging::showErrorO("you must install the application system-wide to run it.");
 		}
 
 		// Remove the sandbox directory.

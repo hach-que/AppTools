@@ -115,7 +115,8 @@ namespace AppLib
 
 			if (foreground)
 			{
-				if (fuse_opt_add_arg(&fargs, "-f") == -1)
+				if (fuse_opt_add_arg(&fargs, "-f") == -1 ||
+				    fuse_opt_add_arg(&fargs, "-d") == -1)
 				{
 					Logging::showErrorW("Unable to set FUSE options.");
 	                                fuse_opt_free_args(&fargs);
@@ -539,7 +540,16 @@ namespace AppLib
             child.ctime = APPFS_TIME();
             child.mtime = APPFS_TIME();
             child.atime = APPFS_TIME();
-            APPFS_COPY_CONST_CHAR_TO_FILENAME(Macros::extractBasenameFromPath(path), child.filename);
+			const char* ret_cpy = Macros::extractBasenameFromPath(path);
+			/* ret may be the result of a function. */ \
+			for (int i = 0; i < 256; i += 1)
+			        child.filename[i] = 0;
+			for (int i = 0; i < strlen(ret_cpy); i += 1)
+			{
+			        if (ret_cpy[i] == 0)
+			                break;
+			        child.filename[i] = ret_cpy[i];
+			}
             LowLevel::FSResult::FSResult res =
                     FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
             // TODO: If we return an error, we must also delete the child inode
@@ -762,7 +772,8 @@ namespace AppLib
 		{
 			std::vector<std::string> pret = FuseLink::filesystem->splitPathBySeperators(path);
 			if (pret.size() == 0) return "";
-			return pret[pret.size() - 1].c_str();
+			std::string pstr = pret[pret.size() - 1];
+			return pstr.c_str();
 		}
 	}
 }

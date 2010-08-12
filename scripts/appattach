@@ -1,41 +1,26 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]; then
-	echo "usage: appattach diskimage outname"
+if [ $# -ne 1 ]; then
+	echo "usage: appattach diskimage"
 	exit 1
 fi
 
 diskimage=$1
-outname=$2
 appfs=$(dirname $0)/appfs
 
 if [ -e $appfs ]; then
-	echo -n "appattach: joining appfs and $1 to form $2... "
+	echo -n "appattach: placing appfs bootstrap into $diskimage... "
 else
 	echo "appattach: error: could not locate appfs at $appfs."
 	exit 1
 fi
 
-dd if=$appfs of=$2 count=1 bs=1M conv=sync >/dev/null 2>/dev/null
+dd if=$appfs of=$diskimage count=1 bs=1M conv=sync,notrunc >/dev/null 2>/dev/null
 if [ $? -ne 0 ]; then
-	echo "failed (dd stage 1)!"
+	echo "failed (dd)!"
 	exit $?
 fi
-FILESIZE=$(stat -c%s $2)
-EXTENDSIZE=$[1048576-$FILESIZE]
-if [ $EXTENDSIZE -gt 0 ]; then
-	dd if=/dev/zero of=$2 oflag=append conv=notrunc count=1 bs=$EXTENDSIZE >/dev/null 2>/dev/null
-	if [ $? -ne 0 ]; then
-	        echo "failed (dd stage 2)!"
-	        exit $?
-	fi
-fi
-dd if=$1 of=$2 oflag=append conv=notrunc >/dev/null 2>/dev/null
-if [ $? -ne 0 ]; then
-        echo "failed (dd stage 3)!"
-        exit $?
-fi
-chmod u+x $2 >/dev/null 2>/dev/null
+chmod u+x $diskimage >/dev/null 2>/dev/null
 if [ $? -ne 0 ]; then
         echo "failed (chmod)!"
         exit $?

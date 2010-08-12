@@ -109,7 +109,7 @@ int appmount_start(int argc, char *argv[])
 		AppLib::FUSE::Mounter * mnt = new AppLib::FUSE::Mounter(
 						disk_path,
 						mount_path,
-						false,
+						true,
 						appmount_continue
 					);
 		ret = mnt->getResult();

@@ -14,6 +14,9 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
+#ifndef CLASS_ENVIRONMENT
+#define CLASS_ENVIRONMENT
+
 #include "config.h"
 #include <string>
 #include <vector>
@@ -23,7 +26,8 @@ namespace AppLib
 	class Environment
 	{
 		public:
-			static std::vector<bool> searchForBinaries(std::vector<std::string> binary);
-	}
+			static std::vector<bool> searchForBinaries(std::vector<std::string> & binaries);
+	};
 }
 
+#endif
