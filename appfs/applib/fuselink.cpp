@@ -179,7 +179,7 @@ namespace AppLib
 			stbuf->st_uid = buf.uid;
 			stbuf->st_gid = buf.gid;
 			stbuf->st_rdev = buf.rdev;
-			if (buf.type == LowLevel::INodeType::INT_FILE)
+			if (buf.type == LowLevel::INodeType::INT_FILEINFO)
 			{
 				stbuf->st_size = buf.dat_len;
 #ifndef WIN32
@@ -255,7 +255,7 @@ namespace AppLib
 			// Ensure the INode is of the correct type.
 			if (child.type == LowLevel::INodeType::INT_DIRECTORY)
 				return -EISDIR;
-			else if (child.type != LowLevel::INodeType::INT_FILE &&
+			else if (child.type != LowLevel::INodeType::INT_FILEINFO &&
 			         child.type != LowLevel::INodeType::INT_SYMLINK)
 				return -EIO;
 
@@ -535,7 +535,7 @@ namespace AppLib
 		{
 			APPFS_CHECK_PATH_NOT_EXISTS();
             APPFS_RETRIEVE_PARENT_PATH_TO_INODE(parent);
-            APPFS_ASSIGN_NEW_INODE(child, LowLevel::INodeType::INT_FILE);
+            APPFS_ASSIGN_NEW_INODE(child, LowLevel::INodeType::INT_FILEINFO);
             child.mask = Macros::extractMaskFromMode(mode);
             child.ctime = APPFS_TIME();
             child.mtime = APPFS_TIME();
@@ -733,7 +733,7 @@ namespace AppLib
 				Logging::showErrorW("Can't write INVALID or UNSET inodes to disk.");
 				return -EIO;
 			}
-			LowLevel::INodeType::INodeType simple_type = LowLevel::INodeType::INT_FILE;
+			LowLevel::INodeType::INodeType simple_type = LowLevel::INodeType::INT_FILEINFO;
 			if (type == LowLevel::INodeType::INT_DIRECTORY)
 				simple_type = LowLevel::INodeType::INT_DIRECTORY;
 

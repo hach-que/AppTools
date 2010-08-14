@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 	{
 		if (i == 0)
 		{
-			uint32_t pos = OFFSET_ROOTINODE;
+			uint32_t pos = OFFSET_FSINFO;
 			nfd->write(reinterpret_cast<char *>(&pos), 4);
 		}
 		else

@@ -37,10 +37,10 @@ void getFormattedPermissionMask(uint16_t mask, AppLib::LowLevel::INodeType::INod
 	switch (type)
 	{
 		case AppLib::LowLevel::INodeType::INT_FREEBLOCK:	out[0] = '_'; break;
-		case AppLib::LowLevel::INodeType::INT_FILE:		out[0] = '-'; break;
+		case AppLib::LowLevel::INodeType::INT_FILEINFO:		out[0] = '-'; break;
 		case AppLib::LowLevel::INodeType::INT_DIRECTORY:	out[0] = 'd'; break;
-		case AppLib::LowLevel::INodeType::INT_SEGMENT:	out[0] = '#'; break;
-		case AppLib::LowLevel::INodeType::INT_INVALID:	out[0] = '!'; break;
+		case AppLib::LowLevel::INodeType::INT_SEGINFO:		out[0] = '#'; break;
+		case AppLib::LowLevel::INodeType::INT_INVALID:		out[0] = '!'; break;
 	}
 	char a[4] = "---";
 	int umask = (mask >> 6);

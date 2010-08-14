@@ -26,9 +26,14 @@ http://code.google.com/p/apptools-dist for more information.
 #define LENGTH_BOOTSTRAP (1024 * 1024)
 #define OFFSET_LOOKUP    (1024 * 1024)
 #define LENGTH_LOOKUP    (256 * 1024)
-#define OFFSET_ROOTINODE (1024 * 1024 + 256 * 1024)
-#define LENGTH_ROOTINODE (4096)
+#define OFFSET_FSINFO    (1024 * 1024 + 256 * 1024)
+#define LENGTH_FSINFO    (4096)
 #define OFFSET_DATA      (1024 * 1024 + 256 * 1024 + 4096)
+
+// Name of the filesystem implementation.  Must be 9 characters
+// because the automatic terminating NULL character makes it 10
+// in total (and we write out 10 bytes to our FSINFO block).
+#define FS_NAME "AppFS\0\0\0\0"
 
 // Defines whether or not the test suite should automatically
 // create a blank AppFS file for testing if it doesn't exist
@@ -37,7 +42,7 @@ http://code.google.com/p/apptools-dist for more information.
 
 // Define the raw block sizes.  The directory block size must
 // be a multiple of the file block size.
-#define BSIZE_FILE 512
+#define BSIZE_FILE      4096
 #define BSIZE_DIRECTORY 4096
 
 // Number of subdirectories / subfiles allowed in a single

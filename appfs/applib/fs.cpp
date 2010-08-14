@@ -85,7 +85,7 @@ namespace AppLib
 			// Retrieve the position using our getINodePositionByID
 			// function.
 			uint32_t ipos = this->getINodePositionByID(id);
-			if (ipos == 0 || ipos < OFFSET_ROOTINODE)
+			if (ipos == 0 || ipos < OFFSET_FSINFO)
 				return INode(0, "", INodeType::INT_INVALID);
 			return this->getINodeByPosition(ipos);
 		}
@@ -103,10 +103,36 @@ namespace AppLib
 			// Read the data.
 			Endian::doR(this->fd, reinterpret_cast<char *>(&node.inodeid),  2);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&node.type),     2);
-			if (node.type == INodeType::INT_SEGMENT)
+			if (node.type == INodeType::INT_SEGINFO)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_len),  4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_next), 4);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.info_next),  4);
+				
+				// Seek back to the original reading position.
+				this->fd->seekg(old);
+
+				return node;
+			}
+			else if (node.type == INodeType::INT_FREELIST)
+			{
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.flst_next),  4);
+				
+				// Seek back to the original reading position.
+				this->fd->seekg(old);
+
+				return node;
+			}
+			else if (node.type == INodeType::INT_FSINFO)
+			{
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.fs_name),		10);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.ver_major),	2);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.ver_minor),	2);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.ver_revision),	2);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_name),		256);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_ver),		32);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_desc),		1024);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_author),	256);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.pos_root),		4);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.pos_freelist),	4);
 				
 				// Seek back to the original reading position.
 				this->fd->seekg(old);
@@ -120,15 +146,14 @@ namespace AppLib
 			Endian::doR(this->fd, reinterpret_cast<char *>(&node.atime),    8);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&node.mtime),    8);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&node.ctime),    8);
-			if (node.type == INodeType::INT_FILE)
+			if (node.type == INodeType::INT_FILEINFO)
 			{
 				Endian::doR(this->fd, reinterpret_cast<char *>(&node.dev),      2);
 				Endian::doR(this->fd, reinterpret_cast<char *>(&node.rdev),     2);
 				Endian::doR(this->fd, reinterpret_cast<char *>(&node.nlink),    2);
 				Endian::doR(this->fd, reinterpret_cast<char *>(&node.blocks),   2);
 				Endian::doR(this->fd, reinterpret_cast<char *>(&node.dat_len),  4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_len),  4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_next), 4);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&node.info_next), 4);
 			}
 			else if (node.type == INodeType::INT_DIRECTORY)
 			{
@@ -152,7 +177,9 @@ namespace AppLib
 				return FSResult::E_FAILURE_INVALID_POSITION;
 
 			// Check to make sure the inode ID is not already assigned.
-			if (node.type != INodeType::INT_SEGMENT && this->getINodePositionByID(node.inodeid) != 0)
+			// TODO: This needs to be updated with a full list of inode types whose inode ID should
+			//       be ignored.
+			if (node.type != INodeType::INT_SEGINFO && this->getINodePositionByID(node.inodeid) != 0)
 				return FSResult::E_FAILURE_INODE_ALREADY_ASSIGNED;
 
 			std::streampos old = this->fd->tellp();
@@ -166,7 +193,8 @@ namespace AppLib
 			if (this->fd->eof())
 				Logging::showErrorW("Write EOF on write of new INode.");
 			const char* z = ""; // a const char* always has a \0 terminator, which we use to write into the file.
-			if (node.type == INodeType::INT_FILE || node.type == INodeType::INT_SEGMENT ||
+			// TODO: This needs to be updated with a full list of inode types.
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO ||
 				node.type == INodeType::INT_SYMLINK)
 			{
 				for (int i = 0; i < BSIZE_FILE - data.length(); i += 1)
@@ -180,32 +208,32 @@ namespace AppLib
 			}
 			else
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
-			if (node.type == INodeType::INT_FILE || node.type == INodeType::INT_SYMLINK)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK)
 				this->setINodePositionByID(node.inodeid, pos);
 			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
 		}
 
 		FSResult::FSResult FS::updateINode(INode node)
-                {
-                        assert(/* Check the stream is not in text-mode. */ this->isValid());
+        {
+            assert(/* Check the stream is not in text-mode. */ this->isValid());
 
-                        // Check to make sure the inode ID is not already assigned.
+			// Check to make sure the inode ID is not already assigned.
 			uint32_t pos = this->getINodePositionByID(node.inodeid);
-                        if (pos == 0)
-                                return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
+            if (pos == 0)
+                return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
 
-                        std::streampos old = this->fd->tellp();
-                        std::string data = node.getBinaryRepresentation();
-                        Util::seekp_ex(this->fd, pos);
-                        this->fd->write(data.c_str(), data.length());
+            std::streampos old = this->fd->tellp();
+            std::string data = node.getBinaryRepresentation();
+            Util::seekp_ex(this->fd, pos);
+            this->fd->write(data.c_str(), data.length());
 			// We do not write out the file data with zeros
 			// as in writeINode because we want to keep the
 			// content.
-                        this->setINodePositionByID(node.inodeid, pos);
-                        Util::seekp_ex(this->fd, old);
-                        return FSResult::E_SUCCESS;
-                }
+            this->setINodePositionByID(node.inodeid, pos);
+            Util::seekp_ex(this->fd, old);
+            return FSResult::E_SUCCESS;
+        }
 
 		uint32_t FS::getINodePositionByID(uint16_t id)
 		{
@@ -258,84 +286,8 @@ namespace AppLib
 
 		uint32_t FS::getFirstFreeBlock(INodeType::INodeType type)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			std::streampos old = this->fd->tellg();
-
-			// Since the inode number can be 0, and the filename can be blank, we
-			// check the value of the type field (offset 2).  If it's 0, then
-			// it's a free block.
-			signed int type_offset = 2;
-			uint32_t current_pos = OFFSET_DATA + type_offset;
-			uint16_t current_type = (uint16_t)INodeType::INT_UNSET;
-			this->fd->seekg(current_pos);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&current_type), 2);
-			int directoryBlocksLeft = 0; // Keeps track of the number of blocks to skip
-										 // regardless, because we're inside a directory
-										 // inode.
-			int directoryBlocksClearLeft = (BSIZE_DIRECTORY / BSIZE_FILE);
-										 // Keeps track of the number of blocks that are
-										 // clear when searching for a free section for a
-										 // directory inode.
-			while (!this->fd->eof())
-			{
-				if (current_type == (uint16_t)INodeType::INT_UNSET)
-				{
-					// Error reading.
-					Logging::showErrorW("Unable to read block at position %i.", current_pos - type_offset);
-					current_pos += 512;
-					current_type = (uint16_t)INodeType::INT_UNSET;
-					this->fd->seekg(current_pos);
-					Endian::doR(this->fd, reinterpret_cast<char *>(&current_type), 2);
-					continue;
-				}
-
-				if (current_type == (uint16_t)INodeType::INT_DIRECTORY)
-					directoryBlocksLeft = (BSIZE_DIRECTORY / BSIZE_FILE);
-
-				if (current_type == (uint16_t)INodeType::INT_FREEBLOCK &&
-					type == INodeType::INT_FILE &&
-					directoryBlocksLeft == 0)
-				{
-					// Found free block.
-					this->fd->seekg(old);
-					return current_pos - type_offset;
-				}
-
-				if (current_type == (uint16_t)INodeType::INT_FREEBLOCK &&
-					type == INodeType::INT_DIRECTORY &&
-					directoryBlocksLeft == 0)
-				{
-					if (directoryBlocksClearLeft > 0)
-					{
-						directoryBlocksClearLeft -= 1;
-					}
-					else
-					{
-						// Found free block.
-						this->fd->seekg(old);
-						return current_pos - type_offset;
-					}
-				}
-				
-				if (current_type != (uint16_t)INodeType::INT_FREEBLOCK &&
-					type == INodeType::INT_DIRECTORY &&
-					directoryBlocksLeft == 0)
-				{
-					directoryBlocksClearLeft = (BSIZE_DIRECTORY / BSIZE_FILE);
-				}
-
-				if (directoryBlocksLeft > 0)
-					directoryBlocksLeft -= 1;
-
-				current_pos += 512;
-				current_type = (uint16_t)INodeType::INT_UNSET;
-				this->fd->seekg(current_pos);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&current_type), 2);
-			}
-
-			this->fd->seekg(old);
-			return current_pos - type_offset;
+			// TODO: Must be reimplemented in New File Storage system.
+			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
 		FSResult::FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
@@ -497,7 +449,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILE || cnode.type == INodeType::INT_DIRECTORY)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY)
 					{
 						inodechildren.insert(inodechildren.end(), cnode);
 					}
@@ -531,7 +483,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILE || cnode.type == INodeType::INT_DIRECTORY)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY)
 					{
 						if (cnode.inodeid == childid)
 						{
@@ -568,7 +520,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILE || cnode.type == INodeType::INT_DIRECTORY)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY)
 					{
 						if (strcmp(filename, cnode.filename) == 0)
 						{
@@ -583,135 +535,14 @@ namespace AppLib
 
 		FSResult::FSResult FS::setFileContents(uint16_t id, const char * data, uint32_t len)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			// Get the inode and it's position.
-			uint32_t ipos = this->getINodePositionByID(id);
-			INode node = this->getINodeByID(id);
-
-			// Now we clear all of the blocks that the file
-			// is currently using.
-			uint32_t npos = this->getFileNextBlock(ipos);
-			uint32_t opos = npos;
-			while (npos != 0)
-			{
-				npos = this->getFileNextBlock(npos);
-				this->resetBlock(opos);
-				opos = npos;
-			}
-
-			std::streampos oldg = this->fd->tellg();
-			std::streampos oldp = this->fd->tellp();
-			if (len <= BSIZE_FILE - HSIZE_FILE)
-			{
-				FSResult::FSResult length_set_result = this->setFileLengthDirect(ipos, len);
-				if (length_set_result != FSResult::E_SUCCESS)
-					return length_set_result;
-
-				// Our data will completely fit into the first block.
-				Util::seekp_ex(this->fd, ipos + HSIZE_FILE);
-				this->fd->write(data, len);
-				this->fd->seekg(oldg);
-				Util::seekp_ex(this->fd, oldp);
-				return FSResult::E_SUCCESS;
-			}
-			else
-			{
-				FSResult::FSResult length_set_result = this->setFileLengthDirect(ipos, len);
-				if (length_set_result != FSResult::E_SUCCESS)
-					return length_set_result;
-
-				// We have to spread the file out over multiple blocks.
-				// Write the first BSIZE_FILE - HSIZE_FILE bytes.
-				Util::seekp_ex(this->fd, ipos + HSIZE_FILE);
-				this->fd->write(data, BSIZE_FILE - HSIZE_FILE);
-
-				// Now allocate more blocks.
-				uint32_t remaining_bytes = len - (BSIZE_FILE - HSIZE_FILE);
-				uint32_t data_position = BSIZE_FILE - HSIZE_FILE;
-				uint32_t ppos = ipos;
-				while (remaining_bytes > 0)
-				{
-					uint32_t pos = this->getFirstFreeBlock(INodeType::INT_FILE); // INT_FILE and INT_SEGMENT both take up a single block.
-					INode nnode(node.inodeid, "", INodeType::INT_SEGMENT);
-					nnode.seg_len = (remaining_bytes > (BSIZE_FILE - HSIZE_SEGMENT) ? (BSIZE_FILE - HSIZE_SEGMENT) : remaining_bytes);
-					nnode.seg_next = 0;
-					// Update the seg_next position of the previous inode.
-					this->setFileNextSegmentDirect(ppos, pos);
-					ppos = pos;
-					// Write the file data.
-					Util::seekp_ex(this->fd, pos);
-					std::string nnode_str = nnode.getBinaryRepresentation();
-					this->fd->write(nnode_str.c_str(), nnode_str.length());
-					// We don't need to seek here because our current write position will be
-					// where we want to write the data.
-					this->fd->write(data + data_position, nnode.seg_len);
-					remaining_bytes -= nnode.seg_len;
-					data_position += nnode.seg_len;
-				}
-				this->fd->seekg(oldg);
-				Util::seekp_ex(this->fd, oldp);
-				return FSResult::E_SUCCESS;
-			}
+			// TODO: Must be reimplemented in New File Storage system.
+			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
 		FSResult::FSResult FS::getFileContents(uint16_t id, char ** data_out, uint32_t * len_out, uint32_t len_max)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			// Get the inode and it's position.
-			uint32_t ipos = this->getINodePositionByID(id);
-			INode node = this->getINodeByID(id);
-			uint32_t len = (node.dat_len < len_max ? node.dat_len : len_max);
-
-			// Store the length of the file or len_max in
-			// len_out.
-			*len_out = len;
-
-			// Allocate a block of data with size len.
-			char * data = (char*)malloc(len);
-			*data_out = data;
-			for (uint32_t i = 0; i < len; i += 1)
-				data[i] = 0;
-
-			std::streampos oldg = this->fd->tellg();
-			if (len <= BSIZE_FILE - HSIZE_FILE)
-			{
-				// Our data is located entirely in the first block.
-				this->fd->seekg(ipos + HSIZE_FILE);
-				this->fd->read(data, len);
-				this->fd->seekg(oldg);
-				return FSResult::E_SUCCESS;
-			}
-			else
-			{
-				// The data will be spread out over multiple blocks.
-				// Read the first BSIZE_FILE - HSIZE_FILE bytes.
-				this->fd->seekg(ipos + HSIZE_FILE);
-				this->fd->read(data, BSIZE_FILE - HSIZE_FILE);
-
-				// Now read more blocks.
-				uint32_t remaining_bytes = len - (BSIZE_FILE - HSIZE_FILE);
-				uint32_t data_position = BSIZE_FILE - HSIZE_FILE;
-				uint32_t npos = node.seg_next;
-				while (remaining_bytes > 0 && npos != 0)
-				{
-					INode nnode = this->getINodeByPosition(npos);
-					// We know that this is a INT_SEGMENT because it can not
-					// be the first block in the data file (that's already
-					// been read).  Therefore, seek to the INode's position +
-					// HSIZE_SEGMENT.
-					this->fd->seekg(npos + HSIZE_SEGMENT);
-					// Now read the data.
-					uint32_t read_size = nnode.seg_len;
-					this->fd->read(data + data_position, read_size);
-					remaining_bytes -= nnode.seg_len;
-					data_position += nnode.seg_len;
-					npos = nnode.seg_next;
-				}
-				this->fd->seekg(oldg);
-				return FSResult::E_SUCCESS;
-			}
+			// TODO: Must be reimplemented in New File Storage system.
+			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
 		FSResult::FSResult FS::setFileLengthDirect(uint32_t pos, uint32_t len)
@@ -719,7 +550,6 @@ namespace AppLib
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
 			signed int file_len_offset = 298;
-			signed int seg_len_offset = 4;
 
 			this->fd->clear();
 
@@ -731,27 +561,9 @@ namespace AppLib
 			this->fd->seekg(pos + 2);
 			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
 
-			if (type_raw == INodeType::INT_FILE)
+			if (type_raw == INodeType::INT_FILEINFO)
 			{
 				Util::seekp_ex(this->fd, pos + file_len_offset);
-				if (len > BSIZE_FILE - HSIZE_FILE)
-				{
-					Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
-					uint32_t seg_len = BSIZE_FILE - HSIZE_FILE;
-					Endian::doW(this->fd, reinterpret_cast<char *>(&seg_len),  4);
-				}
-				else
-				{
-					Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
-					Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
-				}
-				Util::seekp_ex(this->fd, oldp);
-				this->fd->seekg(oldg);
-				return FSResult::E_SUCCESS;
-			}
-			else if (type_raw == INodeType::INT_SEGMENT)
-			{
-				Util::seekp_ex(this->fd, pos + seg_len_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
 				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
@@ -766,87 +578,14 @@ namespace AppLib
 
 		FSResult::FSResult FS::setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			signed int file_next_offset = 306;
-			signed int seg_next_offset = 8;
-
-			this->fd->clear();
-
-			std::streampos oldg = this->fd->tellg();
-			std::streampos oldp = this->fd->tellp();
-
-			// Get the type directly.
-			uint16_t type_raw = (uint16_t)INodeType::INT_INVALID;
-			this->fd->seekg(pos + 2);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
-
-			if (type_raw == INodeType::INT_FILE)
-			{
-				Util::seekp_ex(this->fd, pos + file_next_offset);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next),  4);
-				Util::seekp_ex(this->fd, oldp);
-				this->fd->seekg(oldg);
-				return FSResult::E_SUCCESS;
-			}
-			else if (type_raw == INodeType::INT_SEGMENT)
-			{
-				Util::seekp_ex(this->fd, pos + seg_next_offset);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next),  4);
-				Util::seekp_ex(this->fd, oldp);
-				this->fd->seekg(oldg);
-				return FSResult::E_SUCCESS;
-			}
-			else
-			{
-				this->fd->seekg(oldg);
-				return FSResult::E_FAILURE_INVALID_POSITION;
-			}
+			// TODO: Must be reimplemented in New File Storage system.
+			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
 		uint32_t FS::getFileNextBlock(uint32_t pos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			if (pos == 0 || pos < OFFSET_ROOTINODE)
-				return 0;
-			INode node(0, "", INodeType::INT_INVALID);
-
-			// Seek to the inode position
-			std::streampos old = this->fd->tellg();
-			this->fd->seekg(pos);
-
-			// Read the data.
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.inodeid),  2);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.type),     2);
-
-			if (node.type == INodeType::INT_FILE)
-			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.filename), 256);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.uid),      2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.gid),      2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.mask),     2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.atime),    8);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.mtime),    8);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.ctime),    8);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.dev),      2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.rdev),     2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.nlink),    2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.blocks),   2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.dat_len),  4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_len),  4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_next), 4);
-			}
-			else if (node.type == INodeType::INT_SEGMENT)
-			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_len),  4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.seg_next), 4);
-			}
-
-			// Seek back to the original reading position.
-			this->fd->seekg(old);
-
-			return node.seg_next;
+			// TODO: Must be reimplemented in New File Storage system.
+			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
 		FSResult::FSResult FS::resetBlock(uint32_t pos)
@@ -861,50 +600,17 @@ namespace AppLib
 				this->fd->write(zero, 1);
 			}
 			Util::seekp_ex(this->fd, oldp);
+
+			// TODO: Block must be marked as unused through the
+			//       free list allocation class.
+
 			return FSResult::E_SUCCESS;
 		}
 
 		uint32_t FS::resolvePositionInFile(uint16_t inodeid, uint32_t pos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			uint32_t dpos = 0;
-			uint32_t npos = this->getINodePositionByID(inodeid);
-			uint32_t ppos = npos;
-			INode node = this->getINodeByPosition(npos);
-			uint32_t ptpos = 0;
-			uint32_t tpos = 0;
-			while (tpos <= pos)// && pos < tpos + node.seg_len)
-			{
-				ptpos = tpos;
-				tpos += node.seg_len;
-				if (tpos <= pos)
-				{
-					ppos = npos;
-					npos = this->getFileNextBlock(npos);
-					if (npos == 0)
-						return 0; // Invalid position.
-					node = this->getINodeByPosition(npos);
-				}
-				else
-					break;
-			}
-			uint32_t noff = 0;
-			if (node.type == INodeType::INT_FILE)
-				noff = HSIZE_FILE;
-			else if (node.type == INodeType::INT_SEGMENT)
-				noff = HSIZE_SEGMENT;
-			else
-				return 0;
-
-			// TODO: Update this description :P
-			// Now npos is the segment in which the specified file position
-			// is located.  pos - ptpos indicates the number of bytes inside
-			// the segment the specified file position is.  noff indicates
-			// the size of the headers for the specified block.  Hence
-			// (npos + noff + (pos - ptpos) - 1) is the location, on disk, of the
-			// specified file position.
-			return npos + noff + (pos - ptpos);
+			// TODO: Must be reimplemented in New File Storage system.
+			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
 		int32_t FS::resolvePathnameToInodeID(const char * path)
@@ -959,207 +665,8 @@ namespace AppLib
 
 		FSResult::FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
-
-			// Retrieve the INode.
-			INode node = this->getINodeByID(inodeid);
-			uint32_t npos = this->getINodePositionByID(inodeid);
-			if (node.type != INodeType::INT_FILE)
-				return FSResult::E_FAILURE_NOT_A_FILE;
-
-			// Determine whether we're extending the file or erasing data.
-			if (len == node.dat_len)
-				return FSResult::E_SUCCESS; // Nothing to do.
-			else if (len < node.dat_len)
-			{
-				// Erasing data.  Determine the amount to erase.
-				uint32_t amount_to_erase = (int64_t)node.dat_len - (int64_t)len;
-
-				// Use a std::vector to store a list of all of the positions
-				// of the segments in the file, as there is no easy way to
-				// traverse the segments in reverse.
-				std::vector<uint32_t> segpos;
-				uint32_t spos = npos;
-				while (spos != 0)
-				{
-					segpos.insert(segpos.end(), spos);
-					spos = this->getFileNextBlock(spos);
-				}
-
-				// The number of blocks the file currently has allocated will be
-				// equal to segpos.size().  Now we just need to calculate how
-				// many blocks the new filesize will be taking up.
-				int64_t nsize = 0;
-				int64_t nblocks = 0;
-				while (nsize < len)
-				{
-					if (nblocks == 0)
-						nsize += BSIZE_FILE - HSIZE_FILE;
-					else
-						nsize += BSIZE_FILE - HSIZE_SEGMENT;
-					nblocks += 1;
-				}
-
-				// Calculate the number of blocks to erase.
-				int32_t blocks_to_erase = (int64_t)segpos.size() - nblocks;
-
-				// Now traverse the list in reverse, erasing up to blocks_to_erase
-				// blocks.  Do not erase the first position in the list as that
-				// is the INT_FILE inode.
-				uint32_t data_blocks_erased = 0;
-				for (int i = segpos.size() - 1; i > 0; i -= 1)
-				{
-					if (blocks_to_erase <= 0)
-						break;
-					this->setFileNextSegmentDirect(segpos[i-1], 0);
-					this->resetBlock(segpos[i]);
-					data_blocks_erased += BSIZE_FILE - HSIZE_SEGMENT;
-					blocks_to_erase -= 1;
-				}
-
-				// Now set the new length of the file inode.
-				node.dat_len = nsize;
-				this->setFileLengthDirect(npos, node.dat_len);
-
-				// Check to see whether or not we still have more data to erase,
-				// which is highly likely as the truncation length is unlikely
-				// to reside on a block boundary.
-				if (len < node.dat_len)
-				{
-					//uint32_t chars_to_erase = node.dat_len - len;
-
-					// This is all just really wasting time cleaning up
-					// blocks unnecessarily.
-					/*
-					uint32_t rpos = this->resolvePositionInFile(inodeid, len);
-					if (rpos == 0)
-					{
-						return FSResult::E_FAILURE_PARTIAL_TRUNCATION;
-					}
-					// TODO: Any additional checks we should be making here before erasing?
-					std::streampos posp = this->fd->tellp();
-					Util::seekp_ex(this->fd, rpos);
-					for (int i = 0; i < chars_to_erase; i += 1)
-					{
-						char zero = '\0';
-						this->fd->write(&zero, 1);
-					}
-					Util::seekp_ex(this->fd, rpos);
-					*/
-
-					// Set the new file length.
-					this->setFileLengthDirect(npos, len);
-
-					// Return success.
-					return FSResult::E_SUCCESS;
-				}
-				else
-					return FSResult::E_SUCCESS;
-			}
-			else if (len > node.dat_len && len > BSIZE_FILE - HSIZE_FILE)
-			{
-				// Adding null characters.  Determine amount to add.
-				uint32_t amount_to_add = (int64_t)len - (int64_t)node.dat_len;
-
-				// Create a variable to hold the FSResult's from operations.
-				FSResult::FSResult fres;
-
-				// Locate the last segment in the file (stored in spos).
-				uint32_t spos = npos;
-				uint32_t sppos = spos;
-				uint32_t bytes_counted = 0;
-				INode snode(0, "", INodeType::INT_INVALID);
-				while (spos != 0)
-				{
-					snode = this->getINodeByPosition(spos);
-					bytes_counted += snode.seg_len;
-					sppos = spos;
-					spos = this->getFileNextBlock(spos);
-				}
-				if (snode.type != INodeType::INT_INVALID)
-					bytes_counted -= snode.seg_len;
-				spos = sppos;
-
-				uint32_t snode_datsize = 0;
-				if (snode.type == INodeType::INT_FILE)
-					snode_datsize = BSIZE_FILE - HSIZE_FILE;
-				else if (snode.type == INodeType::INT_SEGMENT)
-					snode_datsize = BSIZE_FILE - HSIZE_SEGMENT;
-				else
-					return FSResult::E_FAILURE_INODE_NOT_VALID;
-
-				// Determine the current size of the last segment; we'll need to increase
-				// it's length.
-				if (snode.seg_len < snode_datsize)
-				{
-					// Check to see if we can finish the operation just by increasing the size
-					// of the last segment.
-					if (len - (int64_t)bytes_counted < snode_datsize)
-					{
-						// Now set the new length of the segment inode.
-						fres = this->setFileLengthDirect(spos, len - (int64_t)bytes_counted);
-						if (fres != FSResult::E_SUCCESS)
-							return fres;
-
-						// Now set the new length of the file inode.
-						node.dat_len = len;
-						fres = this->setFileLengthDirect(npos, node.dat_len);
-						return fres;					
-					}
-					else
-					{
-						// It's outside, increase the current last segment to the maximum
-						// size and then continue adding new blocks.
-						fres = this->setFileLengthDirect(spos, snode_datsize);
-						if (fres != FSResult::E_SUCCESS)
-							return fres;
-					}
-				}
-
-				// We know how many solid INT_SEGMENTs we are going
-				// to have to add by the ceil'd division of
-				// amount_to_add by (BSIZE_FILE - HSIZE_SEGMENT).
-				int32_t blocks_to_add = div(amount_to_add, BSIZE_FILE - HSIZE_SEGMENT).quot + 1;
-
-				// Add blocks_to_add new segments to the file.
-				uint32_t nepos = 0;
-				uint32_t amount_to_add_remaining = amount_to_add;
-				for (int i = 0; i < blocks_to_add; i++)
-				{
-					uint32_t segment_size = BSIZE_FILE - HSIZE_SEGMENT;
-					if (amount_to_add_remaining < BSIZE_FILE - HSIZE_SEGMENT)
-						segment_size = amount_to_add_remaining;
-					amount_to_add_remaining -= segment_size;
-
-					nepos = this->getFirstFreeBlock(INodeType::INT_FILE);
-					INode nenode(inodeid, "", INodeType::INT_SEGMENT);
-					nenode.seg_len = segment_size;
-					fres = this->writeINode(nepos, nenode);
-					if (fres != FSResult::E_SUCCESS)
-						return fres;
-					fres = this->setFileNextSegmentDirect(spos, nepos);
-					if (fres != FSResult::E_SUCCESS)
-						return fres;
-					spos = nepos;
-				}
-
-				// Now set the new length of the file inode.
-				node.dat_len = len;
-				fres = this->setFileLengthDirect(npos, node.dat_len);
-				if (fres != FSResult::E_SUCCESS)
-					return fres;
-
-				return FSResult::E_SUCCESS;
-			}
-			else if (len > node.dat_len && len <= BSIZE_FILE - HSIZE_FILE)
-			{
-				// Just set the new length of the file inode.
-                node.dat_len = len;
-                FSResult::FSResult fres = this->setFileLengthDirect(npos, node.dat_len);
-                return fres;
-			}
-			else
-				return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			// TODO: Must be reimplemented in New File Storage system.
+			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
 		FSFile FS::getFile(uint16_t inodeid)
@@ -1185,7 +692,7 @@ namespace AppLib
 			this->fd->seekg(block_position);
 			uint16_t type_stor = INodeType::INT_UNSET;
 			uint32_t cpos = this->fd->tellg();
-			while (!this->fd->eof() && cpos == block_position)
+			while (!this->fd->eof() && cpos == block_position && !this->freelist->isBlockFree(cpos))
 			{
 				Endian::doR(this->fd, reinterpret_cast<char *>(&type_stor),  2);
 				switch (type_stor)
@@ -1194,9 +701,8 @@ namespace AppLib
 						block_position += BSIZE_DIRECTORY;
 						this->fd->seekg(block_position);
 						break;
-					case INodeType::INT_FILE:
-					case INodeType::INT_SEGMENT:
-					case INodeType::INT_FREEBLOCK:
+					case INodeType::INT_FILEINFO:
+					case INodeType::INT_SEGINFO:
 						block_position += BSIZE_FILE;
 						this->fd->seekg(block_position);
 						break;
@@ -1217,7 +723,7 @@ namespace AppLib
 			this->fd->seekg(oldg);
 
 			// No temporary block allocated; allocate a new one.
-			uint32_t newpos = this->getFirstFreeBlock(INodeType::INT_FILE);
+			uint32_t newpos = this->getFirstFreeBlock(INodeType::INT_FILEINFO);
 			if (newpos == 0) return 0;
 			Util::seekp_ex(this->fd, newpos);
 			uint16_t zero = 0;

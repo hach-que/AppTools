@@ -25,6 +25,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include <vector>
 #include "endian.h"
 #include "fsfile.h"
+#include "freelist.h"
 #include "blockstream.h"
 
 namespace AppLib
@@ -53,27 +54,40 @@ namespace AppLib
 		}
 
 		// WARN: The values here are also used to store the types
-		//       in the actual AppFS packages.  Therefore, you should
-		//       not change the values for:
-		//       INT_FREEBLOCK,
-		//       INT_FILE,
-		//       INT_DIRECTORY,
-		//       INT_SEGMENT,
-		//       INT_TEMPORARY or
-		//       INT_SYMLINK
-		//       since it will break the ability to read existing
-		//       packages.
+		//       in the actual AppFS packages.  Therefore you should
+		//       not change any values since it will break the
+		//       ability to read existing packages.
 		namespace INodeType
 		{
 			enum INodeType
 			{
+				// Free Block (unused in disk images)
 				INT_FREEBLOCK = 0,
-				INT_FILE = 1,
-				INT_DIRECTORY = 2,
-				INT_SEGMENT = 3,
-				INT_TEMPORARY = 4,
-				INT_SYMLINK = 5,
-				INT_INVALID = 6,
+
+				// File Information Block
+				INT_FILEINFO = 1,
+				// Segment Information Block
+				INT_SEGINFO = 2,
+				// Data Block (unused in disk images)
+				INT_DATA = 254,
+
+				// Directory Block
+				INT_DIRECTORY = 3,
+
+				// Symbolic Link
+				INT_SYMLINK = 4,
+				// Hard Link
+				INT_HARDLINK = 5,
+
+				// Temporary Block
+				INT_TEMPORARY = 6,
+				// Free Space Allocation Block
+				INT_FREELIST = 7,
+				// Filesystem Information Block
+				INT_FSINFO = 8,
+
+				// Invalid and Unset Blocks (unused in disk images)
+				INT_INVALID = 9,
 				INT_UNSET = 255
 			};
 		}
@@ -98,8 +112,20 @@ namespace AppLib
 				uint16_t nlink;
 				uint16_t blocks;
 				uint32_t dat_len;
-				uint32_t seg_len;
-				uint32_t seg_next;
+				uint32_t info_next;
+				uint32_t flst_next;
+
+				// FSInfo only
+				char fs_name[10];
+				uint16_t ver_major;
+				uint16_t ver_minor;
+				uint16_t ver_revision;
+				char app_name[256];
+				char app_ver[32];
+				char app_desc[1024];
+				char app_author[256];
+				uint32_t pos_root;
+				uint32_t pos_freelist;
 
 				inline INode(uint16_t id,
 								char * filename,
@@ -124,8 +150,8 @@ namespace AppLib
 					this->mtime = mtime;
 					this->ctime = ctime;
 					this->dat_len = 0;
-					this->seg_len = 0;
-					this->seg_next = 0;
+					this->info_next = 0;
+					this->flst_next = 0;
 					this->parent = 0;
 					this->children_count = 0;
 					this->dev = 0;
@@ -134,6 +160,23 @@ namespace AppLib
 					this->blocks = 0;
 					for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
 						this->children[i] = 0;
+
+					// FSInfo only
+					for (uint16_t i = 0; i < 10; i += 1)
+						this->fs_name[i] = FS_NAME[i];
+					this->ver_major = 0;
+					this->ver_minor = 0;
+					this->ver_revision = 0;
+					for (uint16_t i = 0; i < 256; i += 1)
+						this->app_name[i] = '\0';
+					for (uint16_t i = 0; i < 32; i += 1)
+						this->app_ver[i] = '\0';
+					for (uint16_t i = 0; i < 1024; i += 1)
+						this->app_desc[i] = '\0';
+					for (uint16_t i = 0; i < 256; i += 1)
+						this->app_author[i] = '\0';
+					this->pos_root = 0;
+					this->pos_freelist = 0;
 				}
 
 				inline INode(uint16_t id,
@@ -153,8 +196,8 @@ namespace AppLib
 					this->mtime = 0;
 					this->ctime = 0;
 					this->dat_len = 0;
-					this->seg_len = 0;
-					this->seg_next = 0;
+					this->info_next = 0;
+					this->flst_next = 0;
 					this->parent = 0;
 					this->children_count = 0;
 					this->dev = 0;
@@ -163,6 +206,23 @@ namespace AppLib
 					this->blocks = 0;
 					for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
 						this->children[i] = 0;
+					
+					// FSInfo only
+					for (uint16_t i = 0; i < 10; i += 1)
+						this->fs_name[i] = FS_NAME[i];
+					this->ver_major = 0;
+					this->ver_minor = 0;
+					this->ver_revision = 0;
+					for (uint16_t i = 0; i < 256; i += 1)
+						this->app_name[i] = '\0';
+					for (uint16_t i = 0; i < 32; i += 1)
+						this->app_ver[i] = '\0';
+					for (uint16_t i = 0; i < 1024; i += 1)
+						this->app_desc[i] = '\0';
+					for (uint16_t i = 0; i < 256; i += 1)
+						this->app_author[i] = '\0';
+					this->pos_root = 0;
+					this->pos_freelist = 0;
 				}
 
 				inline std::string getBinaryRepresentation()
@@ -170,10 +230,28 @@ namespace AppLib
 					std::stringstream binary_rep;
 					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->inodeid),  2);
 					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->type),     2);
-					if (this->type == INodeType::INT_SEGMENT)
+					if (this->type == INodeType::INT_SEGINFO)
 					{
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->seg_len),  4);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->seg_next), 4);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->info_next), 4);
+						return binary_rep.str();
+					}
+					else if (this->type == INodeType::INT_FREELIST)
+					{
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->flst_next), 4);
+						return binary_rep.str();
+					}
+					else if (this->type == INodeType::INT_FSINFO)
+					{
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->fs_name),		10);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ver_major),	2);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ver_minor),	2);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ver_revision),	2);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_name),		256);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_ver),		32);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_desc),		1024);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_author),	256);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->pos_root),		4);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->pos_freelist),	4);
 						return binary_rep.str();
 					}
 					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->filename), 256);
@@ -183,15 +261,14 @@ namespace AppLib
 					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->atime),    8);
 					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->mtime),    8);
 					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ctime),    8);
-					if (this->type == INodeType::INT_FILE)
+					if (this->type == INodeType::INT_FILEINFO)
 					{
 						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->dev),      2);
 						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->rdev),     2);
 						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->nlink),    2);
 						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->blocks),   2);
 						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->dat_len),  4);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->seg_len),  4);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->seg_next), 4);
+						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->info_next), 4);
 					}
 					else
 					{
@@ -336,6 +413,7 @@ namespace AppLib
 
 			private:
 				LowLevel::BlockStream * fd;
+				LowLevel::FreeList * freelist;
 		};
 	}
 }

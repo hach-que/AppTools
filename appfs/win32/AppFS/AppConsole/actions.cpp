@@ -89,7 +89,7 @@ void doCreate(std::vector<std::string> cmd)
 	{
 		if (i == 0)
 		{
-			uint32_t pos = OFFSET_ROOTINODE;
+			uint32_t pos = OFFSET_FSINFO;
 			fd->write(reinterpret_cast<char *>(&pos), 4);
 		}
 		else
@@ -262,9 +262,9 @@ void doTouch(std::vector<std::string> cmd)
 	uint16_t newid = currentFilesystem->getFirstFreeInodeNumber();
 
 	// Create the file.
-	uint32_t pos = currentFilesystem->getFirstFreeBlock(AppLib::LowLevel::INodeType::INT_FILE);
+	uint32_t pos = currentFilesystem->getFirstFreeBlock(AppLib::LowLevel::INodeType::INT_FILEINFO);
 	time_t ltime; time(&ltime);
-	AppLib::LowLevel::INode node(newid, const_cast<char*>(cmd[1].c_str()), AppLib::LowLevel::INodeType::INT_FILE, 1000, 1000, 0311, ltime, ltime, ltime);
+	AppLib::LowLevel::INode node(newid, const_cast<char*>(cmd[1].c_str()), AppLib::LowLevel::INodeType::INT_FILEINFO, 1000, 1000, 0311, ltime, ltime, ltime);
 	node.parent = id;
 	if (currentFilesystem->writeINode(pos, node) != AppLib::LowLevel::FSResult::E_SUCCESS)
 	{
@@ -371,7 +371,7 @@ void doTruncate(std::vector<std::string> cmd)
 		std::cout << "The specified filename or directory could not be found." << std::endl;
 		return;
 	}
-	if (fnode.type != AppLib::LowLevel::INodeType::INT_FILE)
+	if (fnode.type != AppLib::LowLevel::INodeType::INT_FILEINFO)
 	{
 		std::cout << "The specified filename is not a file." << std::endl;
 		return;

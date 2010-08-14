@@ -60,6 +60,11 @@ for (int i = 0; i < 256; i += 1) \
 		break; \
 	filename[i] = ret_cpy[i]; \
 }
+#ifdef WIN32
+#pragma message ( "warning: The APPFS_COPY_INODE_TO_POINTER macro does not support FSINFO blocks." )
+#else
+#warning "The APPFS_COPY_INODE_TO_POINTER macro does not support FSINFO blocks."
+#endif
 #define APPFS_COPY_INODE_TO_POINTER(node,pointer) \
 pointer->inodeid = node.inodeid; \
 for (int i = 0; i < 256; i += 1) \
@@ -84,5 +89,5 @@ pointer->rdev = node.rdev; \
 pointer->nlink = node.nlink; \
 pointer->blocks = node.blocks; \
 pointer->dat_len = node.dat_len; \
-pointer->seg_len = node.seg_len; \
-pointer->seg_next = node.seg_next;
+pointer->info_next = node.info_next; \
+pointer->flst_next = node.flst_next;
