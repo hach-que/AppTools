@@ -316,11 +316,13 @@ void doRm(std::vector<std::string> cmd)
 	}
 
 	// Erase all of the file segments, except for the first entry.
-	uint32_t npos = currentFilesystem->getFileNextBlock(currentFilesystem->getINodePositionByID(fnode.inodeid));
+	uint32_t npos = currentFilesystem->getFileNextBlock(
+		fnode.inodeid, 
+		currentFilesystem->getINodePositionByID(fnode.inodeid));
 	uint32_t opos = npos;
 	while (npos != 0)
 	{
-		npos = currentFilesystem->getFileNextBlock(npos);
+		npos = currentFilesystem->getFileNextBlock(fnode.inodeid, npos);
 		currentFilesystem->resetBlock(opos);
 		opos = npos;
 	}

@@ -372,7 +372,7 @@ namespace AppLib
 				FSResult::FSResult setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next);
 
 				// This function returns the position of the next block for file data after the current block.
-				uint32_t getFileNextBlock(uint32_t pos);
+				uint32_t getFileNextBlock(uint16_t id, uint32_t pos);
 
 				// Erase a specified block (CAUTION:  This simply erases BSIZE_FILE bytes from the
 				// specified position.  It does not check to make sure the position is actually

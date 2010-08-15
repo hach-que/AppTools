@@ -33,7 +33,7 @@ namespace AppLib
 		class FreeList
 		{
 			public:
-				FreeList(FS * filesystem);
+				FreeList(FS * filesystem, BlockStream * fd);
 
 				// Finds a free block, marks it as allocated in the free
 				// space allocation table, and returns it's position for

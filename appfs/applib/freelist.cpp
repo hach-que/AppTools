@@ -54,15 +54,15 @@ namespace AppLib
 			// Update the position in the free block allocation table
 			// to be equal to 0 to indicate that the free block is taken.
 			std::streampos oldp = this->fd->tellp();
-			this->fd->seekp(i.first);
-			Endian::doW(this->fd, reinterpret_cast<char *>(&i.second), 4);
+			this->fd->seekp(i->first);
+			Endian::doW(this->fd, reinterpret_cast<char *>(&i->second), 4);
 			this->fd->seekp(oldp);
 
 			// Remove the entry from the position cache.
 			this->position_cache.erase(i);
 
 			// Return the new writable position.
-			return i.second;
+			return i->second;
 		}
 
 		void FreeList::freeBlock(uint32_t pos)
@@ -147,6 +147,43 @@ namespace AppLib
 		INodeType::INodeType FreeList::getBlockType(uint32_t pos)
 		{
 			return INodeType::INT_INVALID;
+		}
+
+		void FreeList::syncronizeCache()
+		{
+			// Clear the cache.
+			this->position_cache.clear();
+
+			// Get the FSInfo inode by position.
+			INode fsinfo = this->filesystem->getINodeByPosition(OFFSET_FSINFO);
+
+			// Get the position of the first FreeList inode.
+			uint32_t fpos = fsinfo.pos_freelist;
+			uint32_t ipos = 0;
+			uint32_t tpos = 0;
+
+			// Store the current position of the file descriptor.
+			std::streampos oldg = this->fd->tellg();
+
+			// Loop through the FreeList inodes, adding non-zero values
+			// to the cache.
+			while (fpos != 0)
+			{
+				for (int i = 8; i < 4096; i += 4)
+				{
+					this->fd->seekg(fpos + i);
+					Endian::doR(this->fd, reinterpret_cast<char *>(&tpos), 4);
+					if (tpos != 0)
+					{
+						this->position_cache.insert(std::pair<uint32_t, uint32_t>(tpos, fpos + i));
+					}
+				}
+			}
+
+			// Seek back to the original position.
+			this->fd->seekg(oldg);
+
+			// The cache has now been (re)built.
 		}
 	}
 }

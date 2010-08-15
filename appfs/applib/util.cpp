@@ -61,25 +61,25 @@ namespace AppLib
 		void Util::sanitizeArguments(char ** argv, int argc, std::string & command, int start)
 		{
 			for (int i = start; i < argc; i += 1)
-	                {
-	                        // There must be a better way of replacing characters to
-	                        // ensure the arguments are passed correctly.
-	                        std::string insane_argv = argv[i];
-	                        std::string sane_argv = "";
-	                        for (int a = 0; a < insane_argv.length(); a += 1)
-	                        {
-	                                if (insane_argv[a] == '\\')
-	                                        sane_argv.append("\\\\");
-	                                else if (insane_argv[a] == '"')
-	                                        sane_argv.append("\\\"");
-	                                else
-	                                        sane_argv += insane_argv[a];
-	                        }
-	                        command = command + " \"" + sane_argv + "\"";
-	                }
+            {
+                // There must be a better way of replacing characters to
+                // ensure the arguments are passed correctly.
+                std::string insane_argv = argv[i];
+                std::string sane_argv = "";
+                for (int a = 0; a < insane_argv.length(); a += 1)
+                {
+                    if (insane_argv[a] == '\\')
+                        sane_argv.append("\\\\");
+                    else if (insane_argv[a] == '"')
+						sane_argv.append("\\\"");
+                    else
+                        sane_argv += insane_argv[a];
+                }
+                command = command + " \"" + sane_argv + "\"";
+            }
 		}
 
-                bool Util::extractBootstrap(std::string source, std::string dest)
+        bool Util::extractBootstrap(std::string source, std::string dest)
 		{
 			FILE * fsrc = fopen(source.c_str(), "r");
 			if (fsrc == NULL) return false;
@@ -88,7 +88,11 @@ namespace AppLib
 			char * buffer = (char*)malloc(1024*1024);
 			size_t readres = fread(buffer, 1, 1024*1024, fsrc);
 			if (ferror(fsrc) != 0) return false;
+#ifdef WIN32
+			size_t writeres = fwrite(buffer, 1, 1024*1024, fdst);
+#else
 			ssize_t writeres = fwrite(buffer, 1, 1024*1024, fdst);
+#endif
 			if (ferror(fdst) != 0) return false;
 			if (fclose(fsrc) != 0) return false;
 			if (fclose(fdst) != 0) return false;

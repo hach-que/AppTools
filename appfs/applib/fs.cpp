@@ -289,7 +289,7 @@ namespace AppLib
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
 			// Use the FreeList class to return a new free block.
-			return this->freelist->getIndexInList(0);
+			return this->freelist->allocateBlock();
 		}
 
 		FSResult::FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
@@ -572,7 +572,7 @@ namespace AppLib
 			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
 			f.seekg(0);
 			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
-			f.read(*data, *len_out);
+			f.read(*data_out, *len_out);
 			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
 			f.close();
 			if (f.fail()) return FSResult::E_FAILURE_GENERAL;

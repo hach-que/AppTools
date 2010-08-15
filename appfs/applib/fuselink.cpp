@@ -265,11 +265,11 @@ namespace AppLib
 				return -EIO;
 
 			// Erase all of the file segments first.
-			uint32_t npos = FuseLink::filesystem->getFileNextBlock(pos);
+			uint32_t npos = FuseLink::filesystem->getFileNextBlock(child.inodeid, pos);
 			uint32_t opos = npos;
 			while (npos != 0)
 			{
-				npos = FuseLink::filesystem->getFileNextBlock(npos);
+				npos = FuseLink::filesystem->getFileNextBlock(child.inodeid, npos);
 				FuseLink::filesystem->resetBlock(opos);
 				opos = npos;
 			}
