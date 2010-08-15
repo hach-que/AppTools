@@ -617,10 +617,53 @@ namespace AppLib
 			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
 		}
 
-		uint32_t FS::getFileNextBlock(uint32_t pos)
+		uint32_t FS::getFileNextBlock(uint16_t id, uint32_t pos)
 		{
-			// TODO: Must be reimplemented in New File Storage system.
-			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			// Store the current positions.
+			std::streampos oldg = this->fd->tellg();
+			std::streampos oldp = this->fd->tellp();
+
+			// Get the base position of the specified inode.
+			uint32_t bpos = this->getINodePositionByID(id);
+
+			// Now loop through all of the segment positions.
+			bool gnext = false;
+			uint32_t spos = 0;
+			uint32_t ipos = bpos;
+			uint32_t hsize = HSIZE_FILE;
+			while (ipos != 0)
+			{
+				for (int i = hsize; i < BSIZE_FILE; i += 4)
+				{
+					this->fd->seekg(bpos + i);
+					spos = 0;
+					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					if (spos == 0)
+					{
+						// End of segment list.  Return 0.
+						return 0;
+					}
+					else if (spos == pos)
+					{
+						// Matched, we need to fetch the next one.
+						gnext = true;
+					}
+					else if (gnext)
+					{
+						// Return the next segment value.
+						return spos;
+					}
+				}
+				hsize = HSIZE_SEGINFO;
+				INode inode = this->getINodeByPosition(ipos);
+				ipos = inode.info_next;
+			}
+
+			// Unable to locate the current segment within the
+			// specified file ID.
+			return 0;
 		}
 
 		FSResult::FSResult FS::resetBlock(uint32_t pos)

@@ -130,7 +130,7 @@ namespace AppLib
 				// Seek back to the original position.
 				this->fd->seekg(oldg);
 
-				return fpos + 8;
+				return fpos + HSIZE_FREELIST;
 			}
 
 			// Seek back to the original position.

@@ -47,11 +47,14 @@ http://code.google.com/p/apptools-dist for more information.
 
 // Number of subdirectories / subfiles allowed in a single
 // directory.
-#define DIRECTORY_CHILDREN_MAX 1903
+#define DIRECTORY_CHILDREN_MAX ((BSIZE_DIRECTORY - HSIZE_DIRECTORY) / 4096)
 
 // Define the sizes of each of the header types.
-#define HSIZE_FILE 310
-#define HSIZE_SEGMENT 12
+#define HSIZE_FILE       306
+#define HSIZE_SEGINFO    8
+#define HSIZE_FREELIST   8
+#define HSIZE_FSINFO     1614
+#define HSIZE_DIRECTORY  294
 
 /************ End Configuration **************/
 
