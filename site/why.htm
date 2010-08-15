@@ -1,0 +1,49 @@
+<!-- Requires XHTML Strict doctype -->
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" />
+<title>AppTools - Linux Software Distribution Tools</title>
+</head>
+<body>
+    <div class="header">
+        <h1>AppTools</h1>
+        <p>Linux Software Distribution Tools</p>
+    </div>
+    <div class="navigation">
+        <div class="navcontainer">
+            <a href="index.htm">Home</a>
+            <a href="who.htm">Who?</a>
+            <a href="what.htm">What?</a>
+            <a href="where.htm">Where?</a>
+            <a href="why.htm">Why?</a>
+        </div>
+    </div>
+    <div class="content">
+        <h2>Why?</h2>
+        <p>Most existing Linux distributions use a combination of a package format (RPM or Deb) with their
+        own repository format (Debian systems all use the same repository format whereas RPM-based systems
+        do not standardized on a repository format).  Originally these systems were designed when managing
+        the applications on a given system started to get out of hand, due to the increase in the amount of
+        Linux software available; when the compile &amp;&amp; make system was no longer suitable (for various
+        reasons).  Unfortunately, now days Linux distributions ship with thousands of applications and
+        libraries, well outside what the original package management systems were designed to cope with.</p>
+        <p>If you've ever had unresolvable dependencies or 'dependency hell' as it's called, you'll understand
+        that the current systems are just not coping with the hundreds of thousands of software packages
+        available.  Most systems will prevent you from installing software if they think that the dependencies
+        won't be met, even if you're the root user.</p>
+        <p>This of course, is only part of the problem.  As each package management system has their own
+        package format and repository format, it's almost impossible to distribute cross-distro packages that
+        target all Linux systems.  Some projects, such as Klik and AppImage, attempt to solve this problem
+        by creating executable 'run-packages', whereby applications are run from a filesystem attached to a
+        bootstrap binary.  In their case however, the bootstrap executable is rather dumb, and doesn't understand
+        nor interact with the underlying package management system.  While this makes the bootstrap rather easy
+        to write, it means that users still need to resolve dependencies manually, and in this case, there's no
+        visual or text warning when dependencies aren't met; the application simply fails to run.</p>
+        <p>Clearly the issues that exist with application distribution on Linux can't be solved by fixing
+        individual components.  What is needed is a system that solves the problems at every level of the
+        application distribution stack, while still maintaining full backwards compatibility with existing
+        package managers.</p>
+        <p>AppTools is that system.</p>
+    </div>
+</body>
+</html>

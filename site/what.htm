@@ -1,0 +1,65 @@
+<!-- Requires XHTML Strict doctype -->
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" />
+<title>AppTools - Linux Software Distribution Tools</title>
+</head>
+<body>
+    <div class="header">
+        <h1>AppTools</h1>
+        <p>Linux Software Distribution Tools</p>
+    </div>
+    <div class="navigation">
+        <div class="navcontainer">
+            <a href="index.htm">Home</a>
+            <a href="who.htm">Who?</a>
+            <a href="what.htm">What?</a>
+            <a href="where.htm">Where?</a>
+            <a href="why.htm">Why?</a>
+        </div>
+    </div>
+    <div class="content">
+        <h2>What?</h2>
+        <p>AppTools is a suite of tools and utilities that make it easy to deploy and manage software on Linux
+        systems.  AppTools contains the following components:</p>
+        <h4>AppFS</h4>
+        <em>Filesystem</em>
+        <p>Each AppFS package uses a specialized filesystem, known as AppFS, to be able to store and retrieve files.
+        By using a specialized filesystem, we can have a package format which can be both be read by application as
+        well as mounted through FUSE; essential for running sandboxed binaries within the package itself.  It also
+        allows for 'resettable' packages; a system by which applications can be read-write sandboxed within the package,
+        but can also be reset back to the original state (removing any customizable or user-data) so that people can
+        share their favorite applications with their friends.</p>
+        <em>Bootstrap</em>
+        <p>Each AppFS package also contains a small, x86 bootstrap application at the front of the package, which handles
+        running applications from within packages.  You can customize the operation of the bootstrap by editing the
+        ApplicationInfo and EntryPoint files located within the root directory of application packages.</p>
+        <p>The bootstrap application has no dependencies outside core libraries available on every Linux distribution.  It's
+        dynamically capable of using the native package management system to download and install application dependencies,
+        even it's own required dependencies (i.e. FUSE), without silently failing.  It's capable of using any UI toolkit (Qt,
+        Gtk+, Tk, etc.) to guarentee visual interaction, nptification and installation with the user, without requiring that
+        any specific UI toolkit be present on the system.</p>
+        <p>In addition to automatically resolving dependencies, it will also automatically update itself (the bootstrap) from
+        the official AppTools site as well as automatically update the application (when run) from the developers or distributors
+        site (even without the developer setting up a full repository).</p>
+        <h4>AppInstall / AppUninstall</h4>
+        <p>These Python utilities are used to to install and remove AppFS packages either system-wide or within a user-specific
+        directory (allowing for installations without root privileges).  It's important to note that an AppFS package can both
+        be run as well as installed; there is no need to have two seperate packages.  In addition, this allows for user data to be
+        carried over when the application is installed.</p>
+        <h4>AppLink / AppUnlink</h4>
+        <p>With AppTools, installation of applications does not place them within the root directory.  Each application is designated
+        it's own directory such as /usr/applications/Wget/1.12 (although the prefix can be changed on a per-distro basis).  This has the
+        specific advantage that the package management system does not require a database or cache of which applications own which files.
+        Instead, the AppLink and AppUnlink tools are used to create symlinks in the root filesystem to the application's files.  This means
+        that the root filesystem stays cleaner, and you never get into a situation where your root filesystem is cluttered
+        with files to which the application owner can't be determined.</p>
+        <h4>AppServer</h4>
+        <p>We also standardize the method for which software repositories should operate, so that any distribution may
+        use the repository of another (although in most cases it's still not a good idea to use the main repositories of
+        another distro as they may have custom patches applied to software).  Any third-party developer can also set up a
+        repository for distributing software and know that any Linux system with AppTools installed (or indeed, anyone who
+        downloads the AppFS packages) will be able to install and run their software.</p>
+    </div>
+</body>
+</html>

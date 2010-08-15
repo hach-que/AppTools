@@ -1,0 +1,80 @@
+body, html
+{
+    margin:0px;
+    padding:0px;
+    font-family: Arial;
+    font-size: 12px;
+}
+
+.header
+{
+    width: auto;
+    padding: 10px;
+    height: 50px;
+    background-color: #BBCCFF;
+    color: #000;
+}
+
+.header h1
+{
+    margin: 0px;
+    padding: 0px;
+    
+    margin-left: 5px;
+    margin-bottom: 5px;
+}
+
+.header p
+{
+    margin: 0px;
+    padding: 0px;
+    
+    margin-left: 5px;
+}
+
+.navigation
+{
+    width: auto;
+    height: 24px;
+    background-color: #333333;
+    color: #FFFFFF;
+}
+
+.navcontainer
+{
+    width: auto;
+    margin: auto;
+}
+
+.navcontainer a
+{
+    float: left;
+    text-align: center;
+    line-height: 24px;
+    font-weight: bold;
+    width: 100px;
+    height: 24px;
+    color: #FFF;
+    text-decoration: none;
+}
+
+.navcontainer a:hover
+{
+    background-color: #555555;
+}
+
+.content
+{
+    padding: 10px;
+    width: 600px;
+}
+
+div.step
+{
+    height:20px;
+    line-height:20px;
+    background-color:#BBCCFF;
+    font-weight:bold;
+    padding-left: 5px;
+    width: 595px;
+}

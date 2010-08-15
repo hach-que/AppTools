@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<application>
+    <name>MyApp</name>
+    <version>1.0.0</version>
+    <author>The MyApp Team</author>
+    <architecture>x86</architecture>
+    <architecture>x86_64</architecture>
+    <architecture>arm</architecture>
+    <package>http://someurl.com/repo/MyApp-1.0.0.afs</package>
+    <dependencies>
+        <dependency>
+            <name>MyLib</name>
+            <version>1.0.0</version>
+            <author>The MyLib Team</author>
+            <architecture>x86</architecture>
+            <architecture>x86_64</architecture>
+            <architecture>arm</architecture>
+            <package>http://someurl.com/repo/MyLib-1.0.0.afs</package>
+            <dependencies>
+                <dependency>
+                    <name>LibStdC++</name>
+                    <version minimum="true">6.0.13</version>
+                    <author>GCC Team</author>
+                    <!--
+                        This repository does not have LibStdC++, but
+                        it knows where it may be located (in another
+                        repository).  Suggesting a dependency
+                        location is optional, as AppLib will simply
+                        request dependencies from other repos
+                        installed on the client's system.
+                    -->
+                    <package suggest="true">http://repo.com/packages/LibStdC++-6.0.13.afs</package>
+                </dependency>
+            </dependencies>
+        </dependency>
+        <dependency>
+            <name>OtherLib</name>
+            <version>2.0.0</version>
+            <author>The OtherLib Team</author>
+            <architecture>x86</architecture>
+            <architecture>x86_64</architecture>
+            <architecture>arm</architecture>
+            <package>http://someurl.com/repo/MyLib-1.0.0.afs</package>
+            <dependencies>
+                <!--
+                    Information about this dependency was previously
+                    included, so we don't include it again.  Note that
+                    the <version> elements have a different meaning
+                    inside <dependency> tags than they do the
+                    <application> tags.  They are instead used to define
+                    what versions of the dependency that the application
+                    requires.
+                -->
+                <dependency previncluded="true">
+                    <name>LibStdC++</name>
+                    <version minimum="true">6.0.5</version>
+                    <version not="true">6.0.7</version> <!-- Maybe 6.0.7 has a bug? -->
+                </dependency>
+            </dependencies>
+        </dependency>
+    </dependencies>
+</application>

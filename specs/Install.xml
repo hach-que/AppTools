@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<install>
+  <application>
+    <name>MyApp</name>
+    <version>1.0</version>
+    <external>ApplicationInfo.xml</external>
+  </application>
+  <wizard>
+    <page type="welcome" />
+    <page type="location">
+      <variable name="DEFAULT_LOC">${usr-app}</variable>
+    </page>
+    <page type="options" />
+    <page type="finish">
+      <variable name="LAUNCH_OPT1">${inst-loc}/bin/myapp --run-from-install</variable>
+    </page>
+  </wizard>
+  <configuration>
+    <predefine type="full" name="Full Install">
+      <component>base</component>
+      <component>server</component>
+      <description>
+        Installs both the client libraries and the
+        server application.  Select this option if
+        you want to serve data over the network to
+        MyApp clients.
+      </description>
+      <option type="auto" name="apache2-integration" desc="Integrate server with Apache">
+        <check name="apache2-bin-exists" type="file exists">${path}/httpd</check>
+        <check name="apache2-conf-exists" type="directory exists">/etc/httpd</check>
+        <check name="apache2-exists" type="and">apache-bin-exists,apache-conf-exists</check>
+        <patch name="apache2-patch" on="apache2-exists" />
+      </option>
+      <option type="manual" desc="Use legacy server">
+        <compat notwith="apache2-integration" />
+        <patch name="legacy-server" />
+      </option>
+    </predefine>
+    <predefine name="Client Only" default="true">
+      <component>base</component>
+      <description>
+        Installs only the client libraries.  This is
+        the recommended option for users, unless they
+        plan on running a MyApp server.
+      </description>
+    </predefine>
+    <predefine type="custom" name="Custom Install" />
+  </configuration>
+  <components>
+    <component name="base" required="true">
+      <files>
+        <include order="0">*</include>
+        <exclude order="1">server</exclude>
+      </files>
+    </component>
+    <component name="server">
+      <files>
+        <include order="2">server</include>
+      </files>
+    </component>
+  </components>
+  <patches>
+    <patch name="apache2-patch" algorithm="delta">
+      <source>${pkg-stor}/Patches/apache2.delta</source>
+      <destination>${inst-loc}/bin/myapp</destination>
+    </patch>
+    <patch name="legacy-server" algorithm="delta">
+      <source>${pkg-stor}/Patches/legacy-server.delta</source>
+      <destination>${inst-loc}/bin/myapp</destination>
+    </patch>
+  </patches>
+</install>
