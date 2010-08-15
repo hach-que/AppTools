@@ -286,8 +286,10 @@ namespace AppLib
 
 		uint32_t FS::getFirstFreeBlock(INodeType::INodeType type)
 		{
-			// TODO: Must be reimplemented in New File Storage system.
-			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			// Use the FreeList class to return a new free block.
+			return this->freelist->getIndexInList(0);
 		}
 
 		FSResult::FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
@@ -535,14 +537,47 @@ namespace AppLib
 
 		FSResult::FSResult FS::setFileContents(uint16_t id, const char * data, uint32_t len)
 		{
-			// TODO: Must be reimplemented in New File Storage system.
-			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			// Our new version of this function is simply going to use
+			// the FSFile class.
+			FSFile f = this->getFile(id);
+			f.truncate(len);
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.open();
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.seekp(0);
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.write(data, len);
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.close();
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+
+			return FSResult::E_SUCCESS;
 		}
 
 		FSResult::FSResult FS::getFileContents(uint16_t id, char ** data_out, uint32_t * len_out, uint32_t len_max)
 		{
-			// TODO: Must be reimplemented in New File Storage system.
-			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			// Our new version of this function is simply going to use
+			// the FSFile class.
+			FSFile f = this->getFile(id);
+			uint32_t fsize = f.size();
+			*len_out = (fsize < len_max) ? fsize : len_max;
+			*data_out = (char*)malloc(*len_out);
+
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.open();
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.seekg(0);
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.read(*data, *len_out);
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			f.close();
+			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+
+			return FSResult::E_SUCCESS;
 		}
 
 		FSResult::FSResult FS::setFileLengthDirect(uint32_t pos, uint32_t len)

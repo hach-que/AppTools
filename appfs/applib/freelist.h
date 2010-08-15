@@ -20,6 +20,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <map>
 #include "endian.h"
 
 namespace AppLib
@@ -53,11 +54,25 @@ namespace AppLib
 
 			private:
 				FS * filesystem;
+				BlockStream * fd;
 
 				// Returns the position in the free space allocation table
 				// where a 32-bit position integer can be written, that
 				// currently matches pos.
 				uint32_t getIndexInList(uint32_t pos);
+
+				// An in-memory cache of the free space allocation table, so
+				// that fast lookups can be done to determine whether or not
+				// a block is free or not (without having to cycle through the
+				// entire free block allocation table).
+				//
+				// The first (key) value is the position that's free, the second
+				// value is the position on disk of the free allocation index
+				// (i.e. the result of getIndexInList for the specified position).
+				std::map<uint32_t, uint32_t> position_cache;
+
+				// Resyncronizes the cache based on what is on disk.
+				void syncronizeCache();
 		};
 	}
 }

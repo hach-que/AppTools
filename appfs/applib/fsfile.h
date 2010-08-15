@@ -41,6 +41,7 @@ namespace AppLib
 				void seekg(std::streampos pos);
 				std::streampos tellp();
 				std::streampos tellg();
+				uint32_t size();
 
 				// State functions.
 				std::ios::iostate rdstate();

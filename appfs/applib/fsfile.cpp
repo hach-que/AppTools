@@ -61,6 +61,12 @@ namespace AppLib
 			return (fres == FSResult::E_SUCCESS);
 		}
 
+		uint32_t FSFile::size()
+		{
+			INode fnode = this->filesystem->getINodeByID(this->inodeid);
+			return fnode.dat_len;
+		}
+
 		void FSFile::close()
 		{
 			this->opened = false;
