@@ -611,10 +611,74 @@ namespace AppLib
 			}
 		}
 
-		FSResult::FSResult FS::setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next)
+		FSResult::FSResult FS::setFileNextSegmentDirect(uint16_t id, uint32_t pos, uint32_t seg_next)
 		{
-			// TODO: Must be reimplemented in New File Storage system.
-			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			signed int file_info_next_offset = 302;
+
+			// Store the current positions.
+			std::streampos oldg = this->fd->tellg();
+			std::streampos oldp = this->fd->tellp();
+
+			// Get the base position of the specified inode.
+			uint32_t bpos = this->getINodePositionByID(id);
+			INode node = this->getINodeByPosition(bpos);
+			if (node.type != INodeType::INT_FILEINFO)
+			{
+				return FSResult::E_FAILURE_NOT_A_FILE;
+			}
+			if (bpos == pos)
+			{
+				// We're setting the position of the first segment
+				// in the file.
+				std::streampos oldp = this->fd->tellp();
+				this->fd->seekg(bpos + file_info_next_offset);
+				Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next), 4);
+				this->fd->seekp(oldp);
+				return FSResult::E_SUCCESS;
+			}
+
+			// Now loop through all of the segment positions.
+			bool gnext = false;
+			uint32_t spos = 0;
+			uint32_t ipos = bpos;
+			uint32_t hsize = HSIZE_FILE;
+			while (ipos != 0)
+			{
+				for (int i = hsize; i < BSIZE_FILE; i += 4)
+				{
+					this->fd->seekg(bpos + i);
+					spos = 0;
+					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					if (spos == 0)
+					{
+						// End of segment list.  Return 0.
+						return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
+					}
+					else if (spos == pos)
+					{
+						// Matched, we need to fetch the next one.
+						gnext = true;
+					}
+					else if (gnext)
+					{
+						// Replace the segment value.
+						std::streampos oldp = this->fd->tellp();
+						this->fd->seekp(bpos + i);
+						Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next), 4);
+						this->fd->seekp(oldp);
+						return FSResult::E_SUCCESS;
+					}
+				}
+				hsize = HSIZE_SEGINFO;
+				INode inode = this->getINodeByPosition(ipos);
+				ipos = inode.info_next;
+			}
+
+			// Unable to locate the current segment within the
+			// specified file ID.
+			return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
 		}
 
 		uint32_t FS::getFileNextBlock(uint16_t id, uint32_t pos)
