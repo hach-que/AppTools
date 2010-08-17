@@ -602,6 +602,7 @@ namespace AppLib
 				Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
 				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
+				this->fd->seekp(oldp);
 				return FSResult::E_SUCCESS;
 			}
 			else
@@ -636,6 +637,7 @@ namespace AppLib
 				this->fd->seekg(bpos + file_info_next_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next), 4);
 				this->fd->seekp(oldp);
+				this->fd->seekg(oldg);
 				return FSResult::E_SUCCESS;
 			}
 
@@ -668,6 +670,7 @@ namespace AppLib
 						this->fd->seekp(bpos + i);
 						Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next), 4);
 						this->fd->seekp(oldp);
+						this->fd->seekg(oldg);
 						return FSResult::E_SUCCESS;
 					}
 				}
@@ -678,6 +681,7 @@ namespace AppLib
 
 			// Unable to locate the current segment within the
 			// specified file ID.
+			this->fd->seekg(oldg);
 			return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
 		}
 
@@ -707,6 +711,7 @@ namespace AppLib
 					if (spos == 0)
 					{
 						// End of segment list.  Return 0.
+						this->fd->seekg(oldg);
 						return 0;
 					}
 					else if (spos == pos)
@@ -717,6 +722,7 @@ namespace AppLib
 					else if (gnext)
 					{
 						// Return the next segment value.
+						this->fd->seekg(oldg);
 						return spos;
 					}
 				}
@@ -727,12 +733,18 @@ namespace AppLib
 
 			// Unable to locate the current segment within the
 			// specified file ID.
+			this->fd->seekg(oldg);
 			return 0;
 		}
 
 		FSResult::FSResult FS::resetBlock(uint32_t pos)
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			if (this->freelist->isBlockFree(pos) || pos % 4096 != 0)
+			{
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
+			}
 
 			std::streampos oldp = this->fd->tellp();
 			Util::seekp_ex(this->fd, pos);
@@ -743,16 +755,71 @@ namespace AppLib
 			}
 			Util::seekp_ex(this->fd, oldp);
 
-			// TODO: Block must be marked as unused through the
-			//       free list allocation class.
+			// Block must be marked as unused through the
+			// free list allocation class.
+			this->freelist->freeBlock(pos);
 
 			return FSResult::E_SUCCESS;
 		}
 
 		uint32_t FS::resolvePositionInFile(uint16_t inodeid, uint32_t pos)
 		{
-			// TODO: Must be reimplemented in New File Storage system.
-			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			// Store the current positions.
+			std::streampos oldg = this->fd->tellg();
+			std::streampos oldp = this->fd->tellp();
+
+			// Get the base position of the specified inode.
+			uint32_t bpos = this->getINodePositionByID(id);
+
+			// Now loop through all of the segment positions.
+			uint32_t bcount = 0;
+			uint32_t spos = 0;
+			uint32_t ipos = bpos;
+			uint32_t hsize = HSIZE_FILE;
+			while (ipos != 0)
+			{
+				for (int i = hsize; i < BSIZE_FILE; i += 4)
+				{
+					this->fd->seekg(bpos + i);
+					spos = 0;
+					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					if (spos == 0)
+					{
+						// Invalid segment position (i.e. there are
+						// no more segments available).
+						this->fd->seekg(oldg);
+						return 0;
+					}
+
+					if (bcount < pos && bcount + 4096 < pos)
+					{
+						// We haven't reached our target block yet.
+						bcount += 4096;
+						continue;
+					}
+					else if (bcount < pos && bcount + 4096 > pos)
+					{
+						// This is our target block.
+						this->fd->seekg(oldg);
+						return spos + (pos - bcount);
+					}
+					else
+					{
+						// We're past our target block.
+						this->fd->seekg(oldg);
+						return 0;
+					}
+				}
+				hsize = HSIZE_SEGINFO;
+				INode inode = this->getINodeByPosition(ipos);
+				ipos = inode.info_next;
+			}
+
+			// Unable to locate the position within the file.
+			this->fd->seekg(oldg);
+			return 0;
 		}
 
 		int32_t FS::resolvePathnameToInodeID(const char * path)
