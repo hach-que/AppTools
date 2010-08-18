@@ -1,20 +1,57 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <install>
+  <!--
+  Basic application information, such as the name and
+  version.  An <external> tag is provided to designate
+  where dependencies and additional information is read
+  from (it should normally be the ApplicationInfo XML
+  document in your package).
+  -->
   <application>
     <name>MyApp</name>
     <version>1.0</version>
     <external>ApplicationInfo.xml</external>
   </application>
+  <!--
+  Specifies the order of the pages in the installation
+  wizard.  Variables can be set to configure how the
+  pages are rendered or what defaults / options are
+  offered.
+  -->
   <wizard>
     <page type="welcome" />
     <page type="location">
       <variable name="DEFAULT_LOC">${usr-app}</variable>
     </page>
+    <page type="components" />
     <page type="options" />
+    <page type="install" />
     <page type="finish">
       <variable name="LAUNCH_OPT1">${inst-loc}/bin/myapp --run-from-install</variable>
     </page>
   </wizard>
+  <!--
+  Defines the preselections of components (predefines) as
+  well as the selectable options on the options pages.
+  
+  Preselections are offered on the components page (which
+  also handles custom individual component selection if
+  Custom is selected).
+  
+  Options that are within a <predefine>
+  element are offered as part of that preselection, whereas
+  options in the general <configuration> tag will be shown
+  on the options page.
+  
+  Options can be automatic, i.e. selected automatically
+  through detection of situations in the environment, or
+  manual, which means the user can select whether or not
+  the option is true or false (checkbox).
+  
+  Options can either result in patches being applied to
+  the installation (see <patches> section) or additional
+  components being selected.
+  -->
   <configuration>
     <predefine type="full" name="Full Install">
       <component>base</component>
@@ -45,20 +82,56 @@
       </description>
     </predefine>
     <predefine type="custom" name="Custom Install" />
+    <option type="manual" name="create-menu-link" desc="Create System Menu Shortcut">
+      <component name="option-menu-link" />
+    </option>
   </configuration>
+  <!--
+  Components are sets of files which are included / 
+  excluded from installation.  The order is provided
+  to indicate which include / exclude tags override
+  other active tags, with exclude taking precedence if
+  an include and exclude have the same order.
+  
+  Components can be required, or hidden (which means
+  they will not show up on the Custom page).
+  
+  The <include> tag supports changing the destination
+  of a specified inclusion, as well as indicating that
+  the contents should be copied to the destination and
+  not the folder itself.
+  -->
   <components>
     <component name="base" required="true">
       <files>
         <include order="0">*</include>
         <exclude order="1">server</exclude>
+        <exclude order="2">menu</exclude>
       </files>
     </component>
     <component name="server">
       <files>
-        <include order="2">server</include>
+        <include order="3">server</include>
+      </files>
+    </component>
+    <component name="option-menu-link" hidden="true">
+      <files>
+        <include order="4" dest="{inst-menu}/Servers/" contents="true">menu</include>
       </files>
     </component>
   </components>
+  <!--
+  Delta patches are often used to change between different
+  binary builds that were built with different configuration
+  options.  In conjunction with the automatic options
+  checking, this can be used to add compile-time modifications
+  at installation time on the client PC.  (i.e, if an
+  application has some special features which require it to
+  be built against Apache2 at compile time, you can build
+  two executables, one with and one without the Apache2 support
+  and then enable support via a Delta patch if the client has
+  Apache2).
+  -->
   <patches>
     <patch name="apache2-patch" algorithm="delta">
       <source>${pkg-stor}/Patches/apache2.delta</source>
