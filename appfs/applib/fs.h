@@ -388,6 +388,12 @@ namespace AppLib
 				// Sets the length of a file, allocating or erasing blocks / data where necessary.
 				FSResult::FSResult truncateFile(uint16_t inodeid, uint32_t len);
 
+				// Allocates or frees enough blocks so that there is enough segment list blocks
+				// available to address all of the segments.  pos is the position of the file
+				// inode and len is the length of the data that needs to be addressed (i.e. size
+				// of the file).
+				FSResult::FSResult allocateInfoListBlocks(uint32_t pos, uint32_t len);
+
 				// Returns a FSFile object for interacting with the specified file at
 				// the specified inode.
 				FSFile getFile(uint16_t inodeid);

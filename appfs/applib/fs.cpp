@@ -584,6 +584,7 @@ namespace AppLib
 		{
 			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
+			signed int file_blocks_offset = 296;
 			signed int file_len_offset = 298;
 
 			this->fd->clear();
@@ -600,6 +601,9 @@ namespace AppLib
 			{
 				Util::seekp_ex(this->fd, pos + file_len_offset);
 				Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
+				Util::seekp_ex(this->fd, pos + file_blocks_offset);
+				uint16_t blocks = ceil(len / (double)BSIZE_FILE);
+				Endian::doW(this->fd, reinterpret_cast<char *>(&blocks),  2);
 				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
 				this->fd->seekp(oldp);
@@ -874,8 +878,283 @@ namespace AppLib
 
 		FSResult::FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 		{
-			// TODO: Must be reimplemented in New File Storage system.
-			return FSResult::E_FAILURE_NOT_IMPLEMENTED;
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			// Store the current positions.
+			std::streampos oldg = this->fd->tellg();
+			std::streampos oldp = this->fd->tellp();
+
+			// Get the base position of the specified inode.
+			uint32_t bpos = this->getINodePositionByID(inodeid);
+
+			// Then get the INode and find out the data length.
+			INode node = this->getINodeByPosition(bpos);
+
+			if (node.dat_len == len)
+				return FSResult::E_SUCCESS;
+			else if (node.dat_len > len)
+			{
+				// We need to delete blocks at the end of the file.
+				// Calculate the number of blocks to delete.
+				uint16_t blocks_to_delete = node.blocks - ceil(len / (double)BSIZE_FILE);
+
+				// Now loop through all of the segment positions.
+				uint32_t bcount = 0;
+				uint32_t spos = 0;
+				uint32_t ipos = bpos;
+				uint32_t hsize = HSIZE_FILE;
+				while (ipos != 0)
+				{
+					for (int i = hsize; i < BSIZE_FILE; i += 4)
+					{
+						this->fd->seekg(bpos + i);
+						spos = 0;
+						Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+						if (spos == 0)
+						{
+							// We've run out of segments to erase.
+							ipos = 0; // Make it jump out of the while() loop.
+							break;
+						}
+
+						if (bcount >= node.blocks - blocks_to_delete)
+						{
+							// First remove the block from the file segment list.
+							this->fd->seekp(bpos + i);
+							char zero = '\0';
+							Endian::doW(this->fd, &zero, 1);
+
+							// Next use resetBlock to erase the data in it (this also
+							// frees it in the FreeList).
+							this->resetBlock(spos);
+						}
+
+						bcount += 1;
+					}
+					hsize = HSIZE_SEGINFO;
+					INode inode = this->getINodeByPosition(ipos);
+					ipos = inode.info_next;
+				}
+
+				// Now set the file's data length.
+				FSResult::FSResult res = this->setFileLengthDirect(bpos, len);
+				if (res != FSResult::E_SUCCESS)
+					return res;
+
+				// Now free up any segment list blocks.
+				FSResult::FSResult res = this->allocateInfoListBlocks(bpos, len);
+				if (res != FSResult::E_SUCCESS)
+					return res;
+
+				// We successfully truncated the file.
+				this->fd->seekg(oldg);
+				this->fd->seekp(oldp);
+				return FSResult::E_SUCCESS;
+			}
+			else if (node.dat_len < len)
+			{
+				// Allocate new segment list blocks before we
+				// attempt to cycle through / store data in them.
+				FSResult::FSResult res = this->allocateInfoListBlocks(bpos, len);
+				if (res != FSResult::E_SUCCESS)
+					return res;
+
+				// We need to add blocks at the end of the file.
+				// Calculate the number of blocks to add.
+				uint16_t blocks_to_add = ceil(len / (double)BSIZE_FILE) - node.blocks;
+
+				// Now loop through all of the segment positions.
+				uint32_t bcount = 0;
+				uint32_t spos = 0;
+				uint32_t ipos = bpos;
+				uint32_t hsize = HSIZE_FILE;
+				while (ipos != 0)
+				{
+					for (int i = hsize; i < BSIZE_FILE; i += 4)
+					{
+						this->fd->seekg(bpos + i);
+						spos = 0;
+						Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+						if (spos != 0)
+						{
+							// We don't want to touch this position since it already
+							// points to an existing segment.
+							continue;
+						}
+
+						if (bcount < node.blocks + blocks_to_add)
+						{
+							// Allocate a new block.
+							uint32_t npos = this->freelist->allocateBlock();
+
+							// Now add it to the file segment list.
+							this->fd->seekp(bpos + i);
+							Endian::doW(this->fd, reinterpret_cast<char *>(&npos), 4);
+						}
+						else
+						{
+							ipos = 0;
+							break;
+						}
+
+						bcount += 1;
+					}
+					hsize = HSIZE_SEGINFO;
+					INode inode = this->getINodeByPosition(ipos);
+					ipos = inode.info_next;
+				}
+
+				// Now set the file's data length.
+				FSResult::FSResult res = this->setFileLengthDirect(bpos, len);
+				if (res != FSResult::E_SUCCESS)
+					return res;
+
+				// We successfully truncated the file.
+				this->fd->seekg(oldg);
+				this->fd->seekp(oldp);
+				return FSResult::E_SUCCESS;
+			}
+			
+			// Impossible to get here?
+			return FSResult::E_FAILURE_UNKNOWN;
+		}
+
+		FSResult::FSResult FS::allocateInfoListBlocks(uint32_t pos, uint32_t len)
+		{
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			signed int file_info_next_offset = 302;
+			signed int info_info_next_offset = 4;
+			signed int segments_in_file_block = (BSIZE_FILE - HSIZE_FILE) / 4;
+			signed int segments_in_info_block = (BSIZE_FILE - HSIZE_SEGINFO) / 4;
+
+			// Store the current positions.
+			std::streampos oldg = this->fd->tellg();
+			std::streampos oldp = this->fd->tellp();
+
+			// Get the INode.
+			INode node = this->getINodeByPosition(pos);
+
+			// First calculate the number of segment info 'markers' we need to
+			// address data in the entire file.
+			uint32_t mcount = len / BSIZE_FILE;
+
+			// Subtract the number that can be addressed in the file block as we're
+			// only interested in the number of additional blocks.
+			if (mcount > segments_in_file_block)
+				mcount -= segments_in_file_block;
+			else
+				mcount = 0;
+
+			// Do the same for the current number of segment allocated.
+			uint32_t ccount = node.blocks;
+			if (ccount > segments_in_file_block)
+				ccount -= segments_in_file_block;
+			else
+				ccount = 0;
+
+			// Calculate how many *additional* info list blocks we'd need to
+			// index all of the file, as well as how many info blocks are
+			// currently being used.
+			uint32_t tilcount = 0;
+			uint32_t cilcount = 0;
+			for (uint32_t i = 0; i < mcount; i += segments_in_info_block)
+				tilcount += 1;
+			for (uint32_t i = 0; i < ccount; i += segments_in_file_block)
+				cilcount += 1;
+
+			// Determine whether we need to increase, decrease or leave the
+			// number of allocated blocks the same.
+			if (tilcount == cilcount)
+				return FSResult::E_SUCCESS;
+			else if (tilcount < cilcount)
+			{
+				// Free up some blocks.  First loop through and build
+				// a vector list of all of the positions of the info
+				// list blocks (as there is no way to reverse through
+				// the list using I/O).
+				std::vector<uint32_t> list_positions();
+				uint32_t lpos = 0;
+				this->fd->seekg(pos + file_info_next_offset);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+				while (lpos != 0)
+				{
+					list_positions.insert(list_positions.begin(), lpos);
+					this->fd->seekg(lpos + info_info_next_offset);
+					Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+				}
+
+				// Now delete the info list blocks.
+				while (tilcount < cilcount)
+				{
+					uint32_t dpos = list_positions[list_positions.size() - 1];
+					uint32_t ppos = 0;
+					uint32_t poff = 0;
+					if (list_positions.size() == 1)
+					{
+						ppos = pos;
+						poff = file_info_next_offset;
+					}
+					else
+					{
+						ppos = list_positions[list_positions.size() - 2];
+						poff = info_info_next_offset;
+					}
+
+					// Erase the link from the previous info block to this one.
+					this->fd->seekp(ppos + poff);
+					uint32_t zero = 0;
+					Endian::doW(this->fd, reinterpret_cast<char *>(&zero), 4);
+
+					// Now erase the block.
+					this->resetBlock(dpos);
+
+					cilcount -= 1;
+				}
+
+				return FSResult::E_SUCCESS;
+			}
+			else if (tilcount > cilcount)
+			{
+				// Allocate some blocks.  Fetch the position of the last
+				// allocated block.
+				uint32_t lpos = 0;
+				uint32_t ppos = 0;
+				this->fd->seekg(pos + file_info_next_offset);
+				Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+				while (lpos != 0)
+				{
+					ppos = lpos;
+					list_positions.insert(list_positions.begin(), lpos);
+					this->fd->seekg(lpos + info_info_next_offset);
+					Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+				}
+
+				// Now allocate as many blocks as we need.
+				while (tilcount > cilcount)
+				{
+					// Get a new block.
+					uint32_t npos = this->freelist->allocateBlock();
+
+					// Set a link from the previous block to the new one.
+					uint32_t poff = 0;
+					if (ppos == 0)
+					{
+						ppos = pos;
+						poff = file_info_next_offset;
+					}
+					else
+						poff = info_info_next_offset;
+
+					this->fd->seekp(ppos + poff);
+					Endian::doW(this->fd, reinterpret_cast<char *>(&npos), 4);
+					
+					ppos = npos;
+					cilcount += 1;
+				}
+
+				return FSResult::E_SUCCESS;
+			}
 		}
 
 		FSFile FS::getFile(uint16_t inodeid)
