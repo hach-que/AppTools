@@ -189,6 +189,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\applib\ppnarg.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\applib\util.h"
 				>
 			</File>

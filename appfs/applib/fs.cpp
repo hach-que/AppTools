@@ -25,6 +25,8 @@ http://code.google.com/p/apptools-dist for more information.
 #include "blockstream.h"
 #include <errno.h>
 #include <assert.h>
+#include <math.h>
+#include <vector>
 
 namespace AppLib
 {
@@ -775,7 +777,7 @@ namespace AppLib
 			std::streampos oldp = this->fd->tellp();
 
 			// Get the base position of the specified inode.
-			uint32_t bpos = this->getINodePositionByID(id);
+			uint32_t bpos = this->getINodePositionByID(inodeid);
 
 			// Now loop through all of the segment positions.
 			uint32_t bcount = 0;
@@ -942,7 +944,7 @@ namespace AppLib
 					return res;
 
 				// Now free up any segment list blocks.
-				FSResult::FSResult res = this->allocateInfoListBlocks(bpos, len);
+				res = this->allocateInfoListBlocks(bpos, len);
 				if (res != FSResult::E_SUCCESS)
 					return res;
 
@@ -1005,7 +1007,7 @@ namespace AppLib
 				}
 
 				// Now set the file's data length.
-				FSResult::FSResult res = this->setFileLengthDirect(bpos, len);
+				res = this->setFileLengthDirect(bpos, len);
 				if (res != FSResult::E_SUCCESS)
 					return res;
 
@@ -1073,7 +1075,7 @@ namespace AppLib
 				// a vector list of all of the positions of the info
 				// list blocks (as there is no way to reverse through
 				// the list using I/O).
-				std::vector<uint32_t> list_positions();
+				std::vector<uint32_t> list_positions;
 				uint32_t lpos = 0;
 				this->fd->seekg(pos + file_info_next_offset);
 				Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
@@ -1125,7 +1127,6 @@ namespace AppLib
 				while (lpos != 0)
 				{
 					ppos = lpos;
-					list_positions.insert(list_positions.begin(), lpos);
 					this->fd->seekg(lpos + info_info_next_offset);
 					Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
 				}

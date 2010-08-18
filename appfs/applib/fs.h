@@ -369,7 +369,7 @@ namespace AppLib
 
 				// Sets the seg_next field for a FILE or SEGMENT block, without actually
 				// allocating a new block or validating the seg_next position.
-				FSResult::FSResult setFileNextSegmentDirect(uint32_t pos, uint32_t seg_next);
+				FSResult::FSResult setFileNextSegmentDirect(uint16_t id, uint32_t pos, uint32_t seg_next);
 
 				// This function returns the position of the next block for file data after the current block.
 				uint32_t getFileNextBlock(uint16_t id, uint32_t pos);
