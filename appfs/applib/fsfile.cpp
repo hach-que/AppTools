@@ -154,6 +154,16 @@ namespace AppLib
 						// Increase the counters.
 						doff += stotal;
 						this->posp += stotal;
+
+						if (bcount == bend)
+						{
+							// We're going to finish writing on this block too.
+							this->fd->seekg(oldg);
+							this->fd->seekp(oldp);
+							if (this->posg == fsize)
+								this->clear(std::ios::eofbit);
+							return;
+						}
 					}
 					else if (bcount > bstart && bcount < bend)
 					{
@@ -297,6 +307,15 @@ namespace AppLib
 						// Increase the counters.
 						doff += bread;
 						this->posg += bread;
+
+						if (bcount == bend)
+						{
+							// We're going to finish reading on this block too.
+							this->fd->seekg(oldg);
+							if (this->posg == fsize)
+								this->clear(std::ios::eofbit);
+							return doff;
+						}
 					}
 					else if (bcount > bstart && bcount < bend)
 					{
@@ -435,17 +454,17 @@ namespace AppLib
 
 		bool FSFile::bad()
 		{
-			return (this->state & std::ios::badbit != 0);
+			return ((this->state & std::ios::badbit) != 0);
 		}
 
 		bool FSFile::eof()
 		{
-			return (this->state & std::ios::eofbit != 0);
+			return ((this->state & std::ios::eofbit) != 0);
 		}
 
 		bool FSFile::fail()
 		{
-			return (this->state & std::ios::failbit != 0);
+			return ((this->state & std::ios::failbit) != 0);
 		}
 	}
 }

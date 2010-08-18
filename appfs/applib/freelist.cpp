@@ -57,12 +57,13 @@ namespace AppLib
 			this->fd->seekp(i->first);
 			Endian::doW(this->fd, reinterpret_cast<char *>(&i->second), 4);
 			this->fd->seekp(oldp);
+			uint32_t res = i->second;
 
 			// Remove the entry from the position cache.
 			this->position_cache.erase(i);
 
 			// Return the new writable position.
-			return i->second;
+			return res;
 		}
 
 		void FreeList::freeBlock(uint32_t pos)

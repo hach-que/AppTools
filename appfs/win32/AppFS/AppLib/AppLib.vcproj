@@ -42,6 +42,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="-D_FILE_OFFSET_BITS=64"
 				Optimization="0"
+				EnableIntrinsicFunctions="true"
 				AdditionalIncludeDirectories="&quot;$(SolutionDir)\..\FUSE_Include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
 				MinimalRebuild="true"

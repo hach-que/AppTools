@@ -43,6 +43,7 @@ namespace AppLib
 			Endian::detectEndianness();
 
 			this->fd = fd;
+			this->freelist = new FreeList(this, fd);
 
 #ifdef WIN32
 			// Check for text-mode stream, which will break binary packages.

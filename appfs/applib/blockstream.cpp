@@ -45,7 +45,7 @@ namespace AppLib
 			this->opened = false;
 			this->invalid = false;
 
-			this->fd = new std::fstream(filename.c_str(), std::ios::in | std::ios::out);
+			this->fd = new std::fstream(filename.c_str(), std::ios::in | std::ios::out | std::ios::binary);
 			if (!this->fd->is_open())
 			{
 				Logging::showErrorW("Unable to open specified file as BlockStream.");
