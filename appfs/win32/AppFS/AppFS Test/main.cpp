@@ -3,6 +3,7 @@
 #include "logging.h"
 #include "fs.h"
 #include "fsfile.h"
+#include "util.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -56,57 +57,11 @@ int main(int argc, char* argv[])
 	AppLib::Logging::showInfoW("Test suite started.");
 
 	// Create the file.
-	std::fstream * nfd = new std::fstream("test.afs", std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
-	if (!nfd->is_open())
+	if (!AppLib::LowLevel::Util::createPackage("test.afs", "Test App", "1.0.0", "A test package.", "AppTools"))
 	{
 		AppLib::Logging::showErrorW("Unable to create blank AppFS package ./test.afs.");
 		return 1;
 	}
-
-#if OFFSET_BOOTSTRAP != 0
-#error The test suite is written under the assumption that the bootstrap offset is 0,
-#error hence the test suite will not operate correctly with a different offset.
-#endif
-	AppLib::Logging::showInfoW("AppFS test package creation required.");
-	// Bootstrap section
-	for (int i = 0; i < LENGTH_BOOTSTRAP; i += 1)
-	{
-		nfd->write("\0", 1);
-	}
-	AppLib::Logging::showInfoW("Wrote bootstrap section.");
-
-	// Inode Lookup section
-	for (int i = 0; i < 65536; i += 1)
-	{
-		if (i == 0)
-		{
-			uint32_t pos = OFFSET_FSINFO;
-			nfd->write(reinterpret_cast<char *>(&pos), 4);
-		}
-		else
-			nfd->write("\0\0\0\0", 4);
-	}
-	AppLib::Logging::showInfoW("Wrote inode lookup section.");
-
-	time_t rtime;
-	time(&rtime);
-
-	// Write the root inode data.
-	AppLib::LowLevel::INode node(0, "", AppLib::LowLevel::INodeType::INT_DIRECTORY);
-	node.uid = 0;
-	node.gid = 1000;
-	node.mask = 0777;
-	node.atime = rtime;
-	node.mtime = rtime;
-	node.ctime = rtime;
-	node.parent = 0;
-	node.children_count = 0;
-	std::string node_rep = node.getBinaryRepresentation();
-	nfd->write(node_rep.c_str(), node_rep.length());
-	AppLib::Logging::showInfoW("Wrote root inode.");
-
-	nfd->close();
-	delete nfd;
 	AppLib::Logging::showInfoW("Test package creation complete.");
 
 	// Open the newly created package.
@@ -231,7 +186,7 @@ fs.getFileContents(). \
 	RUN_TEST(test_ll_add_child_to_dir, inodeid, 0);
 
 	// TEST: Run increase-decrease truncation test for file4.
-	//RUN_TEST(test_tc_incdec_400, inodeid, "/file4");
+	RUN_TEST(test_tc_incdec_400, inodeid, "/file4");
 
 	// TEST: Run increase-decrease truncation test for file4.
 	//RUN_TEST(test_tc_incdec_4000, inodeid, "/file4");

@@ -24,11 +24,11 @@ http://code.google.com/p/apptools-dist for more information.
 // these for compatibility reasons.
 #define OFFSET_BOOTSTRAP 0
 #define LENGTH_BOOTSTRAP (1024 * 1024)
-#define OFFSET_LOOKUP    (1024 * 1024)
+#define OFFSET_LOOKUP    LENGTH_BOOTSTRAP
 #define LENGTH_LOOKUP    (256 * 1024)
-#define OFFSET_FSINFO    (1024 * 1024 + 256 * 1024)
+#define OFFSET_FSINFO    (LENGTH_BOOTSTRAP + LENGTH_LOOKUP)
 #define LENGTH_FSINFO    (4096)
-#define OFFSET_DATA      (1024 * 1024 + 256 * 1024 + 4096)
+#define OFFSET_DATA      (LENGTH_BOOTSTRAP + LENGTH_LOOKUP + LENGTH_FSINFO)
 
 // Name of the filesystem implementation.  Must be 9 characters
 // because the automatic terminating NULL character makes it 10
@@ -57,6 +57,10 @@ http://code.google.com/p/apptools-dist for more information.
 #define HSIZE_DIRECTORY  294
 
 /************ End Configuration **************/
+
+#define LIBRARY_VERSION_MAJOR 0
+#define LIBRARY_VERSION_MINOR 1
+#define LIBRARY_VERSION_REVISION 0
 
 #if defined(_MSC_VER) 
 typedef signed __int8 int8_t; 

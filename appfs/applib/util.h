@@ -34,6 +34,8 @@ namespace AppLib
 				static void sanitizeArguments(char ** argv, int argc, std::string & command, int start);
 				static bool extractBootstrap(std::string source, std::string dest);
 				static const char* getProcessFilename();
+				static bool createPackage(std::string path, const char* appname, const char* appver,
+							const char* appdesc, const char* appauthor);
 		};
 	}
 }

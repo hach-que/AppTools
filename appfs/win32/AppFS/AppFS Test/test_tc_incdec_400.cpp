@@ -8,7 +8,7 @@ int test_tc_incdec_400(AppLib::LowLevel::FS * fs, uint32_t inodeid, const char* 
 
 	tc_scale(FILESIZE);
 	tc_setup();
-	for (int a = 1; a <= 10; a += 1)
+	for (int a = 1; a <= 1; a += 1)
 	{
 		// Increase
 		for (int i = 0; i <= FILESIZE; i += a)

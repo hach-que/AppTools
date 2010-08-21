@@ -21,9 +21,11 @@ http://code.google.com/p/apptools-dist for more information.
 #include "util.h"
 #include "logging.h"
 #include "blockstream.h"
+#include "fs.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <limits.h>
+#include <time.h>
 
 namespace AppLib
 {
@@ -118,6 +120,85 @@ namespace AppLib
 			else
 				return std::string(buf).c_str();
 #endif
+		}
+
+		bool Util::createPackage(std::string path, const char* appname, const char* appver,
+							const char* appdesc, const char* appauthor)
+		{
+			// Open the new package.
+			std::fstream * nfd = new std::fstream(path.c_str(),
+				std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
+			if (!nfd->is_open())
+			{
+				AppLib::Logging::showErrorW("Unable to open new package path for writing.");
+				return false;
+			}
+
+			// Write out 1MB for the bootstrap area.
+#if OFFSET_BOOTSTRAP != 0
+#error The createPackage() function is written under the assumption that the bootstrap
+#error offset is 0, hence the library will not operate correctly with a different offset.
+#endif
+			for (int i = 0; i < LENGTH_BOOTSTRAP; i += 1)
+			{
+				nfd->write("\0", 1);
+			}
+
+			// Write out the INode lookup table.
+			for (int i = 0; i < LENGTH_LOOKUP / 4; i += 1)
+			{
+				if (i == 0)
+				{
+					uint32_t pos = OFFSET_DATA;
+					nfd->write(reinterpret_cast<char *>(&pos), 4);
+				}
+				else
+					nfd->write("\0\0\0\0", 4);
+			}
+
+			// Now add the FSInfo inode at OFFSET_FSINFO.
+			INode fsnode(0, "", INodeType::INT_FSINFO);
+			fsnode.ver_major = LIBRARY_VERSION_MAJOR;
+			fsnode.ver_minor = LIBRARY_VERSION_MINOR;
+			fsnode.ver_revision = LIBRARY_VERSION_REVISION;
+			fsnode.setAppName(appname);
+			fsnode.setAppVersion(appver);
+			fsnode.setAppDesc(appdesc);
+			fsnode.setAppAuthor(appauthor);
+			fsnode.pos_root = OFFSET_DATA;
+			fsnode.pos_freelist = 0; // The first FreeList block will automatically be
+									 // created when the first block is freed.
+			std::string fsnode_towrite = fsnode.getBinaryRepresentation();
+			nfd->write(fsnode_towrite.c_str(), fsnode_towrite.size());
+			for (int i = fsnode_towrite.size(); i < LENGTH_FSINFO; i += 1)
+			{
+				nfd->write("\0", 1);
+			}
+
+			time_t rtime;
+			time(&rtime);
+
+			// Now add the root inode at OFFSET_DATA.
+			INode rnode(0, "", INodeType::INT_DIRECTORY);
+			rnode.uid = 0;
+			rnode.gid = 1000;
+			rnode.mask = 0777;
+			rnode.atime = rtime;
+			rnode.mtime = rtime;
+			rnode.ctime = rtime;
+			rnode.parent = 0;
+			rnode.children_count = 0;
+			std::string rnode_towrite = rnode.getBinaryRepresentation();
+			nfd->write(rnode_towrite.c_str(), rnode_towrite.size());
+			for (int i = rnode_towrite.size(); i < BSIZE_FILE; i += 1)
+			{
+				nfd->write("\0", 1);
+			}
+
+			nfd->close();
+			delete nfd;
+
+			return true;
 		}
 	}
 }

@@ -279,6 +279,51 @@ namespace AppLib
 					return binary_rep.str();
 				}
 
+				inline void setFilename(const char* name)
+				{
+					uint16_t size = (strlen(name) < 256) ? strlen(name) : 256;
+					for (uint16_t i = 0; i < size; i += 1)
+						this->filename[i] = name[i];
+					for (uint16_t i = size; i < 256; i += 1)
+						this->filename[i] = '\0';
+				}
+
+				inline void setAppName(const char* name)
+				{
+					uint16_t size = (strlen(name) < 256) ? strlen(name) : 256;
+					for (uint16_t i = 0; i < size; i += 1)
+						this->app_name[i] = name[i];
+					for (uint16_t i = size; i < 256; i += 1)
+						this->app_name[i] = '\0';
+				}
+
+				inline void setAppVersion(const char* name)
+				{
+					uint16_t size = (strlen(name) < 32) ? strlen(name) : 32;
+					for (uint16_t i = 0; i < size; i += 1)
+						this->app_ver[i] = name[i];
+					for (uint16_t i = size; i < 32; i += 1)
+						this->app_ver[i] = '\0';
+				}
+
+				inline void setAppDesc(const char* name)
+				{
+					uint16_t size = (strlen(name) < 1024) ? strlen(name) : 1024;
+					for (uint16_t i = 0; i < size; i += 1)
+						this->app_desc[i] = name[i];
+					for (uint16_t i = size; i < 1024; i += 1)
+						this->app_desc[i] = '\0';
+				}
+
+				inline void setAppAuthor(const char* name)
+				{
+					uint16_t size = (strlen(name) < 256) ? strlen(name) : 256;
+					for (uint16_t i = 0; i < size; i += 1)
+						this->app_author[i] = name[i];
+					for (uint16_t i = size; i < 256; i += 1)
+						this->app_author[i] = '\0';
+				}
+
 				inline ~INode()
 				{
 					// Do nothing.. no cleanup to be done.
