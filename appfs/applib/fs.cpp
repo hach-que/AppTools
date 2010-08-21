@@ -23,6 +23,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include "endian.h"
 #include "util.h"
 #include "blockstream.h"
+#include "freelist.h"
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
@@ -222,6 +223,7 @@ namespace AppLib
             assert(/* Check the stream is not in text-mode. */ this->isValid());
 
 			// Check to make sure the inode ID is not already assigned.
+		Logging::showInfoW("Updating INode %i...", node.inodeid);
 			uint32_t pos = this->getINodePositionByID(node.inodeid);
             if (pos == 0)
                 return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;

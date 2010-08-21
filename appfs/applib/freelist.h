@@ -22,14 +22,12 @@ http://code.google.com/p/apptools-dist for more information.
 #include <fstream>
 #include <map>
 #include "endian.h"
+#include "fs.h"
 
 namespace AppLib
 {
 	namespace LowLevel
 	{
-		class FS;
-		namespace INodeType { enum INodeType; }
-
 		class FreeList
 		{
 			public:

@@ -25,13 +25,14 @@ http://code.google.com/p/apptools-dist for more information.
 #include <vector>
 #include "endian.h"
 #include "fsfile.h"
-#include "freelist.h"
 #include "blockstream.h"
 
 namespace AppLib
 {
 	namespace LowLevel
 	{
+		class FreeList;
+
 		namespace FSResult
 		{
 			enum FSResult

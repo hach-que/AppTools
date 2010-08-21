@@ -75,7 +75,7 @@ int appmount_start(int argc, char *argv[])
 	global_mount_path = mount_path;
 
 	// Open the file for our lock checks / sets.
-	int lockedfd = open(disk_image->filename[0], O_RDWR);
+	/*int lockedfd = open(disk_image->filename[0], O_RDWR);
 	bool locksuccess = true;
 	flock lock = { F_RDLCK, SEEK_SET, 0, 0, 0 };
 
@@ -91,14 +91,14 @@ int appmount_start(int argc, char *argv[])
                 AppLib::Logging::showErrorW("Unable to lock image.  Check to make sure it's");
                 AppLib::Logging::showErrorO("not already mounted.");
                 return 1;
-        }
+        }*/
 
 	// Lock the specified disk file.
-	lock = { F_WRLCK, SEEK_SET, 0, 0, 0 };
+	/*lock = { F_WRLCK, SEEK_SET, 0, 0, 0 };
 	lockres = fcntl(lockedfd, F_SETLK, &lock);
 	int ret = 1;
 	if (lockres != -1)
-	{
+	{*/
 		AppLib::Logging::showInfoW("The application package will now be mounted at:");
 	        AppLib::Logging::showInfoO("  * %s", global_mount_path.c_str());
 	        AppLib::Logging::showInfoO("You can use fusermount (or umount if root) to unmount the");
@@ -112,7 +112,7 @@ int appmount_start(int argc, char *argv[])
 						true,
 						appmount_continue
 					);
-		ret = mnt->getResult();
+		int ret = mnt->getResult();
 
 		if (ret != 0)
 		{
@@ -128,13 +128,13 @@ int appmount_start(int argc, char *argv[])
 		}
 
 		return ret;
-	}
+	/*}
 	else
 	{
 		AppLib::Logging::showErrorW("Unable to lock image.  Check to make sure it's");
 		AppLib::Logging::showErrorO("not already mounted.");
 		return 1;
-	}
+	}*/
 
 	return 0;
 }
