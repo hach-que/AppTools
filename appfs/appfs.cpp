@@ -12,8 +12,6 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-// This is a Mercurial test...
-
 #include "applib/logging.h"
 #include "applib/util.h"
 #include "applib/fuselink.h"
