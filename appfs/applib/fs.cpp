@@ -755,6 +755,7 @@ namespace AppLib
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
 			}
 
+			/*
 			std::streampos oldp = this->fd->tellp();
 			Util::seekp_ex(this->fd, pos);
 			const char * zero = "\0";
@@ -763,6 +764,7 @@ namespace AppLib
 				this->fd->write(zero, 1);
 			}
 			Util::seekp_ex(this->fd, oldp);
+			*/
 
 			// Block must be marked as unused through the
 			// free list allocation class.
@@ -987,7 +989,7 @@ namespace AppLib
 							continue;
 						}
 
-						if (bcount < node.blocks + blocks_to_add)
+						if (bcount < blocks_to_add)
 						{
 							// Allocate a new block.
 							uint32_t npos = this->freelist->allocateBlock();

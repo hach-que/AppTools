@@ -9,6 +9,7 @@
 #include "ppnarg.h"
 
 #define min(...) _min(PP_NARG(__VA_ARGS__)-1, __VA_ARGS__)
+#define max(...) _max(PP_NARG(__VA_ARGS__)-1, __VA_ARGS__)
 
 // This is a replacement min() function which takes multiple arguments.
 // Arguments must be int64_t (or comparable integers).
@@ -25,6 +26,27 @@ int64_t _min(int64_t t, ...)
 	{
 		b = va_arg(argptr, int64_t);
 		a = (a < b) ? a : b;
+	}
+	va_end(argptr);
+
+	return a;
+}
+
+// This is a replacement max() function which takes multiple arguments.
+// Arguments must be int64_t (or comparable integers).
+int64_t _max(int64_t t, ...)
+{
+	va_list argptr;
+	va_start(argptr, t);
+
+	if (t == 0) return 0;
+
+	int64_t a = va_arg(argptr, int64_t);
+	int64_t b = 0;
+	for (int i = 0; i < t; i++ )
+	{
+		b = va_arg(argptr, int64_t);
+		a = (a > b) ? a : b;
 	}
 	va_end(argptr);
 
@@ -96,8 +118,8 @@ namespace AppLib
 			}
 
 			// Calculate the number of blocks we will have to write.
-			uint32_t bstart = floor(this->posp / 4096.f);
-			uint32_t bend = floor((this->posp + count) / 4096.f);
+			uint32_t bstart = (this->posp / 4096);
+			uint32_t bend = ((this->posp + count - 1) / 4096);
 
 			// First we get a list of all of the segments to write, starting
 			// at this->posp until this->posp + count.
@@ -113,14 +135,6 @@ namespace AppLib
 					this->fd->seekg(bpos + i);
 					spos = 0;
 					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
-					if (spos == 0)
-					{
-						// We've run out of segments to write to (this shouldn't
-						// happen because we truncated the file).
-						ipos = 0; // Make it jump out of the while() loop.
-						this->clear(std::ios::eofbit | std::ios::failbit);
-						break;
-					}
 
 					if (fsize - this->posp == 0)
 					{
@@ -131,16 +145,26 @@ namespace AppLib
 						return;
 					}
 
+					if (spos == 0)
+					{
+						// We've run out of segments to write to (this shouldn't
+						// happen because we truncated the file).
+						ipos = 0; // Make it jump out of the while() loop.
+						this->clear(std::ios::eofbit | std::ios::failbit);
+						return;
+					}
+
 					if (bcount < bstart)
 					{
 						// Before the data needs to be read.
+						bcount += 1;
 						continue;
 					}
 					else if (bcount == bstart)
 					{
 						// First block to read.  Calculate how many
 						// bytes to read (as it may not be the full block).
-						uint32_t soff = this->posp - (floor(this->posp / 4096.f) * 4096);
+						uint32_t soff = this->posp - ((this->posp / 4096) * 4096);
 
 						// Calculate how many bytes to read.
 						uint32_t stotal = min(count - doff, BSIZE_FILE - soff, fsize - this->posp);
@@ -248,8 +272,8 @@ namespace AppLib
 			uint32_t bpos = this->filesystem->getINodePositionByID(this->inodeid);
 
 			// Calculate the number of blocks we will have to read.
-			uint32_t bstart = floor(this->posg / 4096.f);
-			uint32_t bend = floor((this->posg + count) / 4096.f);
+			uint32_t bstart = (this->posg / 4096);
+			uint32_t bend = ((this->posg + count - 1) / 4096);
 
 			// Get the total size of the file (for detected when to EOF).
 			uint32_t fsize = this->size();
@@ -268,13 +292,6 @@ namespace AppLib
 					this->fd->seekg(bpos + i);
 					spos = 0;
 					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
-					if (spos == 0)
-					{
-						// We've run out of segments to read.
-						ipos = 0; // Make it jump out of the while() loop.
-						this->clear(std::ios::eofbit);
-						break;
-					}
 
 					if (fsize - this->posg == 0)
 					{
@@ -284,16 +301,25 @@ namespace AppLib
 						return doff;
 					}
 
+					if (spos == 0)
+					{
+						// We've run out of segments to read.
+						ipos = 0; // Make it jump out of the while() loop.
+						this->clear(std::ios::eofbit);
+						return doff;
+					}
+
 					if (bcount < bstart)
 					{
 						// Before the data needs to be read.
+						bcount += 1;
 						continue;
 					}
 					else if (bcount == bstart)
 					{
 						// First block to read.  Calculate how many
 						// bytes to read (as it may not be the full block).
-						uint32_t soff = this->posg - (floor(this->posg / 4096.f) * 4096);
+						uint32_t soff = this->posg - ((this->posg / 4096) * 4096);
 
 						// Calculate how many bytes to read.
 						uint32_t stotal = min(count - doff, BSIZE_FILE - soff, fsize - this->posg);
@@ -305,8 +331,16 @@ namespace AppLib
 						uint32_t bread = this->fd->read(out + doff, stotal);
 
 						// Increase the counters.
-						doff += bread;
-						this->posg += bread;
+						if (this->posg + bread > fsize)
+						{
+							doff += fsize - this->posg;
+							this->posg = fsize;
+						}
+						else
+						{
+							doff += bread;
+							this->posg += bread;
+						}
 
 						if (bcount == bend)
 						{
@@ -332,8 +366,16 @@ namespace AppLib
 						uint32_t bread = this->fd->read(out + doff, stotal);
 
 						// Increase the counters.
-						doff += bread;
-						this->posg += bread;
+						if (this->posg + bread > fsize)
+						{
+							doff += fsize - this->posg;
+							this->posg = fsize;
+						}
+						else
+						{
+							doff += bread;
+							this->posg += bread;
+						}
 					}
 					else if (bcount > bstart && bcount == bend)
 					{
@@ -351,8 +393,16 @@ namespace AppLib
 						uint32_t bread = this->fd->read(out + doff, stotal);
 
 						// Increase the counters.
-						doff += bread;
-						this->posg += bread;
+						if (this->posg + bread > fsize)
+						{
+							doff += fsize - this->posg;
+							this->posg = fsize;
+						}
+						else
+						{
+							doff += bread;
+							this->posg += bread;
+						}
 
 						// Now that we've reached the last block, we've
 						// read all the data and can now return.

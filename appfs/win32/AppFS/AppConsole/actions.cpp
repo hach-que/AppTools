@@ -22,17 +22,17 @@ void doOpen(std::vector<std::string> cmd)
 	}
 
 	std::cout << "Attempting to open '" << cmd[1] << "' ... ";
-	fd = new AppLib::LowLevel::BlockStream(cmd[1].c_str());
-	if (fd->bad())
+	fd = new AppLib::LowLevel::BlockStream(cmd[1]);
+	if (!fd->is_open())
 	{
-		delete fd;
-		fd = NULL;
 		std::cout << "failed." << std::endl;
 		std::cout << "Unable to open: " << cmd[1] << std::endl;
 		std::cout << "Check the file exists, is writable and try again." << std::endl;
 		return;
 	}
-	std::cout << "done." << std::endl;
+	else
+		std::cout << "done." << std::endl;
+
 	currentFilesystem = new AppLib::LowLevel::FS(fd);
 	if (!currentFilesystem->isValid())
 	{
@@ -65,56 +65,13 @@ void doCreate(std::vector<std::string> cmd)
 	}
 
 	std::cout << "Attempting to create '" << cmd[1] << "' ... " << std::endl;
-	std::fstream * fd = new std::fstream(cmd[1].c_str(), std::ios::out | std::ios::trunc | std::ios::in | std::ios::binary);
-	if (!fd->is_open())
+
+	// Create the file.
+	if (!AppLib::LowLevel::Util::createPackage(cmd[1], "Test App", "1.0.0", "A test package.", "AppTools"))
 	{
-		std::cout << "Unable to create blank AppFS package " << cmd[1] << "." << std::endl;
+		std::cout << "Unable to create blank AppFS package '" << cmd[1] << "'." << std::endl;
 		return;
 	}
-
-#if OFFSET_BOOTSTRAP != 0
-#error The AppConsole is written under the assumption that the bootstrap offset is 0,
-#error hence the test suite will not operate correctly with a different offset.
-#endif
-
-	// Bootstrap section
-	for (int i = 0; i < LENGTH_BOOTSTRAP; i += 1)
-	{
-		fd->write("\0", 1);
-	}
-	std::cout << "Wrote bootstrap section." << std::endl;
-
-	// Inode Lookup section
-	for (int i = 0; i < 65536; i += 1)
-	{
-		if (i == 0)
-		{
-			uint32_t pos = OFFSET_FSINFO;
-			fd->write(reinterpret_cast<char *>(&pos), 4);
-		}
-		else
-			fd->write("\0\0\0\0", 4);
-	}
-	std::cout << "Wrote inode lookup section." << std::endl;
-
-	time_t rtime;
-	time(&rtime);
-
-	// Write the root inode data.
-	AppLib::LowLevel::INode node(0, "", AppLib::LowLevel::INodeType::INT_DIRECTORY);
-	node.uid = 0;
-	node.gid = 1000;
-	node.mask = 0777;
-	node.atime = rtime;
-	node.mtime = rtime;
-	node.ctime = rtime;
-	node.parent = 0;
-	node.children_count = 0;
-	std::string node_rep = node.getBinaryRepresentation();
-	fd->write(node_rep.c_str(), node_rep.length());
-	std::cout << "Wrote root inode." << std::endl;
-
-	fd->close();
 	std::cout << "Package successfully created.  Use 'open' to open the package." << std::endl;
 }
 

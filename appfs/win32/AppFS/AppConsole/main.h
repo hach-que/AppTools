@@ -7,6 +7,7 @@
 #include <vector>
 #include <map>
 #include <fs.h>
+#include <util.h>
 
 typedef void (*commandFunc)(std::vector<std::string>);
 extern std::string openPackage;
