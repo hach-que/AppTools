@@ -422,16 +422,27 @@ namespace AppLib
 			buf.mtime = APPFS_TIME();
 			buf.atime = APPFS_TIME();
 			APPFS_SAVE_INODE(buf);
+
+			std::stringstream ss1; ss1 << "Opening file with inode " << buf.inodeid << ".";
+			Logging::showInfoW(ss1.str());
 			LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
 			file.open();
 			if (file.fail() && file.bad()) return -EIO;
+			std::stringstream ss2; ss2 << "Seeking to position " << offset << ".";
+			Logging::showInfoW(ss2.str());
 			file.seekp(offset);
 			if (file.fail() && file.bad()) return -EIO;
+			std::stringstream ss3; ss3 << "Writing " << length << " bytes.";
+			Logging::showInfoW(ss3.str());
 			file.write(in, length);
 			if (file.fail() && file.bad()) return -EIO;
+			std::stringstream ss4; ss4 << "Closing file.";
+			Logging::showInfoW(ss4.str());
 			file.close();
 			if (file.fail() && file.bad()) return -EIO;
 
+			std::stringstream ss5; ss5 << length << " bytes have been written.";
+			Logging::showInfoW(ss5.str());
 			return length;
 		}
 
