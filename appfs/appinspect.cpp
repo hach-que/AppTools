@@ -19,7 +19,27 @@ http://code.google.com/p/apptools-dist for more information.
 #include <string>
 #include <vector>
 #include <map>
+#ifdef WIN32
 #include <conio.h>
+#else
+#include <stdio.h>
+#include <termios.h>
+#include <unistd.h>
+
+int _getch()
+{
+	struct termios oldt, newt;
+	int ch;
+	tcgetattr(STDIN_FILENO, &oldt);
+	newt = oldt;
+	newt.c_lflag &= ~(ICANON | ECHO);
+	tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+	ch = getchar();
+	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+	return ch;
+}
+#endif
+
 
 namespace Program
 {
@@ -155,7 +175,7 @@ void GetChildren(std::vector<std::string> cmd)
 	printf("Children of directory with INode %i:\n", id);
 	for (int i = 0; i < children.size(); i += 1)
 	{
-		printf(" * %i (%s)\n", children[i].inodeid, Program::TypeNames[children[i].type]);
+		printf(" * %i (%s)\n", children[i].inodeid, Program::TypeNames[children[i].type].c_str());
 	}
 }
 
@@ -206,7 +226,7 @@ void DoSegments(std::vector<std::string> cmd)
 					}
 
 				if (data)
-					printf(" # |", Program::TypeChars[node.type]);
+					printf(" # |");
 				else
 					printf(" %c |", Program::TypeChars[node.type]);
 			}
@@ -364,18 +384,25 @@ std::vector<uint32_t> GetDataBlocks(uint32_t pos)
 	std::vector<AppLib::LowLevel::INode> children = Program::FS->getChildrenOfDirectory(node.inodeid);
 	std::vector<uint32_t> datas;
 	std::vector<uint32_t> result;
+
+//	printf(" - Starting GetDataBlocks loop for position %p.\n", pos);
 	for (uint16_t i = 0; i < children.size(); i += 1)
 	{
 		switch (children[i].type)
 		{
 		case AppLib::LowLevel::INodeType::INT_DIRECTORY:
+//			printf(" - Found directory with name %s (%i).\n", children[i].filename, children[i].inodeid);
 			datas = GetDataBlocks(Program::FS->getINodePositionByID(children[i].inodeid));
+//			printf(" - Merging result.\n");
 			std::merge(positions.begin(), positions.end(), datas.begin(), datas.end(), result.begin());
+//			printf(" - Assigning result.\n");
 			positions = result;
 			break;
 		case AppLib::LowLevel::INodeType::INT_FILEINFO:
+//			printf(" - Retrieving position of inode %i.\n", children[i].inodeid);
 			uint32_t bpos = Program::FS->getINodePositionByID(children[i].inodeid);
 			int spos;
+//			printf(" - Searching segments.\n");
 			for (int a = HSIZE_FILE; a < BSIZE_FILE; a += 4)
 			{
 				Program::FSStream->seekg(bpos + a);
@@ -385,7 +412,10 @@ std::vector<uint32_t> GetDataBlocks(uint32_t pos)
 				if (spos == 0)				
 					break;
 				else
+				{
+//					printf(" - Found data block at %i.\n", spos);
 					positions.insert(positions.begin(), spos);
+				}
 			}
 			break;
 		}
@@ -413,13 +443,15 @@ std::string ReadLine()
 			}
 			continue;
 		}
-		if (c < 32 && c != '\b' && c != '\r')
+		if (c < 32 && c != '\b' && c != '\r' && c != '\n')
 		{
+			printf("(%i)", (int)c);
 			continue;
 		}
 		switch (c)
 		{
 			case '\r':
+			case '\n':
 				std::cout << std::endl;
 				break;
 			case '\b':
@@ -435,7 +467,7 @@ std::string ReadLine()
 				break;
 		}
 	}
-	while (c != '\r');
+	while (c != '\r' && c != '\n');
 	return ret;
 }
 

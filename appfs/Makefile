@@ -3,14 +3,16 @@ include Makefile.inc
 DIRS	= applib
 EXE_APPFS	= appfs
 EXE_APPMOUNT	= appmount
+EXE_APPINSPECT	= appinspect
 BUILD_APPFS	=
 BUILD_APPMOUNT	= -DAPPMOUNT
 OBJS_APPFS	= main.o appfs.o
 OBJS_APPMOUNT	= main.o appmount.o
+OBJS_APPINSPECT = appinspect.o
 OBJLIBS	= libapp.a
 LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 ./libapp.a /lib/libfuse.a
 
-all: appfs appmount
+all: appfs appmount appinspect
 
 appfs: main.o appfs.o $(OBJLIBS)
 	@$(ECHO) g++ $(CPPFLAGS) $(BUILD_APPFS) -c -o main.o main.cpp
@@ -27,6 +29,10 @@ appmount: main.o appmount.o $(OBJLIBS)
 	@gcc -o $(EXE_APPMOUNT) $(OBJS_APPMOUNT) $(LIBS)
 	@$(ECHO) rm main.o
 	@rm main.o
+
+appinspect: appinspect.o $(OBJLIBS)
+	@$(ECHO) gcc -o $(EXE_APPINSPECT) $(OBJS_APPINSPECT) $(LIBS)
+	@gcc -o $(EXE_APPINSPECT) $(OBJS_APPINSPECT) $(LIBS)
 
 libapp.a: force_look
 	@$(ECHO) looking in fs : $(MAKE) $(MFLAGS)
