@@ -71,6 +71,19 @@ namespace AppLib
 			// Get a new, blank writable index on the disk.
 			uint32_t dpos = this->getIndexInList(0);
 
+			if (dpos != 0)
+			{
+				// Store the current position of the file descriptor.
+				std::streampos oldg = this->fd->tellg();
+	
+				// Write to disk.
+				this->fd->seekp(dpos);
+				Endian::doW(this->fd, reinterpret_cast<char *>(&pos), 4);
+	
+				// Restore the position of the file descriptor.
+				this->fd->seekg(oldg);
+			}
+
 			// Add the new free position to the cache.
 			this->position_cache.insert(std::map<uint32_t, uint32_t>::value_type(pos, dpos));
 		}
@@ -111,7 +124,7 @@ namespace AppLib
 			// Special condition: If the pos is 0, and ipos is 0,
 			// then we need to allocate a new FreeList block for
 			// storing a new value.
-			if (pos == 0 && ipos == 0 && this->position_cache.size() == 0)
+			if (pos == 0 && ipos == 0)
 			{
 				// Create a new FreeList block.
 				uint32_t fpos = this->allocateBlock();
@@ -128,6 +141,51 @@ namespace AppLib
 					return 0;
 				}
 
+				// Now assign the new FreeList block as the next one in
+				// the list for the current last FreeList block.
+				uint32_t lpos = fsinfo.pos_freelist;
+				uint32_t llpos = lpos;
+				if (lpos == 0)
+				{
+					// Update FSInfo inode.
+					fsinfo.pos_freelist = fpos;
+
+					this->fd->seekp(OFFSET_FSINFO);
+					try
+					{
+						std::string data = fsinfo.getBinaryRepresentation();
+						this->fd->write(data.c_str(), data.size());
+					}
+					catch (std::ifstream::failure e)
+					{
+						// End-of-file.
+						this->fd->clear();
+						this->fd->seekg(oldg);
+						return 0;
+					}
+				}
+				else
+				{
+					while (lpos != 0)
+					{
+						llpos = lpos;
+
+						// Get the next position.
+						INode node = this->filesystem->getINodeByPosition(lpos);
+						lpos = node.flst_next;
+					}
+
+					// Update FreeList inode.
+					INode onode = this->filesystem->getINodeByPosition(llpos);
+					onode.flst_next = fpos;
+					FSResult::FSResult res = this->filesystem->updateINode(onode);
+					if (res != FSResult::E_SUCCESS)
+					{
+						this->fd->seekg(oldg);
+						return 0;
+					}
+				}
+
 				// Seek back to the original position.
 				this->fd->seekg(oldg);
 
@@ -142,6 +200,12 @@ namespace AppLib
 
 		bool FreeList::isBlockFree(uint32_t pos)
 		{
+			for (std::map<uint32_t, uint32_t>::iterator i = this->position_cache.begin(); i != this->position_cache.end(); i++)
+			{
+				if (i->first == pos)
+					return true;
+			}
+
 			return false;
 		}
 
@@ -163,6 +227,10 @@ namespace AppLib
 			uint32_t ipos = 0;
 			uint32_t tpos = 0;
 
+			// Check to make sure there is at least one freelist block.
+			if (fpos == 0)
+				return;
+
 			// Store the current position of the file descriptor.
 			std::streampos oldg = this->fd->tellg();
 
@@ -179,6 +247,9 @@ namespace AppLib
 						this->position_cache.insert(std::pair<uint32_t, uint32_t>(tpos, fpos + i));
 					}
 				}
+
+				// Get the next position.
+				fpos = this->filesystem->getINodeByPosition(fpos).flst_next;
 			}
 
 			// Seek back to the original position.

@@ -46,7 +46,7 @@ namespace AppLib
 			this->fd = fd;
 			this->freelist = new FreeList(this, fd);
 
-#ifdef WIN32
+#if 0 == 1
 			// Check for text-mode stream, which will break binary packages.
 			uint32_t tpos = this->getTemporaryBlock();
 			if (tpos != 0)
@@ -183,7 +183,9 @@ namespace AppLib
 			// Check to make sure the inode ID is not already assigned.
 			// TODO: This needs to be updated with a full list of inode types whose inode ID should
 			//       be ignored.
-			if (node.type != INodeType::INT_SEGINFO && this->getINodePositionByID(node.inodeid) != 0)
+			if (node.type != INodeType::INT_SEGINFO &&
+				node.type != INodeType::INT_FREELIST && 
+				this->getINodePositionByID(node.inodeid) != 0)
 				return FSResult::E_FAILURE_INODE_ALREADY_ASSIGNED;
 
 			std::streampos old = this->fd->tellp();
@@ -199,7 +201,7 @@ namespace AppLib
 			const char* z = ""; // a const char* always has a \0 terminator, which we use to write into the file.
 			// TODO: This needs to be updated with a full list of inode types.
 			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO ||
-				node.type == INodeType::INT_SYMLINK)
+				node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST)
 			{
 				for (int i = 0; i < BSIZE_FILE - data.length(); i += 1)
 					Endian::doW(this->fd, z, 1);
@@ -220,24 +222,24 @@ namespace AppLib
 
 		FSResult::FSResult FS::updateINode(INode node)
         {
-            assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
 
 			// Check to make sure the inode ID is not already assigned.
-		Logging::showInfoW("Updating INode %i...", node.inodeid);
+			Logging::showInfoW("Updating INode %i...", node.inodeid);
 			uint32_t pos = this->getINodePositionByID(node.inodeid);
-            if (pos == 0)
-                return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
+			if (pos == 0)
+				return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
 
-            std::streampos old = this->fd->tellp();
-            std::string data = node.getBinaryRepresentation();
-            Util::seekp_ex(this->fd, pos);
-            this->fd->write(data.c_str(), data.length());
+			std::streampos old = this->fd->tellp();
+			std::string data = node.getBinaryRepresentation();
+			Util::seekp_ex(this->fd, pos);
+			this->fd->write(data.c_str(), data.length());
 			// We do not write out the file data with zeros
 			// as in writeINode because we want to keep the
 			// content.
-            this->setINodePositionByID(node.inodeid, pos);
-            Util::seekp_ex(this->fd, old);
-            return FSResult::E_SUCCESS;
+			this->setINodePositionByID(node.inodeid, pos);
+			Util::seekp_ex(this->fd, old);
+			return FSResult::E_SUCCESS;
         }
 
 		uint32_t FS::getINodePositionByID(uint16_t id)
@@ -295,6 +297,14 @@ namespace AppLib
 
 			// Use the FreeList class to return a new free block.
 			return this->freelist->allocateBlock();
+		}
+
+		bool FS::isBlockFree(uint32_t pos)
+		{
+			assert(/* Check the stream is not in text-mode. */ this->isValid());
+
+			// Use the FreeList class to test whether the block is free.
+			return this->freelist->isBlockFree(pos);
 		}
 
 		FSResult::FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)

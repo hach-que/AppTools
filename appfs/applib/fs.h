@@ -377,6 +377,9 @@ namespace AppLib
 				// have an ID of 0).
 				uint16_t getFirstFreeInodeNumber();
 
+				// Returns whether the specified block is free according to the freelist.
+				bool isBlockFree(uint32_t pos);
+
 				// Adds a child inode to a parent (directory) inode.  Please note that it doesn't
 				// check to see whether or not the child is already attached to the parent, but
 				// it will add the child reference in the lowest available slot.
@@ -420,8 +423,9 @@ namespace AppLib
 				// This function returns the position of the next block for file data after the current block.
 				uint32_t getFileNextBlock(uint16_t id, uint32_t pos);
 
-				// Erase a specified block (CAUTION:  This simply erases BSIZE_FILE bytes from the
-				// specified position.  It does not check to make sure the position is actually
+				// Erase a specified block, marking it as free in the free list.
+				// (CAUTION:  This simply erases BSIZE_FILE bytes from the specified
+				// position.  It does not check to make sure the position is actually
 				// the start of a block!)
 				FSResult::FSResult resetBlock(uint32_t pos);
 

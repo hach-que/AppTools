@@ -56,6 +56,7 @@ namespace AppLib
 			}
 			else
 			{
+				this->fd->exceptions(std::ifstream::badbit | std::ios::failbit | std::ios::eofbit);
 				this->invalid = false;
 				this->opened = true;
 			}
@@ -65,7 +66,8 @@ namespace AppLib
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
-				this->clear(std::ios::badbit | std::ios::failbit);
+				if (!this->fail())
+					this->clear(std::ios::badbit | std::ios::failbit);
 				return;
 			}
 
@@ -76,7 +78,8 @@ namespace AppLib
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
-				this->clear(std::ios::badbit | std::ios::failbit);
+				if (!this->fail())
+					this->clear(std::ios::badbit | std::ios::failbit);
 				return 0;
 			}
 
@@ -94,7 +97,8 @@ namespace AppLib
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
-				this->clear(std::ios::badbit | std::ios::failbit);
+				if (!this->fail())
+					this->clear(std::ios::badbit | std::ios::failbit);
 				return;
 			}
 
@@ -105,7 +109,8 @@ namespace AppLib
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
-				this->clear(std::ios::badbit | std::ios::failbit);
+				if (!this->fail())
+					this->clear(std::ios::badbit | std::ios::failbit);
 				return;
 			}
 
@@ -116,7 +121,8 @@ namespace AppLib
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
-				this->clear(std::ios::badbit | std::ios::failbit);
+				if (!this->fail())
+					this->clear(std::ios::badbit | std::ios::failbit);
 				return 0;
 			}
 
@@ -127,7 +133,8 @@ namespace AppLib
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
-				this->clear(std::ios::badbit | std::ios::failbit);
+				if (!this->fail())
+					this->clear(std::ios::badbit | std::ios::failbit);
 				return 0;
 			}
 
