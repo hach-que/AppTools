@@ -56,7 +56,7 @@ void GetChildren(std::vector<std::string>);
 void DoSegments(std::vector<std::string>);
 void DoClean(std::vector<std::string>);
 void DoShow(std::vector<std::string>);
-std::vector<uint32_t> GetDataBlocks(uint32_t pos);
+std::pair<std::vector<uint32_t>, std::vector<uint32_t>> GetDataBlocks(uint32_t pos);
 std::string ReadLine();
 std::vector<std::string> ParseCommand(std::string cmd);
 bool CheckArguments(std::string name, std::vector<std::string> args, int argcount);
@@ -186,12 +186,15 @@ void DoSegments(std::vector<std::string> cmd)
 {
 	if (!CheckArguments("segments", cmd, 0)) return;
 
-	std::vector<uint32_t> datablocks = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
+	std::pair<std::vector<uint32_t>, std::vector<uint32_t>> p = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
+	std::vector<uint32_t> datablocks = p.first;
+	std::vector<uint32_t> headerblocks = p.second;
 
 	printf("_ = free block          F = file info       S = segment info\n");
 	printf("# = data                D = directory       L = symbolic link\n");
 	printf("T = temporary data      %% = freelist        H = hard link\n");
 	printf("I = filesystem info     ? = invalid           = unset\n");
+	printf("! = inaccessible (will be removed by the clean operation)\n");
 	printf("\n");
 	printf("/===============================================================\\\n");
 	printf("|");
@@ -218,17 +221,26 @@ void DoSegments(std::vector<std::string> cmd)
 			else
 			{
 				bool data = false;
+				bool header = false;
 				for (int a = 0; a < datablocks.size(); a += 1)
 					if (datablocks[a] == pos)
 					{
 						data = true;
 						break;
 					}
+				for (int a = 0; a < headerblocks.size(); a += 1)
+					if (headerblocks[a] == pos)
+					{
+						header = true;
+						break;
+					}
 
 				if (data)
 					printf(" # |");
-				else
+				else if (header || (node.type != AppLib::LowLevel::INodeType::INT_FILEINFO && node.type != AppLib::LowLevel::INodeType::INT_DIRECTORY))
 					printf(" %c |", Program::TypeChars[node.type]);
+				else
+					printf(" %c!|", Program::TypeChars[node.type]);
 			}
 
 			pos += BSIZE_FILE;
@@ -257,13 +269,17 @@ void DoClean(std::vector<std::string> cmd)
 {
 	if (!CheckArguments("clean", cmd, 0)) return;
 
-	std::vector<uint32_t> datablocks = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
+	std::pair<std::vector<uint32_t>, std::vector<uint32_t>> p = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
+	std::vector<uint32_t> datablocks = p.first;
+	std::vector<uint32_t> headerblocks = p.second;
 
 	uint32_t pos = OFFSET_FSINFO;
 	int failed = 0;
 	int cleaned = 0;
 	int cleaned_temporary = 0;
 	int cleaned_invalid = 0;
+	int cleaned_files = 0;
+	int cleaned_directories = 0;
 	int i = 0;
 	while (true)
 	{
@@ -274,14 +290,21 @@ void DoClean(std::vector<std::string> cmd)
 			if (!Program::FS->isBlockFree(pos))
 			{
 				bool data = false;
+				bool header = false;
 				for (int a = 0; a < datablocks.size(); a += 1)
 					if (datablocks[a] == pos)
 					{
 						data = true;
 						break;
 					}
+				for (int a = 0; a < headerblocks.size(); a += 1)
+					if (headerblocks[a] == pos)
+					{
+						header = true;
+						break;
+					}
 
-				if (!data)
+				if (!data && !header)
 				{
 					// Check to see if we should 'free' it in the filesystem.
 					switch (node.type)
@@ -304,6 +327,24 @@ void DoClean(std::vector<std::string> cmd)
 						else
 							failed += 1;
 						break;
+					case AppLib::LowLevel::INodeType::INT_FILEINFO:
+						if (Program::FS->resetBlock(pos) == AppLib::LowLevel::FSResult::E_SUCCESS)
+						{
+							cleaned += 1;
+							cleaned_files += 1;;
+						}
+						else
+							failed += 1;
+						break;
+					case AppLib::LowLevel::INodeType::INT_DIRECTORY:
+						if (Program::FS->resetBlock(pos) == AppLib::LowLevel::FSResult::E_SUCCESS)
+						{
+							cleaned += 1;
+							cleaned_directories += 1;;
+						}
+						else
+							failed += 1;
+						break;
 					}
 				}
 			}
@@ -314,7 +355,8 @@ void DoClean(std::vector<std::string> cmd)
 		{
 			// End-of-file.
 			Program::FSStream->clear();
-			printf("Cleaned %i blocks (%i temporary, %i invalid).\n", cleaned, cleaned_temporary, cleaned_invalid);
+			printf("Cleaned %i blocks (%i temporary, %i invalid, %i files, %i directories).\n",
+				cleaned, cleaned_temporary, cleaned_invalid, cleaned_files, cleaned_directories);
 			if (failed > 0)
 				printf("%i blocks could not be freed during cleaning.\n", failed);
 			return;
@@ -373,36 +415,43 @@ void DoShow(std::vector<std::string> cmd)
 }
 
 /// <summary>
-/// Gets the data blocks that can be accessed from the directory located at the specified position.
+/// Gets the data and header blocks that can be accessed from the directory located at the specified position.
 /// </summary>
-std::vector<uint32_t> GetDataBlocks(uint32_t pos)
+/// <returns>
+/// The first pair value is a set of data blocks, the second is a set of header blocks.  Combined they address
+/// all of the accessible file and directory headers and data.
+/// </returns>
+std::pair<std::vector<uint32_t>, std::vector<uint32_t>> GetDataBlocks(uint32_t pos)
 {
 	AppLib::LowLevel::INode node = Program::FS->getINodeByPosition(pos);
 	std::vector<uint32_t> positions;
 
 	// Loop through all of the children.
 	std::vector<AppLib::LowLevel::INode> children = Program::FS->getChildrenOfDirectory(node.inodeid);
-	std::vector<uint32_t> datas;
-	std::vector<uint32_t> result;
+	std::pair<std::vector<uint32_t>, std::vector<uint32_t>> accessible;
+	std::vector<uint32_t> headers;
+	std::vector<uint32_t> result1;
+	std::vector<uint32_t> result2;
+	uint32_t spos;
+	uint32_t bpos;
+	headers.insert(headers.begin(), pos);
 
-//	printf(" - Starting GetDataBlocks loop for position %p.\n", pos);
 	for (uint16_t i = 0; i < children.size(); i += 1)
 	{
 		switch (children[i].type)
 		{
 		case AppLib::LowLevel::INodeType::INT_DIRECTORY:
-//			printf(" - Found directory with name %s (%i).\n", children[i].filename, children[i].inodeid);
-			datas = GetDataBlocks(Program::FS->getINodePositionByID(children[i].inodeid));
-//			printf(" - Merging result.\n");
-			std::merge(positions.begin(), positions.end(), datas.begin(), datas.end(), result.begin());
-//			printf(" - Assigning result.\n");
-			positions = result;
+			spos = Program::FS->getINodePositionByID(children[i].inodeid);
+			accessible = GetDataBlocks(spos);
+			std::merge(positions.begin(), positions.end(), accessible.first.begin(), accessible.first.end(), result1.begin());
+			std::merge(headers.begin(), headers.end(), accessible.second.begin(), accessible.second.end(), result2.begin());
+			positions = result1;
+			headers = result2;
 			break;
 		case AppLib::LowLevel::INodeType::INT_FILEINFO:
-//			printf(" - Retrieving position of inode %i.\n", children[i].inodeid);
-			uint32_t bpos = Program::FS->getINodePositionByID(children[i].inodeid);
+			bpos = Program::FS->getINodePositionByID(children[i].inodeid);
+			headers.insert(headers.begin(), bpos);
 			int spos;
-//			printf(" - Searching segments.\n");
 			for (int a = HSIZE_FILE; a < BSIZE_FILE; a += 4)
 			{
 				Program::FSStream->seekg(bpos + a);
@@ -413,7 +462,6 @@ std::vector<uint32_t> GetDataBlocks(uint32_t pos)
 					break;
 				else
 				{
-//					printf(" - Found data block at %i.\n", spos);
 					positions.insert(positions.begin(), spos);
 				}
 			}
@@ -421,7 +469,7 @@ std::vector<uint32_t> GetDataBlocks(uint32_t pos)
 		}
 	}
 
-	return positions;
+	return std::pair<std::vector<uint32_t>, std::vector<uint32_t>>(positions, headers);
 }
 
 /// <summary>
