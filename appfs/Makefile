@@ -4,11 +4,13 @@ DIRS	= applib
 EXE_APPFS	= appfs
 EXE_APPMOUNT	= appmount
 EXE_APPINSPECT	= appinspect
+EXE_APPCREATE   = appcreate
 BUILD_APPFS	=
 BUILD_APPMOUNT	= -DAPPMOUNT
 OBJS_APPFS	= main.o appfs.o
 OBJS_APPMOUNT	= main.o appmount.o
 OBJS_APPINSPECT = appinspect.o
+OBJS_APPCREATE  = appcreate.o
 OBJLIBS	= libapp.a
 LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 ./libapp.a /lib/libfuse.a
 
@@ -34,13 +36,17 @@ appinspect: appinspect.o $(OBJLIBS)
 	@$(ECHO) gcc -o $(EXE_APPINSPECT) $(OBJS_APPINSPECT) $(LIBS)
 	@gcc -o $(EXE_APPINSPECT) $(OBJS_APPINSPECT) $(LIBS)
 
+appcreate: appcreate.o $(OBJLIBS)
+	@$(ECHO) gcc -o $(EXE_APPCREATE) $(OBJS_APPCREATE) $(LIBS)
+	@gcc -o $(EXE_APPCREATE) $(OBJS_APPCREATE) $(LIBS)
+
 libapp.a: force_look
 	@$(ECHO) looking in fs : $(MAKE) $(MFLAGS)
 	@cd applib; $(MAKE) $(MFLAGS)
 
 clean:
 	@$(ECHO) cleaning up in .
-	@-$(RM) -f $(EXE_APPFS) $(EXE_APPMOUNT) $(OBJS_APPFS) $(OBJS_APPMOUNT) $(OBJLIBS)
+	@-$(RM) -f $(EXE_APPFS) $(EXE_APPMOUNT) $(EXE_APPINSPECT) $(EXE_APPCREATE) $(OBJS_APPFS) $(OBJS_APPMOUNT) $(OBJS_APPINSPECT) $(OBJS_APPCREATE) $(OBJLIBS)
 	@-for d in $(DIRS); do (cd $$d; $(MAKE) clean ); done
 
 force_look:

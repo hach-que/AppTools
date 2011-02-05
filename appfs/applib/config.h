@@ -23,7 +23,7 @@ http://code.google.com/p/apptools-dist for more information.
 // sections within AppFS packages.  You should not change
 // these for compatibility reasons.
 #define OFFSET_BOOTSTRAP 0
-#define LENGTH_BOOTSTRAP (1024 * 1024)
+#define LENGTH_BOOTSTRAP (3 * 1024 * 1024)
 #define OFFSET_LOOKUP    LENGTH_BOOTSTRAP
 #define LENGTH_LOOKUP    (256 * 1024)
 #define OFFSET_FSINFO    (LENGTH_BOOTSTRAP + LENGTH_LOOKUP)

@@ -121,6 +121,7 @@ namespace AppLib
 			uint32_t bstart = (this->posp / 4096);
 			uint32_t bend = ((this->posp + count - 1) / 4096);
 
+			// Loop through all of the blocks in the file
 			// First we get a list of all of the segments to write, starting
 			// at this->posp until this->posp + count.
 			uint32_t bcount = 0;
@@ -277,6 +278,7 @@ namespace AppLib
 
 			// Get the total size of the file (for detected when to EOF).
 			uint32_t fsize = this->size();
+			AppLib::Logging::showInfoO("reader: There is %i bytes in the file.", fsize);
 
 			// First we get a list of all of the segments to read, starting
 			// at this->posg until this->posg + count.
@@ -296,6 +298,7 @@ namespace AppLib
 					if (fsize - this->posg == 0)
 					{
 						// We've hit EOF.  Return.
+						AppLib::Logging::showInfoO("reader: Hit natural EOF.");
 						this->fd->seekg(oldg);
 						this->clear(std::ios::eofbit);
 						return doff;
@@ -304,6 +307,7 @@ namespace AppLib
 					if (spos == 0)
 					{
 						// We've run out of segments to read.
+						AppLib::Logging::showInfoO("reader: Hit end-of-segments EOF.");
 						ipos = 0; // Make it jump out of the while() loop.
 						this->clear(std::ios::eofbit);
 						return doff;
@@ -312,6 +316,7 @@ namespace AppLib
 					if (bcount < bstart)
 					{
 						// Before the data needs to be read.
+						AppLib::Logging::showInfoO("reader: Skipping blocks before read position.");
 						bcount += 1;
 						continue;
 					}
@@ -319,6 +324,7 @@ namespace AppLib
 					{
 						// First block to read.  Calculate how many
 						// bytes to read (as it may not be the full block).
+						AppLib::Logging::showInfoO("reader: Reading first block.");
 						uint32_t soff = this->posg - ((this->posg / 4096) * 4096);
 
 						// Calculate how many bytes to read.
@@ -355,6 +361,7 @@ namespace AppLib
 					{
 						// A block in the middle which must be completely
 						// read (up to EOF of course).
+						AppLib::Logging::showInfoO("reader: Reading middle block(s).");
 
 						// Calculate how many bytes to read.
 						uint32_t stotal = min(count - doff, BSIZE_FILE, fsize - this->posg);
@@ -381,6 +388,7 @@ namespace AppLib
 					{
 						// Last block to read.  Calculate how many bytes
 						// to read in the last block.
+						AppLib::Logging::showInfoO("reader: Reading last block.");
 						uint32_t srem = count - doff;
 
 						// Calculate how many bytes to read.
@@ -409,11 +417,13 @@ namespace AppLib
 						this->fd->seekg(oldg);
 						if (this->posg == fsize)
 							this->clear(std::ios::eofbit);
+						AppLib::Logging::showInfoO("reader: Hit natural end-of-read.");
 						return doff;
 					}
 					else
 					{
 						// End of reading..  Return.
+						AppLib::Logging::showInfoO("reader: Hit unnatural end-of-read.");
 						this->fd->seekg(oldg);
 						if (this->posg == fsize)
 							this->clear(std::ios::eofbit);
@@ -430,6 +440,7 @@ namespace AppLib
 			// If we get here, then there wasn't any blocks to read or the original
 			// request to grab the inode based on ID failed, so we return 0 (for no
 			// data read).
+			AppLib::Logging::showInfoO("reader: No blocks to read from.");
 			return 0;
 		}
 

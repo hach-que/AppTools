@@ -420,7 +420,7 @@ namespace AppLib
 			file.close();
 			if (file.fail() && file.bad()) return -EIO;
 
-			std::stringstream ss5; ss5 << length << " bytes have been read.";
+			std::stringstream ss5; ss5 << amount_read << " bytes have been read.";
                         Logging::showInfoW(ss5.str());
 			return amount_read;
 		}

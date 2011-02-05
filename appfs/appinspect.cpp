@@ -56,7 +56,7 @@ void GetChildren(std::vector<std::string>);
 void DoSegments(std::vector<std::string>);
 void DoClean(std::vector<std::string>);
 void DoShow(std::vector<std::string>);
-std::pair<std::vector<uint32_t>, std::vector<uint32_t>> GetDataBlocks(uint32_t pos);
+std::pair<std::vector<uint32_t>, std::vector<uint32_t> > GetDataBlocks(uint32_t pos);
 std::string ReadLine();
 std::vector<std::string> ParseCommand(std::string cmd);
 bool CheckArguments(std::string name, std::vector<std::string> args, int argcount);
@@ -186,7 +186,7 @@ void DoSegments(std::vector<std::string> cmd)
 {
 	if (!CheckArguments("segments", cmd, 0)) return;
 
-	std::pair<std::vector<uint32_t>, std::vector<uint32_t>> p = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
+	std::pair<std::vector<uint32_t>, std::vector<uint32_t> > p = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
 	std::vector<uint32_t> datablocks = p.first;
 	std::vector<uint32_t> headerblocks = p.second;
 
@@ -217,7 +217,7 @@ void DoSegments(std::vector<std::string> cmd)
 				i += 1;
 
 			if (Program::FS->isBlockFree(pos))
-				printf(" _ |", Program::TypeChars[node.type]);
+				printf(" _ |");
 			else
 			{
 				bool data = false;
@@ -237,6 +237,8 @@ void DoSegments(std::vector<std::string> cmd)
 
 				if (data)
 					printf(" # |");
+				else if (node.type < 0 || node.type > 255 || Program::TypeChars[node.type] == 0)
+					printf(" ? |");
 				else if (header || (node.type != AppLib::LowLevel::INodeType::INT_FILEINFO && node.type != AppLib::LowLevel::INodeType::INT_DIRECTORY))
 					printf(" %c |", Program::TypeChars[node.type]);
 				else
@@ -249,6 +251,7 @@ void DoSegments(std::vector<std::string> cmd)
 		{
 			// End-of-file.
 			Program::FSStream->clear();
+			if (i == 16) printf("\n");
 			for (int a = i + 1; a <= 16; a += 1)
 			{
 				if (a == 16)
@@ -269,7 +272,7 @@ void DoClean(std::vector<std::string> cmd)
 {
 	if (!CheckArguments("clean", cmd, 0)) return;
 
-	std::pair<std::vector<uint32_t>, std::vector<uint32_t>> p = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
+	std::pair<std::vector<uint32_t>, std::vector<uint32_t> > p = GetDataBlocks(Program::FS->getINodeByPosition(OFFSET_FSINFO).pos_root);
 	std::vector<uint32_t> datablocks = p.first;
 	std::vector<uint32_t> headerblocks = p.second;
 
@@ -421,14 +424,14 @@ void DoShow(std::vector<std::string> cmd)
 /// The first pair value is a set of data blocks, the second is a set of header blocks.  Combined they address
 /// all of the accessible file and directory headers and data.
 /// </returns>
-std::pair<std::vector<uint32_t>, std::vector<uint32_t>> GetDataBlocks(uint32_t pos)
+std::pair<std::vector<uint32_t>, std::vector<uint32_t> > GetDataBlocks(uint32_t pos)
 {
 	AppLib::LowLevel::INode node = Program::FS->getINodeByPosition(pos);
 	std::vector<uint32_t> positions;
 
 	// Loop through all of the children.
 	std::vector<AppLib::LowLevel::INode> children = Program::FS->getChildrenOfDirectory(node.inodeid);
-	std::pair<std::vector<uint32_t>, std::vector<uint32_t>> accessible;
+	std::pair<std::vector<uint32_t>, std::vector<uint32_t> > accessible;
 	std::vector<uint32_t> headers;
 	std::vector<uint32_t> result1;
 	std::vector<uint32_t> result2;
@@ -469,7 +472,7 @@ std::pair<std::vector<uint32_t>, std::vector<uint32_t>> GetDataBlocks(uint32_t p
 		}
 	}
 
-	return std::pair<std::vector<uint32_t>, std::vector<uint32_t>>(positions, headers);
+	return std::pair<std::vector<uint32_t>, std::vector<uint32_t> >(positions, headers);
 }
 
 /// <summary>
