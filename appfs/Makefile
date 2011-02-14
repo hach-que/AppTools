@@ -14,7 +14,7 @@ OBJS_APPCREATE  = appcreate.o
 OBJLIBS	= libapp.a
 LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 ./libapp.a /lib/libfuse.a
 
-all: appfs appmount appinspect
+all: appfs appmount appinspect appcreate
 
 appfs: main.o appfs.o $(OBJLIBS)
 	@$(ECHO) g++ $(CPPFLAGS) $(BUILD_APPFS) -c -o main.o main.cpp

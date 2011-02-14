@@ -328,22 +328,40 @@ namespace AppLib
 						uint32_t soff = this->posg - ((this->posg / 4096) * 4096);
 
 						// Calculate how many bytes to read.
+						std::cout <<
+"count:             " << count << std::endl <<
+"doff:              " << doff << std::endl <<
+"BSIZE_FILE:        " << BSIZE_FILE << std::endl <<
+"soff:              " << soff << std::endl <<
+"fsize:             " << fsize << std::endl <<
+"posg:              " << this->posg << std::endl <<
+"count - doff:      " << (count - doff) << std::endl <<
+"BSIZE_FILE - soff: " << (BSIZE_FILE - soff) << std::endl <<
+"fsize - posg:      " << (fsize - this->posg) << std::endl;
+
 						uint32_t stotal = min(count - doff, BSIZE_FILE - soff, fsize - this->posg);
 
 						// Seek the correct position.
 						this->fd->seekg(spos + soff);
 
 						// Read the selected number of bytes.
+						std::cout << "reader: Doing a read of " << stotal << " bytes.." << std::endl;
 						uint32_t bread = this->fd->read(out + doff, stotal);
 
+						std::cout << "reader: Actually read " << bread << " bytes from underlying filesystem." << std::endl;
+						//AppLib::Logging::showInfoO("reader: Actually read %i bytes from underlying filesystem.", bread);
+
 						// Increase the counters.
+						//AppLib::Logging::showInfoO("reader: posg (%i) + bread (%i) > fsize (%i)", this->posg, bread, fsize);
 						if (this->posg + bread > fsize)
 						{
+							//AppLib::Logging::showInfoO("reader: Setting doff to fsize - this->posg.");
 							doff += fsize - this->posg;
 							this->posg = fsize;
 						}
 						else
 						{
+							//AppLib::Logging::showInfoO("reader: Increasing doff by bread.");
 							doff += bread;
 							this->posg += bread;
 						}
@@ -354,6 +372,7 @@ namespace AppLib
 							this->fd->seekg(oldg);
 							if (this->posg == fsize)
 								this->clear(std::ios::eofbit);
+							AppLib::Logging::showInfoO("reader: Hit natural end-of-read (%i bytes).", doff);
 							return doff;
 						}
 					}

@@ -91,6 +91,7 @@ namespace AppLib
 				return 0;
 			}
 
+			std::cout << "blockstream: Reading " << count << " at " << this->tellg() << "." << std::endl;
 			this->fd->read(out, count);
 			return this->fd->gcount();
 		}
