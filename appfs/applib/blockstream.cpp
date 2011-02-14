@@ -71,14 +71,6 @@ namespace AppLib
 				return;
 			}
 
-			if (this->fd->tellp() % 4096 == 0 && count == 4)
-			{
-				// Display debugging.
-				AppLib::Logging::showWarningW("Writing 4 bytes to start of block: %X",
-					(unsigned int)data[0], (unsigned int)data[1],
-					(unsigned int)data[2], (unsigned int)data[3]);
-			}
-
 			this->fd->write(data, count);
 		}
 
@@ -91,7 +83,6 @@ namespace AppLib
 				return 0;
 			}
 
-			//std::cout << "blockstream: Reading " << count << " at " << this->tellg() << "." << std::endl;
 			this->fd->read(out, count);
 			return this->fd->gcount();
 		}
