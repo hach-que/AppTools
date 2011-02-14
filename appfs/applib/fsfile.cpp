@@ -6,52 +6,7 @@
 #include <map>
 #include <math.h>
 #include <stdarg.h>
-#include "ppnarg.h"
-
-#define min(...) _min(PP_NARG(__VA_ARGS__)-1, __VA_ARGS__)
-#define max(...) _max(PP_NARG(__VA_ARGS__)-1, __VA_ARGS__)
-
-// This is a replacement min() function which takes multiple arguments.
-// Arguments must be int64_t (or comparable integers).
-int64_t _min(int64_t t, ...)
-{
-	va_list argptr;
-	va_start(argptr, t);
-
-	if (t == 0) return 0;
-
-	int64_t a = va_arg(argptr, int64_t);
-	int64_t b = 0;
-	for (int i = 0; i < t; i++ )
-	{
-		b = va_arg(argptr, int64_t);
-		a = (a < b) ? a : b;
-	}
-	va_end(argptr);
-
-	return a;
-}
-
-// This is a replacement max() function which takes multiple arguments.
-// Arguments must be int64_t (or comparable integers).
-int64_t _max(int64_t t, ...)
-{
-	va_list argptr;
-	va_start(argptr, t);
-
-	if (t == 0) return 0;
-
-	int64_t a = va_arg(argptr, int64_t);
-	int64_t b = 0;
-	for (int i = 0; i < t; i++ )
-	{
-		b = va_arg(argptr, int64_t);
-		a = (a > b) ? a : b;
-	}
-	va_end(argptr);
-
-	return a;
-}
+#include <algorithm>
 
 namespace AppLib
 {
@@ -168,7 +123,7 @@ namespace AppLib
 						uint32_t soff = this->posp - ((this->posp / 4096) * 4096);
 
 						// Calculate how many bytes to read.
-						uint32_t stotal = min(count - doff, BSIZE_FILE - soff, fsize - this->posp);
+						uint32_t stotal = std::min(count - doff, std::min(BSIZE_FILE - soff, fsize - this->posp));
 
 						// Seek the correct position.
 						this->fd->seekp(spos + soff);
@@ -196,7 +151,7 @@ namespace AppLib
 						// written to.
 
 						// Calculate how many bytes to write.
-						uint32_t stotal = min(count - doff, BSIZE_FILE, fsize - this->posp);
+						uint32_t stotal = std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posp));
 
 						// Seek the correct position.
 						this->fd->seekp(spos);
@@ -215,7 +170,7 @@ namespace AppLib
 						uint32_t srem = count - doff;
 
 						// Calculate how many bytes to write.
-						uint32_t stotal = min(srem, count - doff, BSIZE_FILE, fsize - this->posp);
+						uint32_t stotal = std::min(srem, std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posp)));
 
 						// Seek the correct position.
 						this->fd->seekp(spos);
@@ -339,7 +294,7 @@ namespace AppLib
 "BSIZE_FILE - soff: " << (BSIZE_FILE - soff) << std::endl <<
 "fsize - posg:      " << (fsize - this->posg) << std::endl;
 
-						uint32_t stotal = min(count - doff, BSIZE_FILE - soff, fsize - this->posg);
+						uint32_t stotal = std::min(count - doff, std::min((uint32_t)BSIZE_FILE - soff, fsize - this->posg));
 
 						// Seek the correct position.
 						this->fd->seekg(spos + soff);
@@ -383,7 +338,7 @@ namespace AppLib
 						AppLib::Logging::showInfoO("reader: Reading middle block(s).");
 
 						// Calculate how many bytes to read.
-						uint32_t stotal = min(count - doff, BSIZE_FILE, fsize - this->posg);
+						uint32_t stotal = std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posg));
 
 						// Seek the correct position.
 						this->fd->seekg(spos);
@@ -411,7 +366,7 @@ namespace AppLib
 						uint32_t srem = count - doff;
 
 						// Calculate how many bytes to read.
-						uint32_t stotal = min(srem, count - doff, BSIZE_FILE, fsize - this->posg);
+						uint32_t stotal = std::min(srem, std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posg)));
 
 						// Seek the correct position.
 						this->fd->seekg(spos);

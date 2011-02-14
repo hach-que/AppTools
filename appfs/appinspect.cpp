@@ -196,8 +196,8 @@ void DoSegments(std::vector<std::string> cmd)
 	printf("I = filesystem info     ? = invalid           = unset\n");
 	printf("! = inaccessible (will be removed by the clean operation)\n");
 	printf("\n");
-	printf("Header blocks: %i", headerblocks.size());
-	printf("Data blocks: %i", datablocks.size());
+	printf("Header blocks: %i\n", headerblocks.size());
+	printf("Data blocks: %i\n", datablocks.size());
 	printf("\n");
 	printf("/===============================================================\\\n");
 	printf("|");
