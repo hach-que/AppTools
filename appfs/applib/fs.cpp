@@ -53,19 +53,19 @@ namespace AppLib
 			{
 				char msg[5];
 				char omsg[5];
-				msg[0] = 'm';
-				msg[1] = '\n';
-				msg[2] = 0;
-				msg[3] = 0;
-				msg[4] = 0;
+				 msg[0] = 'm';
+				 msg[1] = '\n';
+				 msg[2] = 0;
+				 msg[3] = 0;
+				 msg[4] = 0;
 				for (int i = 0; i < 5; i++)
-					omsg[i] = 0;
-				Util::seekp_ex(this->fd, tpos);
-				this->fd->write(&msg[0], 3);
-				this->fd->seekg(tpos + 2);
-				this->fd->read(&omsg[2], 3);
-				omsg[0] = 'm';
-				omsg[1] = '\n';
+					 omsg[i] = 0;
+				 Util::seekp_ex(this->fd, tpos);
+				 this->fd->write(&msg[0], 3);
+				 this->fd->seekg(tpos + 2);
+				 this->fd->read(&omsg[2], 3);
+				 omsg[0] = 'm';
+				 omsg[1] = '\n';
 				if (strcmp(&omsg[0], &msg[0]) != 0)
 				{
 					Logging::showErrorW("Text-mode stream passed to FS constructor.  Make sure");
@@ -84,7 +84,7 @@ namespace AppLib
 
 		INode FS::getINodeByID(uint16_t id)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Retrieve the position using our getINodePositionByID
 			// function.
@@ -96,7 +96,7 @@ namespace AppLib
 
 		INode FS::getINodeByPosition(uint32_t ipos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			INode node(0, "", INodeType::INT_INVALID);
 
@@ -105,12 +105,12 @@ namespace AppLib
 			this->fd->seekg(ipos);
 
 			// Read the data.
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.inodeid),  2);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.type),     2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.inodeid), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.type), 2);
 			if (node.type == INodeType::INT_SEGINFO)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.info_next),  4);
-				
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.info_next), 4);
+
 				// Seek back to the original reading position.
 				this->fd->seekg(old);
 
@@ -118,8 +118,8 @@ namespace AppLib
 			}
 			else if (node.type == INodeType::INT_FREELIST)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.flst_next),  4);
-				
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.flst_next), 4);
+
 				// Seek back to the original reading position.
 				this->fd->seekg(old);
 
@@ -127,54 +127,59 @@ namespace AppLib
 			}
 			else if (node.type == INodeType::INT_FSINFO)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.fs_name),		10);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.ver_major),	2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.ver_minor),	2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.ver_revision),	2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_name),		256);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_ver),		32);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_desc),		1024);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.app_author),	256);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.pos_root),		4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.pos_freelist),	4);
-				
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.fs_name), 10);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.ver_major), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.ver_minor), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.ver_revision), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.app_name), 256);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.app_ver), 32);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.app_desc), 1024);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.app_author), 256);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.pos_root), 4);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.pos_freelist), 4);
+
 				// Seek back to the original reading position.
 				this->fd->seekg(old);
 
 				return node;
 			}
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.filename), 256);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.uid),      2);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.gid),      2);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.mask),     2);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.atime),    8);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.mtime),    8);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&node.ctime),    8);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.filename), 256);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.uid), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.gid), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.mask), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.atime), 8);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.mtime), 8);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&node.ctime), 8);
 			if (node.type == INodeType::INT_FILEINFO)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.dev),      2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.rdev),     2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.nlink),    2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.blocks),   2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.dat_len),  4);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.info_next), 4);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.dev), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.rdev), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.nlink), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.blocks), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.dat_len), 4);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.info_next), 4);
 			}
 			else if (node.type == INodeType::INT_DIRECTORY)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.parent),   2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.children_count), 2);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&node.children), DIRECTORY_CHILDREN_MAX * 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.parent), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.children_count), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.children), DIRECTORY_CHILDREN_MAX * 2);
 			}
 
 			// Seek back to the original reading position.
 			this->fd->seekg(old);
+
+			// Ensure that if our node data is invalid, we return an invalid
+			// INode instead of partial data.
+			if (!node.verify())
+				return INode(0, "", INodeType::INT_INVALID);
 
 			return node;
 		}
 
 		FSResult::FSResult FS::writeINode(uint32_t pos, INode node)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Check to make sure the position is valid.
 			if (pos < OFFSET_DATA)
@@ -183,10 +188,12 @@ namespace AppLib
 			// Check to make sure the inode ID is not already assigned.
 			// TODO: This needs to be updated with a full list of inode types whose inode ID should
 			//       be ignored.
-			if (node.type != INodeType::INT_SEGINFO &&
-				node.type != INodeType::INT_FREELIST && 
-				this->getINodePositionByID(node.inodeid) != 0)
+			if (node.type != INodeType::INT_SEGINFO && node.type != INodeType::INT_FREELIST && this->getINodePositionByID(node.inodeid) != 0)
 				return FSResult::E_FAILURE_INODE_ALREADY_ASSIGNED;
+
+			// Do some sanity checks on the content.
+			if (!node.verify())
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
 
 			std::streampos old = this->fd->tellp();
 			std::string data = node.getBinaryRepresentation();
@@ -198,10 +205,9 @@ namespace AppLib
 				Logging::showErrorW("Write bad on write of new INode.");
 			if (this->fd->eof())
 				Logging::showErrorW("Write EOF on write of new INode.");
-			const char* z = ""; // a const char* always has a \0 terminator, which we use to write into the file.
+			const char *z = "";	// a const char* always has a \0 terminator, which we use to write into the file.
 			// TODO: This needs to be updated with a full list of inode types.
-			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO ||
-				node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST)
 			{
 				for (int i = 0; i < BSIZE_FILE - data.length(); i += 1)
 					Endian::doW(this->fd, z, 1);
@@ -214,21 +220,26 @@ namespace AppLib
 			}
 			else
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
-			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DIRECTORY)
 				this->setINodePositionByID(node.inodeid, pos);
+			this->unreserveINodeID(node.inodeid);
 			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
 		}
 
 		FSResult::FSResult FS::updateINode(INode node)
-        {
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+		{
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Check to make sure the inode ID is not already assigned.
 			Logging::showInfoW("Updating INode %i...", node.inodeid);
 			uint32_t pos = this->getINodePositionByID(node.inodeid);
 			if (pos == 0)
 				return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
+
+			// Do some sanity checks on the content.
+			if (!node.verify())
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
 
 			std::streampos old = this->fd->tellp();
 			std::string data = node.getBinaryRepresentation();
@@ -240,25 +251,25 @@ namespace AppLib
 			this->setINodePositionByID(node.inodeid, pos);
 			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
-        }
+		}
 
 		uint32_t FS::getINodePositionByID(uint16_t id)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			this->fd->clear();
 			std::streampos old = this->fd->tellg();
 			uint32_t newp = OFFSET_LOOKUP + (id * 4);
 			this->fd->seekg(newp);
 			uint32_t ipos = 0;
-			Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&ipos), 4);
 			this->fd->seekg(old);
 			return ipos;
 		}
 
 		uint16_t FS::getFirstFreeInodeNumber()
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			this->fd->clear();
 			std::streampos old = this->fd->tellg();
@@ -266,10 +277,10 @@ namespace AppLib
 			uint32_t ipos = 0;
 			uint16_t count = 0;
 			uint16_t ret = 0;
-			Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
-			while (ipos != 0 && count < 65535)
+			Endian::doR(this->fd, reinterpret_cast < char *>(&ipos), 4);
+			while ((ipos != 0 && count < 65535) || std::find(this->reservedINodes.begin(), this->reservedINodes.end(), count) != this->reservedINodes.end())
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&ipos), 4);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&ipos), 4);
 				count += 1;
 			}
 			if (count == 65535 && ipos != 0)
@@ -282,18 +293,18 @@ namespace AppLib
 
 		FSResult::FSResult FS::setINodePositionByID(uint16_t id, uint32_t pos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			std::streampos old = this->fd->tellp();
 			Util::seekp_ex(this->fd, OFFSET_LOOKUP + (id * 4));
-			Endian::doW(this->fd, reinterpret_cast<char *>(&pos), 4);
+			Endian::doW(this->fd, reinterpret_cast < char *>(&pos), 4);
 			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
 		}
 
 		uint32_t FS::getFirstFreeBlock(INodeType::INodeType type)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Use the FreeList class to return a new free block.
 			return this->freelist->allocateBlock();
@@ -301,7 +312,7 @@ namespace AppLib
 
 		bool FS::isBlockFree(uint32_t pos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Use the FreeList class to test whether the block is free.
 			return this->freelist->isBlockFree(pos);
@@ -309,7 +320,7 @@ namespace AppLib
 
 		FSResult::FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			signed int type_offset = 2;
 			signed int children_count_offset = 292;
@@ -319,9 +330,9 @@ namespace AppLib
 			std::streampos oldp = this->fd->tellp();
 
 			// Read to make sure it's a directory.
-			uint16_t parent_type = (uint16_t)INodeType::INT_UNSET;
+			uint16_t parent_type = (uint16_t) INodeType::INT_UNSET;
 			this->fd->seekg(pos + type_offset);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&parent_type), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&parent_type), 2);
 			if (parent_type != INodeType::INT_DIRECTORY)
 			{
 				this->fd->seekg(oldg);
@@ -336,10 +347,10 @@ namespace AppLib
 			// Find the first available child slot.
 			uint16_t ccinode = 0;
 			uint16_t count = 0;
-			Endian::doR(this->fd, reinterpret_cast<char *>(&ccinode), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&ccinode), 2);
 			while (ccinode != 0 && count < DIRECTORY_CHILDREN_MAX - 1)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&ccinode), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&ccinode), 2);
 				count += 1;
 			}
 			if (count == DIRECTORY_CHILDREN_MAX - 1 && ccinode != 0)
@@ -352,14 +363,14 @@ namespace AppLib
 			{
 				uint32_t writeg = this->fd->tellg();
 				Util::seekp_ex(this->fd, writeg - 2);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&childid), 2);
+				Endian::doW(this->fd, reinterpret_cast < char *>(&childid), 2);
 
 				uint16_t children_count_current = 0;
 				this->fd->seekg(pos + children_count_offset);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&children_count_current), 2);
 				children_count_current += 1;
 				Util::seekp_ex(this->fd, pos + children_count_offset);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
+				Endian::doW(this->fd, reinterpret_cast < char *>(&children_count_current), 2);
 				this->fd->seekg(oldg);
 				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_SUCCESS;
@@ -368,7 +379,7 @@ namespace AppLib
 
 		FSResult::FSResult FS::removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			signed int type_offset = 2;
 			signed int children_count_offset = 292;
@@ -378,9 +389,9 @@ namespace AppLib
 			std::streampos oldp = this->fd->tellp();
 
 			// Read to make sure it's a directory.
-			uint16_t parent_type = (uint16_t)INodeType::INT_UNSET;
+			uint16_t parent_type = (uint16_t) INodeType::INT_UNSET;
 			this->fd->seekg(pos + type_offset);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&parent_type), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&parent_type), 2);
 			if (parent_type != INodeType::INT_DIRECTORY)
 			{
 				this->fd->seekg(oldg);
@@ -395,10 +406,10 @@ namespace AppLib
 			// Find the slot that the child inode is in.
 			uint16_t ccinode = 0;
 			uint16_t count = 0;
-			Endian::doR(this->fd, reinterpret_cast<char *>(&ccinode), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&ccinode), 2);
 			while (ccinode != childid && count < DIRECTORY_CHILDREN_MAX - 1)
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&ccinode), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&ccinode), 2);
 				count += 1;
 			}
 			if (count == DIRECTORY_CHILDREN_MAX - 1 && ccinode != childid)
@@ -412,25 +423,25 @@ namespace AppLib
 				uint32_t writeg = this->fd->tellg();
 				Util::seekp_ex(this->fd, writeg - 2);
 				uint16_t zeroid = 0;
-				Endian::doW(this->fd, reinterpret_cast<char *>(&zeroid), 2);
+				Endian::doW(this->fd, reinterpret_cast < char *>(&zeroid), 2);
 
 				uint16_t children_count_current = 0;
 				this->fd->seekg(pos + children_count_offset);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&children_count_current), 2);
 				children_count_current -= 1;
 				Util::seekp_ex(this->fd, pos + children_count_offset);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&children_count_current), 2);
+				Endian::doW(this->fd, reinterpret_cast < char *>(&children_count_current), 2);
 				this->fd->seekg(oldg);
 				Util::seekp_ex(this->fd, oldp);
 				return FSResult::E_SUCCESS;
 			}
 		}
 
-		FSResult::FSResult FS::filenameIsUnique(uint16_t parentid, char * filename)
+		FSResult::FSResult FS::filenameIsUnique(uint16_t parentid, char *filename)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
-			std::vector<INode> inodechildren = this->getChildrenOfDirectory(parentid);
+			std::vector < INode > inodechildren = this->getChildrenOfDirectory(parentid);
 			for (unsigned int i = 0; i < inodechildren.size(); i += 1)
 			{
 				if (strcmp(filename, inodechildren[i].filename) == 0)
@@ -438,14 +449,14 @@ namespace AppLib
 					return FSResult::E_FAILURE_NOT_UNIQUE;
 				}
 			}
-			return FSResult::E_SUCCESS; // Indicates unique.
+			return FSResult::E_SUCCESS;	// Indicates unique.
 		}
 
-		std::vector<INode> FS::getChildrenOfDirectory(uint16_t parentid)
+		std::vector < INode > FS::getChildrenOfDirectory(uint16_t parentid)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
-			std::vector<INode> inodechildren;
+			std::vector < INode > inodechildren;
 			INode node = this->getINodeByID(parentid);
 			if (node.type == INodeType::INT_INVALID)
 			{
@@ -478,7 +489,7 @@ namespace AppLib
 
 		INode FS::getChildOfDirectory(uint16_t parentid, uint16_t childid)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			INode node = this->getINodeByID(parentid);
 			if (node.type == INodeType::INT_INVALID)
@@ -513,9 +524,9 @@ namespace AppLib
 			return INode(0, "", INodeType::INT_INVALID);
 		}
 
-		INode FS::getChildOfDirectory(uint16_t parentid, const char * filename)
+		INode FS::getChildOfDirectory(uint16_t parentid, const char *filename)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			INode node = this->getINodeByID(parentid);
 			if (node.type == INodeType::INT_INVALID)
@@ -550,54 +561,64 @@ namespace AppLib
 			return INode(0, "", INodeType::INT_INVALID);
 		}
 
-		FSResult::FSResult FS::setFileContents(uint16_t id, const char * data, uint32_t len)
+		FSResult::FSResult FS::setFileContents(uint16_t id, const char *data, uint32_t len)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Our new version of this function is simply going to use
 			// the FSFile class.
 			FSFile f = this->getFile(id);
 			f.truncate(len);
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.open();
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.seekp(0);
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.write(data, len);
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.close();
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 
 			return FSResult::E_SUCCESS;
 		}
 
-		FSResult::FSResult FS::getFileContents(uint16_t id, char ** data_out, uint32_t * len_out, uint32_t len_max)
+		FSResult::FSResult FS::getFileContents(uint16_t id, char **data_out, uint32_t * len_out, uint32_t len_max)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Our new version of this function is simply going to use
 			// the FSFile class.
 			FSFile f = this->getFile(id);
 			uint32_t fsize = f.size();
 			*len_out = (fsize < len_max) ? fsize : len_max;
-			*data_out = (char*)malloc(*len_out);
+			*data_out = (char *) malloc(*len_out);
 
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.open();
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.seekg(0);
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.read(*data_out, *len_out);
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 			f.close();
-			if (f.fail()) return FSResult::E_FAILURE_GENERAL;
+			if (f.fail())
+				return FSResult::E_FAILURE_GENERAL;
 
 			return FSResult::E_SUCCESS;
 		}
 
 		FSResult::FSResult FS::setFileLengthDirect(uint32_t pos, uint32_t len)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			signed int file_blocks_offset = 296;
 			signed int file_len_offset = 298;
@@ -608,17 +629,17 @@ namespace AppLib
 			std::streampos oldp = this->fd->tellp();
 
 			// Get the type directly.
-			uint16_t type_raw = (uint16_t)INodeType::INT_INVALID;
+			uint16_t type_raw = (uint16_t) INodeType::INT_INVALID;
 			this->fd->seekg(pos + 2);
-			Endian::doR(this->fd, reinterpret_cast<char *>(&type_raw), 2);
+			Endian::doR(this->fd, reinterpret_cast < char *>(&type_raw), 2);
 
 			if (type_raw == INodeType::INT_FILEINFO)
 			{
 				Util::seekp_ex(this->fd, pos + file_len_offset);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&len),  4);
+				Endian::doW(this->fd, reinterpret_cast < char *>(&len), 4);
 				Util::seekp_ex(this->fd, pos + file_blocks_offset);
-				uint16_t blocks = ceil(len / (double)BSIZE_FILE);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&blocks),  2);
+				uint16_t blocks = ceil(len / (double) BSIZE_FILE);
+				Endian::doW(this->fd, reinterpret_cast < char *>(&blocks), 2);
 				Util::seekp_ex(this->fd, oldp);
 				this->fd->seekg(oldg);
 				this->fd->seekp(oldp);
@@ -633,7 +654,7 @@ namespace AppLib
 
 		FSResult::FSResult FS::setFileNextSegmentDirect(uint16_t id, uint32_t pos, uint32_t seg_next)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			signed int file_info_next_offset = 302;
 
@@ -654,7 +675,7 @@ namespace AppLib
 				// in the file.
 				std::streampos oldp = this->fd->tellp();
 				this->fd->seekg(bpos + file_info_next_offset);
-				Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next), 4);
+				Endian::doW(this->fd, reinterpret_cast < char *>(&seg_next), 4);
 				this->fd->seekp(oldp);
 				this->fd->seekg(oldg);
 				return FSResult::E_SUCCESS;
@@ -671,7 +692,7 @@ namespace AppLib
 				{
 					this->fd->seekg(bpos + i);
 					spos = 0;
-					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					Endian::doR(this->fd, reinterpret_cast < char *>(&spos), 4);
 					if (spos == 0)
 					{
 						// End of segment list.  Return 0.
@@ -687,7 +708,7 @@ namespace AppLib
 						// Replace the segment value.
 						std::streampos oldp = this->fd->tellp();
 						this->fd->seekp(bpos + i);
-						Endian::doW(this->fd, reinterpret_cast<char *>(&seg_next), 4);
+						Endian::doW(this->fd, reinterpret_cast < char *>(&seg_next), 4);
 						this->fd->seekp(oldp);
 						this->fd->seekg(oldg);
 						return FSResult::E_SUCCESS;
@@ -695,6 +716,8 @@ namespace AppLib
 				}
 				hsize = HSIZE_SEGINFO;
 				INode inode = this->getINodeByPosition(ipos);
+				if (inode.type != INodeType::INT_SEGINFO)
+					break;
 				ipos = inode.info_next;
 			}
 
@@ -706,7 +729,7 @@ namespace AppLib
 
 		uint32_t FS::getFileNextBlock(uint16_t id, uint32_t pos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Store the current positions.
 			std::streampos oldg = this->fd->tellg();
@@ -726,7 +749,7 @@ namespace AppLib
 				{
 					this->fd->seekg(bpos + i);
 					spos = 0;
-					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					Endian::doR(this->fd, reinterpret_cast < char *>(&spos), 4);
 					if (spos == 0)
 					{
 						// End of segment list.  Return 0.
@@ -747,6 +770,8 @@ namespace AppLib
 				}
 				hsize = HSIZE_SEGINFO;
 				INode inode = this->getINodeByPosition(ipos);
+				if (inode.type != INodeType::INT_SEGINFO)
+					break;
 				ipos = inode.info_next;
 			}
 
@@ -758,7 +783,7 @@ namespace AppLib
 
 		FSResult::FSResult FS::resetBlock(uint32_t pos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			if (this->freelist->isBlockFree(pos) || pos % 4096 != 0)
 			{
@@ -766,15 +791,15 @@ namespace AppLib
 			}
 
 			/*
-			std::streampos oldp = this->fd->tellp();
-			Util::seekp_ex(this->fd, pos);
-			const char * zero = "\0";
-			for (int i = 0; i < BSIZE_FILE; i += 1)
-			{
-				this->fd->write(zero, 1);
-			}
-			Util::seekp_ex(this->fd, oldp);
-			*/
+			 * std::streampos oldp = this->fd->tellp();
+			 * Util::seekp_ex(this->fd, pos);
+			 * const char * zero = "\0";
+			 * for (int i = 0; i < BSIZE_FILE; i += 1)
+			 * {
+			 * this->fd->write(zero, 1);
+			 * }
+			 * Util::seekp_ex(this->fd, oldp);
+			 */
 
 			// Block must be marked as unused through the
 			// free list allocation class.
@@ -785,7 +810,7 @@ namespace AppLib
 
 		uint32_t FS::resolvePositionInFile(uint16_t inodeid, uint32_t pos)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Store the current positions.
 			std::streampos oldg = this->fd->tellg();
@@ -805,7 +830,7 @@ namespace AppLib
 				{
 					this->fd->seekg(bpos + i);
 					spos = 0;
-					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					Endian::doR(this->fd, reinterpret_cast < char *>(&spos), 4);
 					if (spos == 0)
 					{
 						// Invalid segment position (i.e. there are
@@ -835,6 +860,8 @@ namespace AppLib
 				}
 				hsize = HSIZE_SEGINFO;
 				INode inode = this->getINodeByPosition(ipos);
+				if (inode.type != INodeType::INT_SEGINFO)
+					break;
 				ipos = inode.info_next;
 			}
 
@@ -843,11 +870,11 @@ namespace AppLib
 			return 0;
 		}
 
-		int32_t FS::resolvePathnameToInodeID(const char * path)
+		int32_t FS::resolvePathnameToInodeID(const char *path)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
-			std::vector<std::string> components;
+			std::vector < std::string > components;
 			std::string buf = "";
 			for (int i = 0; i < strlen(path); i += 1)
 			{
@@ -895,7 +922,7 @@ namespace AppLib
 
 		FSResult::FSResult FS::truncateFile(uint16_t inodeid, uint32_t len)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Store the current positions.
 			std::streampos oldg = this->fd->tellg();
@@ -906,6 +933,8 @@ namespace AppLib
 
 			// Then get the INode and find out the data length.
 			INode node = this->getINodeByPosition(bpos);
+			if (node.type != INodeType::INT_FILEINFO)
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
 
 			if (node.dat_len == len)
 				return FSResult::E_SUCCESS;
@@ -913,7 +942,7 @@ namespace AppLib
 			{
 				// We need to delete blocks at the end of the file.
 				// Calculate the number of blocks to delete.
-				uint16_t blocks_to_delete = node.blocks - ceil(len / (double)BSIZE_FILE);
+				uint16_t blocks_to_delete = node.blocks - ceil(len / (double) BSIZE_FILE);
 
 				// Now loop through all of the segment positions.
 				uint32_t bcount = 0;
@@ -926,11 +955,11 @@ namespace AppLib
 					{
 						this->fd->seekg(bpos + i);
 						spos = 0;
-						Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+						Endian::doR(this->fd, reinterpret_cast < char *>(&spos), 4);
 						if (spos == 0)
 						{
 							// We've run out of segments to erase.
-							ipos = 0; // Make it jump out of the while() loop.
+							ipos = 0;	// Make it jump out of the while() loop.
 							break;
 						}
 
@@ -950,6 +979,12 @@ namespace AppLib
 					}
 					hsize = HSIZE_SEGINFO;
 					INode inode = this->getINodeByPosition(ipos);
+					if (inode.type != INodeType::INT_SEGINFO)
+					{
+						this->fd->seekg(oldg);
+						this->fd->seekp(oldp);
+						return FSResult::E_FAILURE_INODE_NOT_VALID;
+					}
 					ipos = inode.info_next;
 				}
 
@@ -978,7 +1013,7 @@ namespace AppLib
 
 				// We need to add blocks at the end of the file.
 				// Calculate the number of blocks to add.
-				uint16_t blocks_to_add = ceil(len / (double)BSIZE_FILE) - node.blocks;
+				uint16_t blocks_to_add = ceil(len / (double) BSIZE_FILE) - node.blocks;
 
 				// Now loop through all of the segment positions.
 				uint32_t bcount = 0;
@@ -991,7 +1026,7 @@ namespace AppLib
 					{
 						this->fd->seekg(bpos + i);
 						spos = 0;
-						Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+						Endian::doR(this->fd, reinterpret_cast < char *>(&spos), 4);
 						if (spos != 0)
 						{
 							// We don't want to touch this position since it already
@@ -1006,7 +1041,7 @@ namespace AppLib
 
 							// Now add it to the file segment list.
 							this->fd->seekp(bpos + i);
-							Endian::doW(this->fd, reinterpret_cast<char *>(&npos), 4);
+							Endian::doW(this->fd, reinterpret_cast < char *>(&npos), 4);
 						}
 						else
 						{
@@ -1018,6 +1053,12 @@ namespace AppLib
 					}
 					hsize = HSIZE_SEGINFO;
 					INode inode = this->getINodeByPosition(ipos);
+					if (inode.type != INodeType::INT_SEGINFO)
+					{
+						this->fd->seekg(oldg);
+						this->fd->seekp(oldp);
+						return FSResult::E_FAILURE_INODE_NOT_VALID;
+					}
 					ipos = inode.info_next;
 				}
 
@@ -1031,14 +1072,14 @@ namespace AppLib
 				this->fd->seekp(oldp);
 				return FSResult::E_SUCCESS;
 			}
-			
+
 			// Impossible to get here?
 			return FSResult::E_FAILURE_UNKNOWN;
 		}
 
 		FSResult::FSResult FS::allocateInfoListBlocks(uint32_t pos, uint32_t len)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			signed int file_info_next_offset = 302;
 			signed int info_info_next_offset = 4;
@@ -1051,6 +1092,7 @@ namespace AppLib
 
 			// Get the INode.
 			INode node = this->getINodeByPosition(pos);
+			// TODO: Verify type of INode.
 
 			// First calculate the number of segment info 'markers' we need to
 			// address data in the entire file.
@@ -1090,15 +1132,15 @@ namespace AppLib
 				// a vector list of all of the positions of the info
 				// list blocks (as there is no way to reverse through
 				// the list using I/O).
-				std::vector<uint32_t> list_positions;
+				std::vector < uint32_t > list_positions;
 				uint32_t lpos = 0;
 				this->fd->seekg(pos + file_info_next_offset);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&lpos), 4);
 				while (lpos != 0)
 				{
 					list_positions.insert(list_positions.begin(), lpos);
 					this->fd->seekg(lpos + info_info_next_offset);
-					Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+					Endian::doR(this->fd, reinterpret_cast < char *>(&lpos), 4);
 				}
 
 				// Now delete the info list blocks.
@@ -1121,7 +1163,7 @@ namespace AppLib
 					// Erase the link from the previous info block to this one.
 					this->fd->seekp(ppos + poff);
 					uint32_t zero = 0;
-					Endian::doW(this->fd, reinterpret_cast<char *>(&zero), 4);
+					Endian::doW(this->fd, reinterpret_cast < char *>(&zero), 4);
 
 					// Now erase the block.
 					this->resetBlock(dpos);
@@ -1138,12 +1180,12 @@ namespace AppLib
 				uint32_t lpos = 0;
 				uint32_t ppos = 0;
 				this->fd->seekg(pos + file_info_next_offset);
-				Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&lpos), 4);
 				while (lpos != 0)
 				{
 					ppos = lpos;
 					this->fd->seekg(lpos + info_info_next_offset);
-					Endian::doR(this->fd, reinterpret_cast<char *>(&lpos), 4);
+					Endian::doR(this->fd, reinterpret_cast < char *>(&lpos), 4);
 				}
 
 				// Now allocate as many blocks as we need.
@@ -1163,8 +1205,8 @@ namespace AppLib
 						poff = info_info_next_offset;
 
 					this->fd->seekp(ppos + poff);
-					Endian::doW(this->fd, reinterpret_cast<char *>(&npos), 4);
-					
+					Endian::doW(this->fd, reinterpret_cast < char *>(&npos), 4);
+
 					ppos = npos;
 					cilcount += 1;
 				}
@@ -1175,7 +1217,7 @@ namespace AppLib
 
 		FSFile FS::getFile(uint16_t inodeid)
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			return FSFile(this, this->fd, inodeid);
 		}
@@ -1198,7 +1240,7 @@ namespace AppLib
 			uint32_t cpos = this->fd->tellg();
 			while (!this->fd->eof() && cpos == block_position && !this->freelist->isBlockFree(cpos))
 			{
-				Endian::doR(this->fd, reinterpret_cast<char *>(&type_stor),  2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&type_stor), 2);
 				switch (type_stor)
 				{
 					case INodeType::INT_DIRECTORY:
@@ -1228,12 +1270,13 @@ namespace AppLib
 
 			// No temporary block allocated; allocate a new one.
 			uint32_t newpos = this->getFirstFreeBlock(INodeType::INT_FILEINFO);
-			if (newpos == 0) return 0;
+			if (newpos == 0)
+				return 0;
 			Util::seekp_ex(this->fd, newpos);
 			uint16_t zero = 0;
 			uint16_t tempid = INodeType::INT_TEMPORARY;
-			Endian::doW(this->fd, reinterpret_cast<char *>(&zero),  2);
-			Endian::doW(this->fd, reinterpret_cast<char *>(&tempid),  2);
+			Endian::doW(this->fd, reinterpret_cast < char *>(&zero), 2);
+			Endian::doW(this->fd, reinterpret_cast < char *>(&tempid), 2);
 			Util::seekp_ex(this->fd, oldp);
 			newpos += 4;
 			temporary_position = newpos;
@@ -1242,15 +1285,15 @@ namespace AppLib
 
 		void FS::close()
 		{
-			assert(/* Check the stream is not in text-mode. */ this->isValid());
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Close the file stream.
 			this->fd->close();
 		}
 
-		std::vector<std::string> FS::splitPathBySeperators(std::string path)
+		std::vector < std::string > FS::splitPathBySeperators(std::string path)
 		{
-			std::vector<std::string> ret;
+			std::vector < std::string > ret;
 			std::string buf = "";
 			for (unsigned int i = 0; i < path.length(); i += 1)
 			{

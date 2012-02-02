@@ -23,6 +23,7 @@ http://code.google.com/p/apptools-dist for more information.
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <algorithm>
 #include "endian.h"
 #include "fsfile.h"
 #include "blockstream.h"
@@ -95,381 +96,389 @@ namespace AppLib
 
 		class INode
 		{
-			public:
-				uint16_t inodeid;
-				char filename[256];
-				INodeType::INodeType type;
-				uint16_t uid;
-				uint16_t gid;
-				uint16_t mask;
-				uint64_t atime;
-				uint64_t mtime;
-				uint64_t ctime;
-				uint16_t parent;
-				uint16_t children[DIRECTORY_CHILDREN_MAX];
-				uint16_t children_count;
-				uint16_t dev;
-				uint16_t rdev;
-				uint16_t nlink;
-				uint16_t blocks;
-				uint32_t dat_len;
-				uint32_t info_next;
-				uint32_t flst_next;
+		      public:
+			uint16_t inodeid;
+			char filename[256];
+			 INodeType::INodeType type;
+			uint16_t uid;
+			uint16_t gid;
+			uint16_t mask;
+			uint64_t atime;
+			uint64_t mtime;
+			uint64_t ctime;
+			uint16_t parent;
+			uint16_t children[DIRECTORY_CHILDREN_MAX];
+			uint16_t children_count;
+			uint16_t dev;
+			uint16_t rdev;
+			uint16_t nlink;
+			uint16_t blocks;
+			uint32_t dat_len;
+			uint32_t info_next;
+			uint32_t flst_next;
+
+			// FSInfo only
+			char fs_name[10];
+			uint16_t ver_major;
+			uint16_t ver_minor;
+			uint16_t ver_revision;
+			char app_name[256];
+			char app_ver[32];
+			char app_desc[1024];
+			char app_author[256];
+			uint32_t pos_root;
+			uint32_t pos_freelist;
+
+			inline INode(uint16_t id, char *filename, INodeType::INodeType type, uint16_t uid, uint16_t gid, uint16_t mask, uint64_t atime, uint64_t mtime, uint64_t ctime)
+			{
+				this->inodeid = id;
+				this->setFilename(filename);
+				this->type = type;
+				this->uid = uid;
+				this->gid = gid;
+				this->mask = mask;
+				this->atime = atime;
+				this->mtime = mtime;
+				this->ctime = ctime;
+				this->dat_len = 0;
+				this->info_next = 0;
+				this->flst_next = 0;
+				this->parent = 0;
+				this->children_count = 0;
+				this->dev = 0;
+				this->rdev = 0;
+				this->nlink = 1;	// we only have one reference to this object
+				this->blocks = 0;
+				for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
+					this->children[i] = 0;
 
 				// FSInfo only
-				char fs_name[10];
-				uint16_t ver_major;
-				uint16_t ver_minor;
-				uint16_t ver_revision;
-				char app_name[256];
-				char app_ver[32];
-				char app_desc[1024];
-				char app_author[256];
-				uint32_t pos_root;
-				uint32_t pos_freelist;
+				for (uint16_t i = 0; i < 10; i += 1)
+					this->fs_name[i] = FS_NAME[i];
+				this->ver_major = 0;
+				this->ver_minor = 0;
+				this->ver_revision = 0;
+				for (uint16_t i = 0; i < 256; i += 1)
+					this->app_name[i] = '\0';
+				for (uint16_t i = 0; i < 32; i += 1)
+					this->app_ver[i] = '\0';
+				for (uint16_t i = 0; i < 1024; i += 1)
+					this->app_desc[i] = '\0';
+				for (uint16_t i = 0; i < 256; i += 1)
+					this->app_author[i] = '\0';
+				this->pos_root = 0;
+				this->pos_freelist = 0;
+			}
 
-				inline INode(uint16_t id,
-								char * filename,
-								INodeType::INodeType type,
-								uint16_t uid,
-								uint16_t gid,
-								uint16_t mask,
-								uint64_t atime,
-								uint64_t mtime,
-								uint64_t ctime)
+			inline INode(uint16_t id, char *filename, INodeType::INodeType type)
+			{
+				this->inodeid = id;
+				this->setFilename(filename);
+				this->type = type;
+				this->uid = 0;
+				this->gid = 0;
+				this->mask = 0;
+				this->atime = 0;
+				this->mtime = 0;
+				this->ctime = 0;
+				this->dat_len = 0;
+				this->info_next = 0;
+				this->flst_next = 0;
+				this->parent = 0;
+				this->children_count = 0;
+				this->dev = 0;
+				this->rdev = 0;
+				this->nlink = 1;	// we only have one reference to this object
+				this->blocks = 0;
+				for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
+					this->children[i] = 0;
+
+				// FSInfo only
+				for (uint16_t i = 0; i < 10; i += 1)
+					this->fs_name[i] = FS_NAME[i];
+				this->ver_major = 0;
+				this->ver_minor = 0;
+				this->ver_revision = 0;
+				for (uint16_t i = 0; i < 256; i += 1)
+					this->app_name[i] = '\0';
+				for (uint16_t i = 0; i < 32; i += 1)
+					this->app_ver[i] = '\0';
+				for (uint16_t i = 0; i < 1024; i += 1)
+					this->app_desc[i] = '\0';
+				for (uint16_t i = 0; i < 256; i += 1)
+					this->app_author[i] = '\0';
+				this->pos_root = 0;
+				this->pos_freelist = 0;
+			}
+
+			inline std::string getBinaryRepresentation()
+			{
+				std::stringstream binary_rep;
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->inodeid), 2);
+				 Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->type), 2);
+				if (this->type == INodeType::INT_SEGINFO)
 				{
-					this->inodeid = id;
-					for (uint16_t i = 0; i < strlen(filename); i += 1)
-						this->filename[i] = filename[i];
-					for (uint16_t i = strlen(filename); i < 256; i += 1)
-						this->filename[i] = '\0';
-					this->type = type;
-					this->uid = uid;
-					this->gid = gid;
-					this->mask = mask;
-					this->atime = atime;
-					this->mtime = mtime;
-					this->ctime = ctime;
-					this->dat_len = 0;
-					this->info_next = 0;
-					this->flst_next = 0;
-					this->parent = 0;
-					this->children_count = 0;
-					this->dev = 0;
-					this->rdev = 0;
-					this->nlink = 1; // we only have one reference to this object
-					this->blocks = 0;
-					for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
-						this->children[i] = 0;
-
-					// FSInfo only
-					for (uint16_t i = 0; i < 10; i += 1)
-						this->fs_name[i] = FS_NAME[i];
-					this->ver_major = 0;
-					this->ver_minor = 0;
-					this->ver_revision = 0;
-					for (uint16_t i = 0; i < 256; i += 1)
-						this->app_name[i] = '\0';
-					for (uint16_t i = 0; i < 32; i += 1)
-						this->app_ver[i] = '\0';
-					for (uint16_t i = 0; i < 1024; i += 1)
-						this->app_desc[i] = '\0';
-					for (uint16_t i = 0; i < 256; i += 1)
-						this->app_author[i] = '\0';
-					this->pos_root = 0;
-					this->pos_freelist = 0;
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->info_next), 4);
+					 return binary_rep.str();
 				}
-
-				inline INode(uint16_t id,
-								char * filename,
-								INodeType::INodeType type)
+				else if (this->type == INodeType::INT_FREELIST)
 				{
-					this->inodeid = id;
-					for (uint16_t i = 0; i < strlen(filename); i += 1)
-						this->filename[i] = filename[i];
-					for (uint16_t i = strlen(filename); i < 256; i += 1)
-						this->filename[i] = '\0';
-					this->type = type;
-					this->uid = 0;
-					this->gid = 0;
-					this->mask = 0;
-					this->atime = 0;
-					this->mtime = 0;
-					this->ctime = 0;
-					this->dat_len = 0;
-					this->info_next = 0;
-					this->flst_next = 0;
-					this->parent = 0;
-					this->children_count = 0;
-					this->dev = 0;
-					this->rdev = 0;
-					this->nlink = 1; // we only have one reference to this object
-					this->blocks = 0;
-					for (uint16_t i = 0; i < DIRECTORY_CHILDREN_MAX; i += 1)
-						this->children[i] = 0;
-					
-					// FSInfo only
-					for (uint16_t i = 0; i < 10; i += 1)
-						this->fs_name[i] = FS_NAME[i];
-					this->ver_major = 0;
-					this->ver_minor = 0;
-					this->ver_revision = 0;
-					for (uint16_t i = 0; i < 256; i += 1)
-						this->app_name[i] = '\0';
-					for (uint16_t i = 0; i < 32; i += 1)
-						this->app_ver[i] = '\0';
-					for (uint16_t i = 0; i < 1024; i += 1)
-						this->app_desc[i] = '\0';
-					for (uint16_t i = 0; i < 256; i += 1)
-						this->app_author[i] = '\0';
-					this->pos_root = 0;
-					this->pos_freelist = 0;
-				}
-
-				inline std::string getBinaryRepresentation()
-				{
-					std::stringstream binary_rep;
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->inodeid),  2);
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->type),     2);
-					if (this->type == INodeType::INT_SEGINFO)
-					{
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->info_next), 4);
-						return binary_rep.str();
-					}
-					else if (this->type == INodeType::INT_FREELIST)
-					{
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->flst_next), 4);
-						return binary_rep.str();
-					}
-					else if (this->type == INodeType::INT_FSINFO)
-					{
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->fs_name),		10);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ver_major),	2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ver_minor),	2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ver_revision),	2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_name),		256);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_ver),		32);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_desc),		1024);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->app_author),	256);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->pos_root),		4);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->pos_freelist),	4);
-						return binary_rep.str();
-					}
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->filename), 256);
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->uid),      2);
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->gid),      2);
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->mask),     2);
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->atime),    8);
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->mtime),    8);
-					Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->ctime),    8);
-					if (this->type == INodeType::INT_FILEINFO)
-					{
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->dev),      2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->rdev),     2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->nlink),    2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->blocks),   2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->dat_len),  4);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->info_next), 4);
-					}
-					else
-					{
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->parent),   2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->children_count), 2);
-						Endian::doW(&binary_rep, reinterpret_cast<char *>(&this->children), DIRECTORY_CHILDREN_MAX * 2);
-					}
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->flst_next), 4);
 					return binary_rep.str();
 				}
-
-				inline void setFilename(const char* name)
+				else if (this->type == INodeType::INT_FSINFO)
 				{
-					uint16_t size = (strlen(name) < 256) ? strlen(name) : 256;
-					for (uint16_t i = 0; i < size; i += 1)
-						this->filename[i] = name[i];
-					for (uint16_t i = size; i < 256; i += 1)
-						this->filename[i] = '\0';
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->fs_name), 10);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->ver_major), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->ver_minor), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->ver_revision), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->app_name), 256);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->app_ver), 32);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->app_desc), 1024);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->app_author), 256);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->pos_root), 4);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->pos_freelist), 4);
+					return binary_rep.str();
 				}
-
-				inline void setAppName(const char* name)
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->filename), 256);
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->uid), 2);
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->gid), 2);
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->mask), 2);
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->atime), 8);
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->mtime), 8);
+				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->ctime), 8);
+				if (this->type == INodeType::INT_FILEINFO)
 				{
-					uint16_t size = (strlen(name) < 256) ? strlen(name) : 256;
-					for (uint16_t i = 0; i < size; i += 1)
-						this->app_name[i] = name[i];
-					for (uint16_t i = size; i < 256; i += 1)
-						this->app_name[i] = '\0';
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->dev), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->rdev), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->nlink), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->blocks), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->dat_len), 4);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->info_next), 4);
 				}
-
-				inline void setAppVersion(const char* name)
+				else
 				{
-					uint16_t size = (strlen(name) < 32) ? strlen(name) : 32;
-					for (uint16_t i = 0; i < size; i += 1)
-						this->app_ver[i] = name[i];
-					for (uint16_t i = size; i < 32; i += 1)
-						this->app_ver[i] = '\0';
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->parent), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->children_count), 2);
+					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->children), DIRECTORY_CHILDREN_MAX * 2);
 				}
+				return binary_rep.str();
+			}
 
-				inline void setAppDesc(const char* name)
-				{
-					uint16_t size = (strlen(name) < 1024) ? strlen(name) : 1024;
-					for (uint16_t i = 0; i < size; i += 1)
-						this->app_desc[i] = name[i];
-					for (uint16_t i = size; i < 1024; i += 1)
-						this->app_desc[i] = '\0';
-				}
+			inline void setFilename(const char *name)
+			{
+				uint16_t size = (strlen(name) < 255) ? strlen(name) : 255;
+				for (uint16_t i = 0; i < size; i += 1)
+					this->filename[i] = name[i];
+				for (uint16_t i = size; i < 256; i += 1)
+					this->filename[i] = '\0';
+			}
 
-				inline void setAppAuthor(const char* name)
-				{
-					uint16_t size = (strlen(name) < 256) ? strlen(name) : 256;
-					for (uint16_t i = 0; i < size; i += 1)
-						this->app_author[i] = name[i];
-					for (uint16_t i = size; i < 256; i += 1)
-						this->app_author[i] = '\0';
-				}
+			inline void setAppName(const char *name)
+			{
+				uint16_t size = (strlen(name) < 255) ? strlen(name) : 255;
+				for (uint16_t i = 0; i < size; i += 1)
+					this->app_name[i] = name[i];
+				for (uint16_t i = size; i < 256; i += 1)
+					this->app_name[i] = '\0';
+			}
 
-				inline ~INode()
-				{
-					// Do nothing.. no cleanup to be done.
-				}
+			inline void setAppVersion(const char *name)
+			{
+				uint16_t size = (strlen(name) < 31) ? strlen(name) : 31;
+				for (uint16_t i = 0; i < size; i += 1)
+					this->app_ver[i] = name[i];
+				for (uint16_t i = size; i < 32; i += 1)
+					this->app_ver[i] = '\0';
+			}
+
+			inline void setAppDesc(const char *name)
+			{
+				uint16_t size = (strlen(name) < 1023) ? strlen(name) : 1023;
+				for (uint16_t i = 0; i < size; i += 1)
+					this->app_desc[i] = name[i];
+				for (uint16_t i = size; i < 1024; i += 1)
+					this->app_desc[i] = '\0';
+			}
+
+			inline void setAppAuthor(const char *name)
+			{
+				uint16_t size = (strlen(name) < 255) ? strlen(name) : 255;
+				for (uint16_t i = 0; i < size; i += 1)
+					this->app_author[i] = name[i];
+				for (uint16_t i = size; i < 256; i += 1)
+					this->app_author[i] = '\0';
+			}
+
+			// Ensures that the node data is valid.
+			inline bool verify()
+			{
+				if (this->filename[0] == 0 && (this->type == INodeType::INT_DIRECTORY || this->type == INodeType::INT_FILEINFO) && this->inodeid != 0)
+					return false;
+				return true;
+			}
+
+			inline ~ INode()
+			{
+				// Do nothing.. no cleanup to be done.
+			}
 		};
 
 		class FS
 		{
-			public:
-				FS(LowLevel::BlockStream * fd);
+		      public:
+			FS(LowLevel::BlockStream * fd);
 
-				// Returns whether the file descriptor is valid.  If this
-				// is false, and you call one of the functions in the class
-				// (other than getTemporaryNode or isValid), the program will
-				// use assert() to ensure the safety of the contents of the
-				// package.
-				bool isValid();
+			// Returns whether the file descriptor is valid.  If this
+			// is false, and you call one of the functions in the class
+			// (other than getTemporaryNode or isValid), the program will
+			// use assert() to ensure the safety of the contents of the
+			// package.
+			bool isValid();
 
-				// Writes an INode to the specified position and then
-				// updates the inode lookup table.
-				FSResult::FSResult writeINode(uint32_t pos, INode node);
+			// Writes an INode to the specified position and then
+			// updates the inode lookup table.
+			 FSResult::FSResult writeINode(uint32_t pos, INode node);
 
-				// Updates an INode.  The node must exist in the inode
-				// position lookup table.
-				FSResult::FSResult updateINode(INode node);
+			// Updates an INode.  The node must exist in the inode
+			// position lookup table.
+			 FSResult::FSResult updateINode(INode node);
 
-				// Retrieves an INode by an ID.
-				INode getINodeByID(uint16_t id);
+			// Retrieves an INode by an ID.
+			INode getINodeByID(uint16_t id);
 
-				// Retrieves an INode by position.
-				INode getINodeByPosition(uint32_t pos);
+			// Retrieves an INode by position.
+			INode getINodeByPosition(uint32_t pos);
 
-				// A return value of 0 indicates that the specified INode
-				// does not exist.
-				uint32_t getINodePositionByID(uint16_t id);
+			// A return value of 0 indicates that the specified INode
+			// does not exist.
+			uint32_t getINodePositionByID(uint16_t id);
 
-				// Sets the position of an inode in the inode lookup table.
-				FSResult::FSResult setINodePositionByID(uint16_t id, uint32_t pos);
+			// Sets the position of an inode in the inode lookup table.
+			 FSResult::FSResult setINodePositionByID(uint16_t id, uint32_t pos);
 
-				// Find first free block and return that position.  The user specifies
-				// INT_FILE or INT_DIRECTORY to indicate the number of sequential free
-				// blocks to find.  A return value of 0 indicates that the file was either
-				// at the maximum filesize, or the function could not otherwise find
-				// a free block.
-				uint32_t getFirstFreeBlock(INodeType::INodeType type);
+			// Find first free block and return that position.  The user specifies
+			// INT_FILE or INT_DIRECTORY to indicate the number of sequential free
+			// blocks to find.  A return value of 0 indicates that the file was either
+			// at the maximum filesize, or the function could not otherwise find
+			// a free block.
+			uint32_t getFirstFreeBlock(INodeType::INodeType type);
 
-				// Find the first free inode number and return it.  A return value of 0
-				// indicates that there are no free inode numbers available (we can use
-				// a value of 0 since the root inode will always exist and will always
-				// have an ID of 0).
-				uint16_t getFirstFreeInodeNumber();
+			// Find the first free inode number and return it.  A return value of 0
+			// indicates that there are no free inode numbers available (we can use
+			// a value of 0 since the root inode will always exist and will always
+			// have an ID of 0).
+			uint16_t getFirstFreeInodeNumber();
 
-				// Returns whether the specified block is free according to the freelist.
-				bool isBlockFree(uint32_t pos);
+			// Returns whether the specified block is free according to the freelist.
+			bool isBlockFree(uint32_t pos);
 
-				// Adds a child inode to a parent (directory) inode.  Please note that it doesn't
-				// check to see whether or not the child is already attached to the parent, but
-				// it will add the child reference in the lowest available slot.
-				FSResult::FSResult addChildToDirectoryInode(uint16_t parentid, uint16_t childid);
+			// Adds a child inode to a parent (directory) inode.  Please note that it doesn't
+			// check to see whether or not the child is already attached to the parent, but
+			// it will add the child reference in the lowest available slot.
+			 FSResult::FSResult addChildToDirectoryInode(uint16_t parentid, uint16_t childid);
 
-				// Removes a child inode from a parent (directory) inode.
-				FSResult::FSResult removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid);
+			// Removes a child inode from a parent (directory) inode.
+			 FSResult::FSResult removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid);
 
-				// Returns whether or not a specified filename is unique
-				// inside a directory.  E_SUCCESS indicates unique, E_FAILURE_NOT_UNIQUE
-				// indicates not unique.
-				FSResult::FSResult filenameIsUnique(uint16_t parentid, char * filename);
+			// Returns whether or not a specified filename is unique
+			// inside a directory.  E_SUCCESS indicates unique, E_FAILURE_NOT_UNIQUE
+			// indicates not unique.
+			 FSResult::FSResult filenameIsUnique(uint16_t parentid, char *filename);
 
-				// Returns an std::vector<INode> list of children within
-				// the specified directory.
-				std::vector<INode> getChildrenOfDirectory(uint16_t parentid);
+			// Returns an std::vector<INode> list of children within
+			// the specified directory.
+			 std::vector < INode > getChildrenOfDirectory(uint16_t parentid);
 
-				// Returns an INode for the child with the specified
-				// INode id (or filename) within the specified directory.  Returns an
-				// inode with type INodeType::INT_INVALID if it is unable to find
-				// the specified child, or if the parent inode is invalid (i.e. not
-				// a directory).
-				INode getChildOfDirectory(uint16_t parentid, uint16_t childid);
-				INode getChildOfDirectory(uint16_t parentid, const char * filename);
+			// Returns an INode for the child with the specified
+			// INode id (or filename) within the specified directory.  Returns an
+			// inode with type INodeType::INT_INVALID if it is unable to find
+			// the specified child, or if the parent inode is invalid (i.e. not
+			// a directory).
+			INode getChildOfDirectory(uint16_t parentid, uint16_t childid);
+			INode getChildOfDirectory(uint16_t parentid, const char *filename);
 
-				// Sets a file's contents (replacing the current contents).
-				FSResult::FSResult setFileContents(uint16_t id, const char * data, uint32_t len);
+			// Sets a file's contents (replacing the current contents).
+			 FSResult::FSResult setFileContents(uint16_t id, const char *data, uint32_t len);
 
-				// Returns a file's contents.
-				FSResult::FSResult getFileContents(uint16_t id, char ** out, uint32_t * len_out, uint32_t len_max);
+			// Returns a file's contents.
+			 FSResult::FSResult getFileContents(uint16_t id, char **out, uint32_t * len_out, uint32_t len_max);
 
-				// Sets the length of a file (the dat_len and seg_len) fields, without actually
-				// adjusting the length of the file data or allocating new blocks (it only changes
-				// the field values).
-				FSResult::FSResult setFileLengthDirect(uint32_t pos, uint32_t len);
+			// Sets the length of a file (the dat_len and seg_len) fields, without actually
+			// adjusting the length of the file data or allocating new blocks (it only changes
+			// the field values).
+			 FSResult::FSResult setFileLengthDirect(uint32_t pos, uint32_t len);
 
-				// Sets the seg_next field for a FILE or SEGMENT block, without actually
-				// allocating a new block or validating the seg_next position.
-				FSResult::FSResult setFileNextSegmentDirect(uint16_t id, uint32_t pos, uint32_t seg_next);
+			// Sets the seg_next field for a FILE or SEGMENT block, without actually
+			// allocating a new block or validating the seg_next position.
+			 FSResult::FSResult setFileNextSegmentDirect(uint16_t id, uint32_t pos, uint32_t seg_next);
 
-				// This function returns the position of the next block for file data after the current block.
-				uint32_t getFileNextBlock(uint16_t id, uint32_t pos);
+			// This function returns the position of the next block for file data after the current block.
+			uint32_t getFileNextBlock(uint16_t id, uint32_t pos);
 
-				// Erase a specified block, marking it as free in the free list.
-				// (CAUTION:  This simply erases BSIZE_FILE bytes from the specified
-				// position.  It does not check to make sure the position is actually
-				// the start of a block!)
-				FSResult::FSResult resetBlock(uint32_t pos);
+			// Erase a specified block, marking it as free in the free list.
+			// (CAUTION:  This simply erases BSIZE_FILE bytes from the specified
+			// position.  It does not check to make sure the position is actually
+			// the start of a block!)
+			 FSResult::FSResult resetBlock(uint32_t pos);
 
-				// Resolves a position in a file to a position in the disk image.
-				uint32_t resolvePositionInFile(uint16_t inodeid, uint32_t pos);
+			// Resolves a position in a file to a position in the disk image.
+			uint32_t resolvePositionInFile(uint16_t inodeid, uint32_t pos);
 
-				// Resolve a pathname into an inode id.
-				int32_t resolvePathnameToInodeID(const char * path);
+			// Resolve a pathname into an inode id.
+			int32_t resolvePathnameToInodeID(const char *path);
 
-				// Sets the length of a file, allocating or erasing blocks / data where necessary.
-				FSResult::FSResult truncateFile(uint16_t inodeid, uint32_t len);
+			// Sets the length of a file, allocating or erasing blocks / data where necessary.
+			 FSResult::FSResult truncateFile(uint16_t inodeid, uint32_t len);
 
-				// Allocates or frees enough blocks so that there is enough segment list blocks
-				// available to address all of the segments.  pos is the position of the file
-				// inode and len is the length of the data that needs to be addressed (i.e. size
-				// of the file).
-				FSResult::FSResult allocateInfoListBlocks(uint32_t pos, uint32_t len);
+			// Allocates or frees enough blocks so that there is enough segment list blocks
+			// available to address all of the segments.  pos is the position of the file
+			// inode and len is the length of the data that needs to be addressed (i.e. size
+			// of the file).
+			 FSResult::FSResult allocateInfoListBlocks(uint32_t pos, uint32_t len);
 
-				// Returns a FSFile object for interacting with the specified file at
-				// the specified inode.
-				FSFile getFile(uint16_t inodeid);
+			// Returns a FSFile object for interacting with the specified file at
+			// the specified inode.
+			FSFile getFile(uint16_t inodeid);
 
-				// Retrieves the temporary block or creates a new one if there is not one currently
-				// located within the package (packages should have no more than one temporary block
-				// at a single time).  The return value is the position to seek to, where you can then
-				// read and write up to BSIZE_FILE - 4 bytes.
-				//
-				// WARNING: The lookup / creation is *not* fast on large packages as it must search
-				//          though all of the inodes in the package.  Therefore, this function makes use
-				//          of a static variable to speed up subsequent calls to the function (the first
-				//          call must still search through).  If you want to force the function to research
-				//          the package for the temporary block (i.e. if you delete the temporary block),
-				//          you can use the forceRecheck argument to do so.
-				uint32_t getTemporaryBlock(bool forceRecheck = false);
+			// Retrieves the temporary block or creates a new one if there is not one currently
+			// located within the package (packages should have no more than one temporary block
+			// at a single time).  The return value is the position to seek to, where you can then
+			// read and write up to BSIZE_FILE - 4 bytes.
+			//
+			// WARNING: The lookup / creation is *not* fast on large packages as it must search
+			//          though all of the inodes in the package.  Therefore, this function makes use
+			//          of a static variable to speed up subsequent calls to the function (the first
+			//          call must still search through).  If you want to force the function to research
+			//          the package for the temporary block (i.e. if you delete the temporary block),
+			//          you can use the forceRecheck argument to do so.
+			uint32_t getTemporaryBlock(bool forceRecheck = false);
 
-				// Closes the filesystem.
-				void close();
+			// Closes the filesystem.
+			void close();
 
-				// Utility function for splitting paths into their components.
-				std::vector<std::string> splitPathBySeperators(std::string path);
+			// Utility function for splitting paths into their components.
+			 std::vector < std::string > splitPathBySeperators(std::string path);
 
-			private:
-				LowLevel::BlockStream * fd;
-				LowLevel::FreeList * freelist;
+			// Reserves an INode ID for future use without require the INode to actually be
+			// written to disk.
+			inline void reserveINodeID(uint16_t id)
+			{
+				this->reservedINodes.insert(this->reservedINodes.end(), id);
+			}
+
+			// Removes an INode ID reservation.
+			inline void unreserveINodeID(uint16_t id)
+			{
+				std::vector < uint16_t >::iterator it = std::find(this->reservedINodes.begin(), this->reservedINodes.end(), id);
+				if (it != this->reservedINodes.end())
+					this->reservedINodes.erase(it);
+			}
+
+		      private:
+			LowLevel::BlockStream * fd;
+			LowLevel::FreeList * freelist;
+			std::vector < uint16_t > reservedINodes;
 		};
 	}
 }

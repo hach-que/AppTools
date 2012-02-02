@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# The root of the AppFS source code.
+DIR_ROOT=~/Projects/AppTools/appfs
+
+# Calculated test folders.
+DIR_WORKING="$DIR_ROOT/tests/working"
+DIR_MOUNT="$DIR_WORKING/mount"
+FILE_AFS="$DIR_WORKING/test.afs"
+
+# Ensure the working directory exists.
+if [ ! -d "$DIR_WORKING" ]; then
+	mkdir -pv "$DIR_WORKING"
+fi
+
+# Forcibly unmount the existing mount directory.
+sudo umount -lf "$DIR_MOUNT" >/dev/null 2>/dev/null;
+
+# Ensure the mount directory exists.
+mkdir -pv "$DIR_MOUNT"
+
+# Remove and recreate the test package.
+rm "$FILE_AFS"
+"$DIR_ROOT/appcreate" "$FILE_AFS"
+
+# Wait for the user to signal that AppMount has started.
+echo "Press enter when you have started AppMount using the following parameters:"
+echo "  $FILE_AFS $DIR_MOUNT"
+read -n 1 -s

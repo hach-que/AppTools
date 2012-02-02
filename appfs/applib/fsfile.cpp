@@ -27,7 +27,7 @@ namespace AppLib
 		void FSFile::open(std::ios_base::openmode mode)
 		{
 			INode node = this->filesystem->getINodeByID(this->inodeid);
-			this->invalid = (node.type != INodeType::INT_FILEINFO);
+			 this->invalid = (node.type != INodeType::INT_FILEINFO);
 			if (this->invalid)
 			{
 				this->clear(std::ios::badbit | std::ios::failbit);
@@ -39,13 +39,13 @@ namespace AppLib
 			//       to open, set the badbit on.
 			this->opened = true;
 
-			if (false /* <failed> */)
+			if (false /* <failed> */ )
 			{
 				this->clear(std::ios::badbit | std::ios::failbit);
 			}
 		}
 
-		void FSFile::write(const char * data, std::streamsize count)
+		void FSFile::write(const char *data, std::streamsize count)
 		{
 			if (this->invalid || !this->opened)
 			{
@@ -90,7 +90,7 @@ namespace AppLib
 				{
 					this->fd->seekg(bpos + i);
 					spos = 0;
-					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					Endian::doR(this->fd, reinterpret_cast < char *>(&spos), 4);
 
 					if (fsize - this->posp == 0)
 					{
@@ -105,7 +105,7 @@ namespace AppLib
 					{
 						// We've run out of segments to write to (this shouldn't
 						// happen because we truncated the file).
-						ipos = 0; // Make it jump out of the while() loop.
+						ipos = 0;	// Make it jump out of the while() loop.
 						this->clear(std::ios::eofbit | std::ios::failbit);
 						return;
 					}
@@ -123,7 +123,7 @@ namespace AppLib
 						uint32_t soff = this->posp - ((this->posp / 4096) * 4096);
 
 						// Calculate how many bytes to read.
-						uint32_t stotal = std::min(count - doff, std::min(BSIZE_FILE - soff, fsize - this->posp));
+						uint32_t stotal = std::min < uint32_t > (count - doff, std::min < uint32_t > (BSIZE_FILE - soff, fsize - this->posp));
 
 						// Seek the correct position.
 						this->fd->seekp(spos + soff);
@@ -151,7 +151,7 @@ namespace AppLib
 						// written to.
 
 						// Calculate how many bytes to write.
-						uint32_t stotal = std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posp));
+						uint32_t stotal = std::min < uint32_t > (count - doff, std::min < uint32_t > ((uint32_t) BSIZE_FILE, fsize - this->posp));
 
 						// Seek the correct position.
 						this->fd->seekp(spos);
@@ -170,7 +170,7 @@ namespace AppLib
 						uint32_t srem = count - doff;
 
 						// Calculate how many bytes to write.
-						uint32_t stotal = std::min(srem, std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posp)));
+						uint32_t stotal = std::min < uint32_t > (srem, std::min < uint32_t > (count - doff, std::min < uint32_t > ((uint32_t) BSIZE_FILE, fsize - this->posp)));
 
 						// Seek the correct position.
 						this->fd->seekp(spos);
@@ -212,7 +212,7 @@ namespace AppLib
 			return;
 		}
 
-		std::streamsize FSFile::read(char * out, std::streamsize count)
+		std::streamsize FSFile::read(char *out, std::streamsize count)
 		{
 			if (this->invalid || !this->opened)
 			{
@@ -247,7 +247,7 @@ namespace AppLib
 				{
 					this->fd->seekg(bpos + i);
 					spos = 0;
-					Endian::doR(this->fd, reinterpret_cast<char *>(&spos), 4);
+					Endian::doR(this->fd, reinterpret_cast < char *>(&spos), 4);
 
 					if (fsize - this->posg == 0)
 					{
@@ -260,7 +260,7 @@ namespace AppLib
 					if (spos == 0)
 					{
 						// We've run out of segments to read.
-						ipos = 0; // Make it jump out of the while() loop.
+						ipos = 0;	// Make it jump out of the while() loop.
 						this->clear(std::ios::eofbit);
 						return doff;
 					}
@@ -278,7 +278,7 @@ namespace AppLib
 						uint32_t soff = this->posg - ((this->posg / 4096) * 4096);
 
 						// Calculate how many bytes to read.
-						uint32_t stotal = std::min(count - doff, std::min((uint32_t)BSIZE_FILE - soff, fsize - this->posg));
+						uint32_t stotal = std::min < uint32_t > (count - doff, std::min < uint32_t > ((uint32_t) BSIZE_FILE - soff, fsize - this->posg));
 
 						// Seek the correct position.
 						this->fd->seekg(spos + soff);
@@ -313,7 +313,7 @@ namespace AppLib
 						// read (up to EOF of course).
 
 						// Calculate how many bytes to read.
-						uint32_t stotal = std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posg));
+						uint32_t stotal = std::min < uint32_t > (count - doff, std::min < uint32_t > ((uint32_t) BSIZE_FILE, fsize - this->posg));
 
 						// Seek the correct position.
 						this->fd->seekg(spos);
@@ -340,7 +340,7 @@ namespace AppLib
 						uint32_t srem = count - doff;
 
 						// Calculate how many bytes to read.
-						uint32_t stotal = std::min(srem, std::min(count - doff, std::min((uint32_t)BSIZE_FILE, fsize - this->posg)));
+						uint32_t stotal = std::min < uint32_t > (srem, std::min < uint32_t > (count - doff, std::min < uint32_t > ((uint32_t) BSIZE_FILE, fsize - this->posg)));
 
 						// Seek the correct position.
 						this->fd->seekg(spos);
@@ -424,7 +424,7 @@ namespace AppLib
 				this->clear(std::ios::badbit | std::ios::failbit);
 				return;
 			}
-			
+
 			this->posg = pos;
 		}
 

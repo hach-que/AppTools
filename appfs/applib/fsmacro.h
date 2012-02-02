@@ -45,49 +45,66 @@ int appfs_retrieve_parent_path_to_inode = AppLib::FUSE::Macros::retrieveParentPa
 if (appfs_retrieve_parent_path_to_inode != 0) return appfs_retrieve_parent_path_to_inode;
 #define APPFS_ASSIGN_NEW_INODE(nde, type) \
 AppLib::LowLevel::INode nde(0, "", type); \
-int appfs_assign_new_inode = AppLib::FUSE::Macros::assignNewINode(&nde,type); \
+uint32_t appfs_assign_new_inode_pos; \
+int appfs_assign_new_inode = AppLib::FUSE::Macros::assignNewINode(&nde,type,appfs_assign_new_inode_pos); \
 if (appfs_assign_new_inode != 0) return appfs_assign_new_inode;
 #define APPFS_SAVE_INODE(buf) \
 int appfs_save_inode = AppLib::FUSE::Macros::saveINode(&buf); \
 if (appfs_save_inode != 0) return appfs_save_inode;
-#define APPFS_COPY_CONST_CHAR_TO_FILENAME(ret, filename) \
-const char* ret_cpy = ret; /* ret may be the result of a function. */ \
-for (int i = 0; i < 256; i += 1) \
-	filename[i] = 0; \
-for (int i = 0; i < 256; i += 1) \
-{ \
-	if (ret_cpy[i] == 0) \
-		break; \
-	filename[i] = ret_cpy[i]; \
+#define APPFS_SAVE_NEW_INODE(buf) \
+int appfs_save_new_inode = AppLib::FUSE::Macros::saveNewINode(appfs_assign_new_inode_pos, &buf); \
+if (appfs_save_new_inode != 0) return appfs_save_new_inode;
+#define APPFS_BASENAME_TO_FILENAME(path, filename) \
+const char* appfs_copy_basename = Macros::extractBasenameFromPath(path); \
+int appfs_copy_const_char_to_filename = INTERNAL_APPFS_COPY_CONST_CHAR_TO_FILENAME(appfs_copy_basename, filename); \
+free((void*)appfs_copy_basename); \
+if (appfs_copy_const_char_to_filename != 0) return appfs_copy_const_char_to_filename;
+
+#include "fs.h"
+
+// TODO: Not be lazy and actually put these as macros in FuseLink.
+
+inline AppLib::LowLevel::FSResult::FSResult INTERNAL_APPFS_COPY_CONST_CHAR_TO_FILENAME(const char *ret, char filename[256])
+{
+	if (strlen(ret) >= 256)
+		return AppLib::LowLevel::FSResult::E_FAILURE_INVALID_FILENAME;
+	for (int i = 0; i < 256; i += 1)
+		filename[i] = 0;
+	for (int i = 0; i < 255; i += 1)
+	{
+		if (ret[i] == 0)
+			break;
+		filename[i] = ret[i];
+	}
+	return AppLib::LowLevel::FSResult::E_SUCCESS;
 }
-#ifdef WIN32
-#pragma message ( "warning: The APPFS_COPY_INODE_TO_POINTER macro does not support FSINFO blocks." )
-#else
-#warning "The APPFS_COPY_INODE_TO_POINTER macro does not support FSINFO blocks."
-#endif
-#define APPFS_COPY_INODE_TO_POINTER(node,pointer) \
-pointer->inodeid = node.inodeid; \
-for (int i = 0; i < 256; i += 1) \
-{ \
-pointer->filename[i] = node.filename[i]; \
-} \
-pointer->type = node.type; \
-pointer->uid = node.uid; \
-pointer->gid = node.gid; \
-pointer->mask = node.mask; \
-pointer->atime = node.atime; \
-pointer->mtime = node.mtime; \
-pointer->ctime = node.ctime; \
-pointer->parent = node.parent; \
-for (int i = 0; i < node.children_count; i += 1) \
-{ \
-pointer->children[i] = node.children[i]; \
-} \
-pointer->children_count = node.children_count; \
-pointer->dev = node.dev; \
-pointer->rdev = node.rdev; \
-pointer->nlink = node.nlink; \
-pointer->blocks = node.blocks; \
-pointer->dat_len = node.dat_len; \
-pointer->info_next = node.info_next; \
-pointer->flst_next = node.flst_next;
+
+inline void APPFS_COPY_INODE_TO_POINTER(AppLib::LowLevel::INode & node, AppLib::LowLevel::INode * pointer)
+{
+	pointer->inodeid = node.inodeid;
+	for (int i = 0; i < 255; i += 1)
+	{
+		pointer->filename[i] = node.filename[i];
+	}
+	pointer->filename[255] = 0;
+	pointer->type = node.type;
+	pointer->uid = node.uid;
+	pointer->gid = node.gid;
+	pointer->mask = node.mask;
+	pointer->atime = node.atime;
+	pointer->mtime = node.mtime;
+	pointer->ctime = node.ctime;
+	pointer->parent = node.parent;
+	for (int i = 0; i < node.children_count; i += 1)
+	{
+		pointer->children[i] = node.children[i];
+	}
+	pointer->children_count = node.children_count;
+	pointer->dev = node.dev;
+	pointer->rdev = node.rdev;
+	pointer->nlink = node.nlink;
+	pointer->blocks = node.blocks;
+	pointer->dat_len = node.dat_len;
+	pointer->info_next = node.info_next;
+	pointer->flst_next = node.flst_next;
+}

@@ -12,11 +12,11 @@ OBJS_APPMOUNT	= main.o appmount.o
 OBJS_APPINSPECT = appinspect.o
 OBJS_APPCREATE  = appcreate.o
 OBJLIBS	= libapp.a
-LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 ./libapp.a /lib/libfuse.a
+LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 -lm ./libapp.a /usr/lib64/libfuse.a
 
 all: appfs appmount appinspect appcreate
 
-appfs: main.o appfs.o $(OBJLIBS)
+appfs: appfs.o $(OBJLIBS)
 	@$(ECHO) g++ $(CPPFLAGS) $(BUILD_APPFS) -c -o main.o main.cpp
 	@g++ $(CPPFLAGS) $(BUILD_APPFS) -c -o main.o main.cpp
 	@$(ECHO) gcc -o $(EXE_APPFS) $(OBJS_APPFS) $(LIBS)
@@ -24,7 +24,7 @@ appfs: main.o appfs.o $(OBJLIBS)
 	@$(ECHO) rm main.o
 	@rm main.o
 
-appmount: main.o appmount.o $(OBJLIBS)
+appmount: appmount.o $(OBJLIBS)
 	@$(ECHO) g++ $(CPPFLAGS) $(BUILD_APPMOUNT) -c -o main.o main.cpp
 	@g++ $(CPPFLAGS) $(BUILD_APPMOUNT) -c -o main.o main.cpp
 	@$(ECHO) gcc -o $(EXE_APPMOUNT) $(OBJS_APPMOUNT) $(LIBS)

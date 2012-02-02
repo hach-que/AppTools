@@ -62,7 +62,7 @@ namespace AppLib
 			}
 		}
 
-		void BlockStream::write(const char * data, std::streamsize count)
+		void BlockStream::write(const char *data, std::streamsize count)
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
@@ -74,7 +74,7 @@ namespace AppLib
 			this->fd->write(data, count);
 		}
 
-		std::streamsize BlockStream::read(char * out, std::streamsize count)
+		std::streamsize BlockStream::read(char *out, std::streamsize count)
 		{
 			if (this->invalid || !this->opened || this->fail())
 			{
@@ -86,7 +86,7 @@ namespace AppLib
 			this->fd->read(out, count);
 			return this->fd->gcount();
 		}
-		
+
 		void BlockStream::close()
 		{
 			this->fd->close();
@@ -141,7 +141,7 @@ namespace AppLib
 			return this->fd->tellg();
 		}
 
-		
+
 
 		bool BlockStream::is_open()
 		{
@@ -184,4 +184,3 @@ namespace AppLib
 		}
 	}
 }
-
