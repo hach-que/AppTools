@@ -62,15 +62,15 @@ http://code.google.com/p/apptools-dist for more information.
 #define LIBRARY_VERSION_MINOR 1
 #define LIBRARY_VERSION_REVISION 0
 
-#if defined(_MSC_VER) 
-typedef signed __int8 int8_t; 
-typedef signed __int16 int16_t; 
-typedef signed __int32 int32_t; 
-typedef signed __int64 int64_t; 
-typedef unsigned __int8 uint8_t; 
-typedef unsigned __int16 uint16_t; 
-typedef unsigned __int32 uint32_t; 
-typedef unsigned __int64 uint64_t; 
+#if defined(_MSC_VER)
+typedef signed __int8 int8_t;
+typedef signed __int16 int16_t;
+typedef signed __int32 int32_t;
+typedef signed __int64 int64_t;
+typedef unsigned __int8 uint8_t;
+typedef unsigned __int16 uint16_t;
+typedef unsigned __int32 uint32_t;
+typedef unsigned __int64 uint64_t;
 typedef unsigned int mode_t;
 typedef unsigned int uid_t;
 typedef unsigned int gid_t;
@@ -82,6 +82,6 @@ typedef unsigned int pid_t;
 #include <stdio.h>
 #include <stdlib.h>
 #include <cstring>
-#endif 
+#endif
 
 #endif

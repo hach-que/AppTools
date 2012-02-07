@@ -344,6 +344,9 @@ namespace AppLib
 			// position lookup table.
 			 FSResult::FSResult updateINode(INode node);
 
+			// Updates a raw INode (such as a freelist block).
+			 FSResult::FSResult updateRawINode(INode node, uint32_t pos);
+
 			// Retrieves an INode by an ID.
 			INode getINodeByID(uint16_t id);
 

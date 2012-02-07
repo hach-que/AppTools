@@ -59,8 +59,17 @@ const char* appfs_copy_basename = Macros::extractBasenameFromPath(path); \
 int appfs_copy_const_char_to_filename = INTERNAL_APPFS_COPY_CONST_CHAR_TO_FILENAME(appfs_copy_basename, filename); \
 free((void*)appfs_copy_basename); \
 if (appfs_copy_const_char_to_filename != 0) return appfs_copy_const_char_to_filename;
+#define APPFS_VERIFY_INODE_POSITION(pos) \
+if (pos < OFFSET_DATA || (pos - OFFSET_DATA) % 4096 != 0) \
+{ \
+	APPFS_VERIFY_INODE_ASSERT_POSITION(); \
+	return FSResult::E_FAILURE_INVALID_POSITION; \
+}
 
+#include <assert.h>
 #include "fs.h"
+
+void APPFS_VERIFY_INODE_ASSERT_POSITION();
 
 // TODO: Not be lazy and actually put these as macros in FuseLink.
 
@@ -86,7 +95,6 @@ inline void APPFS_COPY_INODE_TO_POINTER(AppLib::LowLevel::INode & node, AppLib::
 	{
 		pointer->filename[i] = node.filename[i];
 	}
-	pointer->filename[255] = 0;
 	pointer->type = node.type;
 	pointer->uid = node.uid;
 	pointer->gid = node.gid;

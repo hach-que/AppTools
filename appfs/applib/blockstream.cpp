@@ -36,12 +36,27 @@ http://code.google.com/p/apptools-dist for more information.
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#ifndef WIN32
+#define CREATE_CRITICAL() this->mutex = new pthread_mutex_t; pthread_mutex_init(this->mutex, NULL);
+#define ENTER_CRITICAL() pthread_mutex_lock(this->mutex);
+#define LEAVE_CRITICAL() pthread_mutex_unlock(this->mutex);
+#else
+#pragma message ("No support for critical locking in BlockStream on Windows yet.")
+#define CREATE_CRITICAL() ;
+#define ENTER_CRITICAL() ;
+#define LEAVE_CRITICAL() ;
+#endif
+
 namespace AppLib
 {
 	namespace LowLevel
 	{
 		BlockStream::BlockStream(std::string filename)
 		{
+			CREATE_CRITICAL();
+
+			ENTER_CRITICAL();
+
 			this->opened = false;
 			this->invalid = false;
 
@@ -60,10 +75,14 @@ namespace AppLib
 				this->invalid = false;
 				this->opened = true;
 			}
+
+			LEAVE_CRITICAL();
 		}
 
 		void BlockStream::write(const char *data, std::streamsize count)
 		{
+			ENTER_CRITICAL();
+
 			if (this->invalid || !this->opened || this->fail())
 			{
 				if (!this->fail())
@@ -72,10 +91,14 @@ namespace AppLib
 			}
 
 			this->fd->write(data, count);
+
+			LEAVE_CRITICAL();
 		}
 
 		std::streamsize BlockStream::read(char *out, std::streamsize count)
 		{
+			ENTER_CRITICAL();
+
 			if (this->invalid || !this->opened || this->fail())
 			{
 				if (!this->fail())
@@ -83,18 +106,28 @@ namespace AppLib
 				return 0;
 			}
 
-			this->fd->read(out, count);
-			return this->fd->gcount();
+			this->fd->readsome(out, count);
+			std::streamsize total = this->fd->gcount();
+
+			LEAVE_CRITICAL();
+
+			return total;
 		}
 
 		void BlockStream::close()
 		{
+			ENTER_CRITICAL();
+
 			this->fd->close();
 			this->opened = false;
+
+			LEAVE_CRITICAL();
 		}
 
 		void BlockStream::seekp(std::streampos pos, std::ios_base::seekdir dir)
 		{
+			ENTER_CRITICAL();
+
 			if (this->invalid || !this->opened || this->fail())
 			{
 				if (!this->fail())
@@ -103,10 +136,14 @@ namespace AppLib
 			}
 
 			this->fd->seekp(pos, dir);
+
+			LEAVE_CRITICAL();
 		}
 
 		void BlockStream::seekg(std::streampos pos, std::ios_base::seekdir dir)
 		{
+			ENTER_CRITICAL();
+
 			if (this->invalid || !this->opened || this->fail())
 			{
 				if (!this->fail())
@@ -115,10 +152,14 @@ namespace AppLib
 			}
 
 			this->fd->seekg(pos, dir);
+
+			LEAVE_CRITICAL();
 		}
 
 		std::streampos BlockStream::tellp()
 		{
+			ENTER_CRITICAL();
+
 			if (this->invalid || !this->opened || this->fail())
 			{
 				if (!this->fail())
@@ -126,11 +167,17 @@ namespace AppLib
 				return 0;
 			}
 
-			return this->fd->tellp();
+			std::streampos pos = this->fd->tellp();
+
+			LEAVE_CRITICAL();
+
+			return pos;
 		}
 
 		std::streampos BlockStream::tellg()
 		{
+			ENTER_CRITICAL();
+
 			if (this->invalid || !this->opened || this->fail())
 			{
 				if (!this->fail())
@@ -138,10 +185,12 @@ namespace AppLib
 				return 0;
 			}
 
-			return this->fd->tellg();
+			std::streampos pos = this->fd->tellg();
+
+			LEAVE_CRITICAL();
+
+			return pos;
 		}
-
-
 
 		bool BlockStream::is_open()
 		{

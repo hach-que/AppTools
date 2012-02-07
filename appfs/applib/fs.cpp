@@ -24,10 +24,17 @@ http://code.google.com/p/apptools-dist for more information.
 #include "util.h"
 #include "blockstream.h"
 #include "freelist.h"
+#include "fsmacro.h"
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
 #include <vector>
+
+void APPFS_VERIFY_INODE_ASSERT_POSITION()
+{
+	// Temporary; used for tracking invalid position writes.
+	assert(false);
+}
 
 namespace AppLib
 {
@@ -182,8 +189,7 @@ namespace AppLib
 			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Check to make sure the position is valid.
-			if (pos < OFFSET_DATA)
-				return FSResult::E_FAILURE_INVALID_POSITION;
+			APPFS_VERIFY_INODE_POSITION(pos);
 
 			// Check to make sure the inode ID is not already assigned.
 			// TODO: This needs to be updated with a full list of inode types whose inode ID should
@@ -205,6 +211,9 @@ namespace AppLib
 				Logging::showErrorW("Write bad on write of new INode.");
 			if (this->fd->eof())
 				Logging::showErrorW("Write EOF on write of new INode.");
+			// TODO: Should we return with failure if any of the above if
+			// statements execute?
+
 			const char *z = "";	// a const char* always has a \0 terminator, which we use to write into the file.
 			// TODO: This needs to be updated with a full list of inode types.
 			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST)
@@ -221,21 +230,56 @@ namespace AppLib
 			else
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
 			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DIRECTORY)
-				this->setINodePositionByID(node.inodeid, pos);
+			{
+				LowLevel::FSResult::FSResult sres = this->setINodePositionByID(node.inodeid, pos);
+				if (sres != LowLevel::FSResult::E_SUCCESS)
+					return sres;
+			}
 			this->unreserveINodeID(node.inodeid);
 			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
+		}
+
+		FSResult::FSResult FS::updateRawINode(INode node, uint32_t pos)
+		{
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
+
+			APPFS_VERIFY_INODE_POSITION(pos);
+
+			// Ensure that this INode is a type that allows updating via
+			// manual positioning.
+			if (node.type != INodeType::INT_FREELIST)
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
+
+			// Do some sanity checks on the content.
+			if (!node.verify())
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
+
+			// Do a very simple update of the data.
+			std::streampos old = this->fd->tellp();
+			std::string data = node.getBinaryRepresentation();
+			Util::seekp_ex(this->fd, pos);
+			this->fd->write(data.c_str(), data.length());
+			Util::seekp_ex(this->fd, old);
+			return FSResult::E_SUCCESS;
+
 		}
 
 		FSResult::FSResult FS::updateINode(INode node)
 		{
 			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
-			// Check to make sure the inode ID is not already assigned.
+			// Ensure that this INode is a type that can be updated.
+			if (node.type != INodeType::INT_FILEINFO && node.type != INodeType::INT_DIRECTORY)
+				return FSResult::E_FAILURE_INODE_NOT_VALID;
+
+			// Check to make sure the inode ID is already assigned.
 			Logging::showInfoW("Updating INode %i...", node.inodeid);
 			uint32_t pos = this->getINodePositionByID(node.inodeid);
 			if (pos == 0)
 				return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
+
+			APPFS_VERIFY_INODE_POSITION(pos);
 
 			// Do some sanity checks on the content.
 			if (!node.verify())
@@ -248,7 +292,9 @@ namespace AppLib
 			// We do not write out the file data with zeros
 			// as in writeINode because we want to keep the
 			// content.
-			this->setINodePositionByID(node.inodeid, pos);
+			LowLevel::FSResult::FSResult sres = this->setINodePositionByID(node.inodeid, pos);
+			if (sres != LowLevel::FSResult::E_SUCCESS)
+				return sres;
 			Util::seekp_ex(this->fd, old);
 			return FSResult::E_SUCCESS;
 		}
@@ -294,6 +340,8 @@ namespace AppLib
 		FSResult::FSResult FS::setINodePositionByID(uint16_t id, uint32_t pos)
 		{
 			assert( /* Check the stream is not in text-mode. */ this->isValid());
+
+			APPFS_VERIFY_INODE_POSITION(pos);
 
 			std::streampos old = this->fd->tellp();
 			Util::seekp_ex(this->fd, OFFSET_LOOKUP + (id * 4));
@@ -977,15 +1025,18 @@ namespace AppLib
 
 						bcount += 1;
 					}
-					hsize = HSIZE_SEGINFO;
-					INode inode = this->getINodeByPosition(ipos);
-					if (inode.type != INodeType::INT_SEGINFO)
+					if (ipos != 0)
 					{
-						this->fd->seekg(oldg);
-						this->fd->seekp(oldp);
-						return FSResult::E_FAILURE_INODE_NOT_VALID;
+						hsize = HSIZE_SEGINFO;
+						INode inode = this->getINodeByPosition(ipos);
+						if (inode.type != INodeType::INT_SEGINFO)
+						{
+							this->fd->seekg(oldg);
+							this->fd->seekp(oldp);
+							return FSResult::E_FAILURE_INODE_NOT_VALID;
+						}
+						ipos = inode.info_next;
 					}
-					ipos = inode.info_next;
 				}
 
 				// Now set the file's data length.
@@ -1051,15 +1102,18 @@ namespace AppLib
 
 						bcount += 1;
 					}
-					hsize = HSIZE_SEGINFO;
-					INode inode = this->getINodeByPosition(ipos);
-					if (inode.type != INodeType::INT_SEGINFO)
+					if (ipos != 0)
 					{
-						this->fd->seekg(oldg);
-						this->fd->seekp(oldp);
-						return FSResult::E_FAILURE_INODE_NOT_VALID;
+						hsize = HSIZE_SEGINFO;
+						INode inode = this->getINodeByPosition(ipos);
+						if (inode.type != INodeType::INT_SEGINFO)
+						{
+							this->fd->seekg(oldg);
+							this->fd->seekp(oldp);
+							return FSResult::E_FAILURE_INODE_NOT_VALID;
+						}
+						ipos = inode.info_next;
 					}
-					ipos = inode.info_next;
 				}
 
 				// Now set the file's data length.

@@ -156,12 +156,12 @@ namespace AppLib
 			for (unsigned int i = 0; i < ret.size(); i += 1)
 			{
 				buf = FuseLink::filesystem->getChildOfDirectory(buf.inodeid, ret[i].c_str());
-				if (buf.type == LowLevel::INodeType::INT_INVALID)
+				if (buf.type != LowLevel::INodeType::INT_DIRECTORY && i != ret.size() - 1)
 				{
 					return -ENOENT;
 				}
 			}
-			if (buf.type == LowLevel::INodeType::INT_INVALID)
+			if (buf.type != LowLevel::INodeType::INT_DIRECTORY && buf.type != LowLevel::INodeType::INT_FILEINFO && buf.type != LowLevel::INodeType::INT_SYMLINK && buf.type != LowLevel::INodeType::INT_HARDLINK)
 			{
 				return -ENOENT;
 			}
@@ -224,19 +224,19 @@ namespace AppLib
 			child.uid = fuse_get_context()->uid;
 			child.gid = fuse_get_context()->gid;
 			APPFS_BASENAME_TO_FILENAME(path, child.filename);
+			APPFS_SAVE_NEW_INODE(child);
+
+			// Now add the parent -> child relationship on disk.
 			LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
-			// TODO: If we return an error, we must also delete the child inode
-			//       that we created with APPFS_ASSIGN_NEW_INODE().  We need to
-			//       create a new macro to handle this situation.
 			if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
 				return -ENOTDIR;
 			else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
 			{
 				Logging::showErrorW("Maximum number of children in directory reached.");
-				return -EIO;
+				return -ENOMEM;
 			}
-
-			APPFS_SAVE_NEW_INODE(child);
+			else if (res != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
 
 			return 0;
 		}
@@ -267,9 +267,12 @@ namespace AppLib
 				return -ENOTDIR;
 			else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
 				return -ENOENT;
+			else if (res != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
 
 			// Now delete the block at the specified position.
-			FuseLink::filesystem->resetBlock(pos);
+			if (FuseLink::filesystem->resetBlock(pos) != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
 
 			return 0;
 		}
@@ -299,9 +302,12 @@ namespace AppLib
 				return -ENOTDIR;
 			else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
 				return -ENOENT;
+			else if (res != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
 
 			// Now delete the block at the specified position.
-			FuseLink::filesystem->resetBlock(pos);
+			if (FuseLink::filesystem->resetBlock(pos) != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
 
 			return 0;
 		}
@@ -568,10 +574,10 @@ namespace AppLib
 			child.uid = fuse_get_context()->uid;
 			child.gid = fuse_get_context()->gid;
 			APPFS_BASENAME_TO_FILENAME(path, child.filename);
+			APPFS_SAVE_NEW_INODE(child);
+
+			// Now add the parent -> child relationship on disk.
 			LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
-			// TODO: If we return an error, we must also delete the child inode
-			//       that we created with APPFS_ASSIGN_NEW_INODE().  We need to
-			//       create a new macro to handle this situation.
 			if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
 				return -ENOTDIR;
 			else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
@@ -579,8 +585,8 @@ namespace AppLib
 				Logging::showErrorW("Maximum number of children in directory reached.");
 				return -EIO;
 			}
-
-			APPFS_SAVE_NEW_INODE(child);
+			else if (res != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
 
 			return 0;
 		}
