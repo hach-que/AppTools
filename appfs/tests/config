@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # The root of the AppFS source code.
-DIR_ROOT=~/Projects/AppTools/appfs
+CONFIG_ROOT=$(pwd)/$(dirname $0)
+DIR_ROOT=$(readlink -f $CONFIG_ROOT/../)
 
 # Calculated test folders.
 DIR_WORKING="$DIR_ROOT/tests/working"

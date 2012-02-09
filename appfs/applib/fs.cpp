@@ -43,7 +43,7 @@ namespace AppLib
 		FS::FS(LowLevel::BlockStream * fd)
 		{
 			if (fd == NULL)
-				Logging::showInternalW("NULL file descriptor passed to FS constructor.");
+				Logging::showDebugW("NULL file descriptor passed to FS constructor.");
 
 			// Detect the endianness here (since we don't want the user to have to
 			// remember to call it - stuff would break badly if they were required to
@@ -274,7 +274,7 @@ namespace AppLib
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
 
 			// Check to make sure the inode ID is already assigned.
-			Logging::showInfoW("Updating INode %i...", node.inodeid);
+			Logging::showDebugW("Updating INode %i...", node.inodeid);
 			uint32_t pos = this->getINodePositionByID(node.inodeid);
 			if (pos == 0)
 				return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
@@ -1014,9 +1014,9 @@ namespace AppLib
 						if (bcount >= node.blocks - blocks_to_delete)
 						{
 							// First remove the block from the file segment list.
+							uint32_t zeropos = 0;
 							this->fd->seekp(bpos + i);
-							char zero = '\0';
-							Endian::doW(this->fd, &zero, 1);
+							Endian::doW(this->fd, reinterpret_cast < char *>(&zeropos), 4);
 
 							// Next use resetBlock to erase the data in it (this also
 							// frees it in the FreeList).
@@ -1216,8 +1216,8 @@ namespace AppLib
 
 					// Erase the link from the previous info block to this one.
 					this->fd->seekp(ppos + poff);
-					uint32_t zero = 0;
-					Endian::doW(this->fd, reinterpret_cast < char *>(&zero), 4);
+					uint32_t zeropos = 0;
+					Endian::doW(this->fd, reinterpret_cast < char *>(&zeropos), 4);
 
 					// Now erase the block.
 					this->resetBlock(dpos);
@@ -1327,9 +1327,9 @@ namespace AppLib
 			if (newpos == 0)
 				return 0;
 			Util::seekp_ex(this->fd, newpos);
-			uint16_t zero = 0;
+			uint16_t zeroid = 0;
 			uint16_t tempid = INodeType::INT_TEMPORARY;
-			Endian::doW(this->fd, reinterpret_cast < char *>(&zero), 2);
+			Endian::doW(this->fd, reinterpret_cast < char *>(&zeroid), 2);
 			Endian::doW(this->fd, reinterpret_cast < char *>(&tempid), 2);
 			Util::seekp_ex(this->fd, oldp);
 			newpos += 4;
@@ -1367,6 +1367,16 @@ namespace AppLib
 				buf = "";
 			}
 			return ret;
+		}
+
+		FSResult::FSResult FS::verifyPath(std::string original, std::vector < std::string > *split)
+		{
+			if (original.length() >= 4096 || original.find('\0') != std::string::npos)
+				return FSResult::E_FAILURE_INVALID_PATH;
+			for (std::vector < std::string >::iterator i = split->begin(); i != split->end(); i++)
+				if ((*i).length() >= 256 || (*i).find('\0') != std::string::npos)
+					return FSResult::E_FAILURE_INVALID_FILENAME;
+			return FSResult::E_SUCCESS;
 		}
 	}
 }

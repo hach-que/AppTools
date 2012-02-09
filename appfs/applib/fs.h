@@ -41,6 +41,7 @@ namespace AppLib
 				E_SUCCESS,
 				E_FAILURE_GENERAL,
 				E_FAILURE_INVALID_FILENAME,
+				E_FAILURE_INVALID_PATH,
 				E_FAILURE_INVALID_POSITION,
 				E_FAILURE_INODE_ALREADY_ASSIGNED,
 				E_FAILURE_INODE_NOT_ASSIGNED,
@@ -462,6 +463,9 @@ namespace AppLib
 
 			// Utility function for splitting paths into their components.
 			 std::vector < std::string > splitPathBySeperators(std::string path);
+
+			// Utility function for verifying the validity of a supplied path.
+			 FSResult::FSResult verifyPath(std::string original, std::vector < std::string > *split);
 
 			// Reserves an INode ID for future use without require the INode to actually be
 			// written to disk.

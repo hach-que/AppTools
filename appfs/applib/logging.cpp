@@ -13,9 +13,6 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-// NOTE: Unlike in the Python libraries, messages are not automatically
-//       intended on newline characters.
-
 #include "config.h"
 
 #include <string>
@@ -23,19 +20,20 @@ http://code.google.com/p/apptools-dist for more information.
 
 namespace AppLib
 {
-	bool Logging::verbose = false;
-	std::string Logging::appname = "apptools";
-	std::string Logging::appblnk = "        ";
+	bool Logging::debug = false;
+	bool Logging::verbose = true;
+	 std::string Logging::appname = "apptools";
+	 std::string Logging::appblnk = "        ";
 
-	void Logging::showErrorW(std::string msg, ... )
+	void Logging::showErrorW(std::string msg, ...)
 	{
 		va_list arglist;
-		va_start(arglist, msg);
-		Logging::showMsgW("error", msg, arglist);
-		va_end(arglist);
+		 va_start(arglist, msg);
+		 Logging::showMsgW("error", msg, arglist);
+		 va_end(arglist);
 	}
 
-	void Logging::showErrorO(std::string msg, ... )
+	void Logging::showErrorO(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
@@ -43,7 +41,7 @@ namespace AppLib
 		va_end(arglist);
 	}
 
-	void Logging::showWarningW(std::string msg, ... )
+	void Logging::showWarningW(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
@@ -51,7 +49,7 @@ namespace AppLib
 		va_end(arglist);
 	}
 
-	void Logging::showWarningO(std::string msg, ... )
+	void Logging::showWarningO(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
@@ -59,7 +57,7 @@ namespace AppLib
 		va_end(arglist);
 	}
 
-	void Logging::showInfoW(std::string msg, ... )
+	void Logging::showInfoW(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
@@ -68,7 +66,7 @@ namespace AppLib
 		va_end(arglist);
 	}
 
-	void Logging::showInfoO(std::string msg, ... )
+	void Logging::showInfoO(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
@@ -77,7 +75,7 @@ namespace AppLib
 		va_end(arglist);
 	}
 
-	void Logging::showSuccessW(std::string msg, ... )
+	void Logging::showSuccessW(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
@@ -85,27 +83,29 @@ namespace AppLib
 		va_end(arglist);
 	}
 
-	void Logging::showSuccessO(std::string msg, ... )
+	void Logging::showSuccessO(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
 		Logging::showMsgO(msg, arglist);
-		va_end(arglist);
-	}
-		
-	void Logging::showInternalW(std::string msg, ... )
-	{
-		va_list arglist;
-		va_start(arglist, msg);
-		Logging::showMsgW("intern", msg, arglist);
 		va_end(arglist);
 	}
 
-	void Logging::showInternalO(std::string msg, ... )
+	void Logging::showDebugW(std::string msg, ...)
 	{
 		va_list arglist;
 		va_start(arglist, msg);
-		Logging::showMsgO(msg, arglist);
+		if (Logging::debug)
+			Logging::showMsgW("debug", msg, arglist);
+		va_end(arglist);
+	}
+
+	void Logging::showDebugO(std::string msg, ...)
+	{
+		va_list arglist;
+		va_start(arglist, msg);
+		if (Logging::debug)
+			Logging::showMsgO(msg, arglist);
 		va_end(arglist);
 	}
 
@@ -131,9 +131,9 @@ namespace AppLib
 	void Logging::showMsgO(std::string msg, va_list arglist)
 	{
 		std::string resultMessage = appblnk;
-		resultMessage += "    ";    // ": [ "
-		resultMessage += "       "; // "_______"
-		resultMessage += "   ";     // " ] "
+		resultMessage += "    ";	// ": [ "
+		resultMessage += "       ";	// "_______"
+		resultMessage += "   ";	// " ] "
 		resultMessage += msg;
 		resultMessage += "\n";
 		vprintf(resultMessage.c_str(), arglist);

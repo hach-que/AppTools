@@ -26,15 +26,20 @@ int appmount_start(int argc, char *argv[])
 
 	// Set the application name.
 	AppLib::Logging::setApplicationName(std::string("appmount"));
-	AppLib::Logging::verbose = true;
 
 	// Parse the arguments provided.
 	struct arg_lit *is_readonly = arg_lit0("r", "read-only", "mount the file readonly");
+	struct arg_lit *is_debug = arg_lit0("d", "debug", "show debugging information");
+	struct arg_lit *is_allow_other = arg_lit0("o", "allow-other", "allow other users to access mounted application");
 	struct arg_file *disk_image = arg_file1(NULL, NULL, "diskimage", "the image to read the data from");
 	struct arg_file *mount_point = arg_file1(NULL, NULL, "mountpoint", "the directory to mount the image to");
 	struct arg_lit *show_help = arg_lit0("h", "help", "show the help message");
-	struct arg_end *end = arg_end(4);
-	void *argtable[] = { is_readonly, disk_image, mount_point, show_help, end };
+	struct arg_end *end = arg_end(20);
+#ifdef DEBUG
+	void *argtable[] = { is_debug, is_allow_other, disk_image, mount_point, show_help, end };
+#else
+	void *argtable[] = { is_allow_other, disk_image, mount_point, show_help, end };
+#endif
 
 	// Check to see if the argument definitions were allocated
 	// correctly.
@@ -73,6 +78,7 @@ int appmount_start(int argc, char *argv[])
 	disk_path = disk_image->filename[0];
 	mount_path = mount_point->filename[0];
 	global_mount_path = mount_path;
+	AppLib::Logging::debug = is_debug->count;
 
 	// Open the file for our lock checks / sets.
 	/*int lockedfd = open(disk_image->filename[0], O_RDWR);
@@ -106,7 +112,7 @@ int appmount_start(int argc, char *argv[])
 	AppLib::Logging::showInfoO("while mounted and that no other operations can be performed");
 	AppLib::Logging::showInfoO("on it while this is the case.");
 
-	AppLib::FUSE::Mounter * mnt = new AppLib::FUSE::Mounter(disk_path, mount_path, true, appmount_continue);
+	AppLib::FUSE::Mounter * mnt = new AppLib::FUSE::Mounter(disk_path, mount_path, true, is_allow_other->count, appmount_continue);
 	int ret = mnt->getResult();
 
 	if (ret != 0)
@@ -137,4 +143,9 @@ int appmount_start(int argc, char *argv[])
 void appmount_continue()
 {
 	// Execution continues at this point when the filesystem is mounted.
+}
+
+int main(int argc, char *argv[])
+{
+	return appmount_start(argc, argv);
 }

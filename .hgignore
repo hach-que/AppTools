@@ -1,0 +1,27 @@
+# Use glob syntax.
+syntax: glob
+
+# Ignore the filesystem test suite if it exists.
+fstest/*
+
+# Ignore any object files and object directories.
+*/obj/*
+*.o
+
+# Ignore any static or shared libraries.
+*.so
+*.a
+
+# Ignore ctags working file.
+appfs/tags
+
+# Ignore the working area for our test suite.
+appfs/tests/working/*
+appfs/tests/efficiency/write2mb_*
+
+# Ignore executables and other shell scripts.
+appfs/appcreate
+appfs/appfs
+appfs/appinspect
+appfs/appmount
+appfs/fstest

@@ -75,7 +75,7 @@ namespace AppLib
 		class Mounter
 		{
 		      public:
-			Mounter(const char *disk_image, char const *mount_point, bool foreground, void (*continue_func) (void));
+			Mounter(const char *disk_image, char const *mount_point, bool foreground, bool allow_other, void (*continue_func) (void));
 			int getResult();
 
 		      private:

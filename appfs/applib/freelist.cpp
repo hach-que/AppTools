@@ -45,7 +45,7 @@ namespace AppLib
 				double fblocks = fsize / 4096.0f;
 				uint32_t alignedpos = ceil(fblocks) * 4096;
 
-				 printf("FREELIST: Allocate (  new   ) block at %u.\n", alignedpos);
+				Logging::showDebugW("FREELIST: Allocate (  new   ) block at %u.\n", alignedpos);
 
 				 return alignedpos;
 			}
@@ -61,7 +61,7 @@ namespace AppLib
 			this->fd->seekp(oldp);
 			uint32_t res = i->second;
 
-			printf("FREELIST: Allocate (existing) block at %u.\n", res);
+			Logging::showDebugW("FREELIST: Allocate (existing) block at %u.\n", res);
 
 			// Remove the entry from the position cache.
 			this->position_cache.erase(i);
@@ -84,7 +84,7 @@ namespace AppLib
 			// (since it is now used).
 			if (dpos == 1)
 			{
-				printf("FREELIST: Reallocated block at %u for list use.\n", pos);
+				Logging::showDebugW("FREELIST: Reallocated block at %u for list use.\n", pos);
 				return;
 			}
 
@@ -101,10 +101,10 @@ namespace AppLib
 				// Restore the position of the file descriptor.
 				this->fd->seekg(oldg);
 
-				printf("FREELIST: Free block at %u.\n", pos);
+				Logging::showDebugW("FREELIST: Free block at %u.\n", pos);
 			}
 			else
-				printf("FREELIST: Unable to record free'd block %u on disk.\n", pos);
+				Logging::showDebugW("FREELIST: Unable to record free'd block %u on disk.\n", pos);
 
 			// Add the new free position to the cache.
 			this->position_cache.insert(std::map < uint32_t, uint32_t >::value_type(dpos, pos));

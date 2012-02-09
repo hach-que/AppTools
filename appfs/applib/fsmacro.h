@@ -24,9 +24,11 @@ http://code.google.com/p/apptools-dist for more information.
 #define APPFS_TIME() time(NULL);
 
 #define APPFS_CHECK_PATH_EXISTS() \
+APPFS_CHECK_PATH_VALIDITY() \
 int appfs_check_path_exists_ret = AppLib::FUSE::Macros::checkPathExists(path); \
 if (appfs_check_path_exists_ret != 0) return appfs_check_path_exists_ret;
 #define APPFS_CHECK_PATH_NOT_EXISTS() \
+APPFS_CHECK_PATH_VALIDITY() \
 int appfs_check_path_not_exists_ret = AppLib::FUSE::Macros::checkPathNotExists(path); \
 if (appfs_check_path_not_exists_ret != 0) return appfs_check_path_not_exists_ret;
 #define APPFS_CHECK_PATH_VALIDITY() \

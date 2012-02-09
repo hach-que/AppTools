@@ -17,7 +17,9 @@ http://code.google.com/p/apptools-dist for more information.
 int main(int argc, char *argv[])
 {
 	AppLib::Logging::setApplicationName("appcreate");
-	AppLib::Logging::verbose = true;
+#ifdef DEBUG
+	AppLib::Logging::debug = true;
+#endif
 
 	// Check arguments.
 	if (argc != 2)

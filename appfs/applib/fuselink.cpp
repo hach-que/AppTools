@@ -27,7 +27,7 @@ namespace AppLib
 		LowLevel::FS * FuseLink::filesystem = NULL;
 		void (*FuseLink::continuefunc) (void) = NULL;
 
-		 Mounter::Mounter(const char *disk_image, const char *mount_point, bool foreground, void (*continuefunc) (void))
+		 Mounter::Mounter(const char *disk_image, const char *mount_point, bool foreground, bool allow_other, void (*continuefunc) (void))
 		{
 #ifdef WIN32
 			this->mountResult = -ENOTSUP;
@@ -112,7 +112,11 @@ namespace AppLib
 
 			if (foreground)
 			{
-				if (fuse_opt_add_arg(&fargs, "-f") == -1 || fuse_opt_add_arg(&fargs, "-d") == -1)
+				if (fuse_opt_add_arg(&fargs, "-f") == -1
+#ifdef DEBUG
+				    || fuse_opt_add_arg(&fargs, "-d") == -1
+#endif
+					)
 				{
 					Logging::showErrorW("Unable to set FUSE options.");
 					fuse_opt_free_args(&fargs);
@@ -120,8 +124,16 @@ namespace AppLib
 					return;
 				}
 			}
-
-			if (fuse_opt_add_arg(&fargs, "-o") == -1 || fuse_opt_add_arg(&fargs, "default_permissions,allow_other,sync") == -1 || fuse_opt_add_arg(&fargs, mount_point) == -1)
+			
+			const char* normal_opts = "default_permissions";
+			const char* allow_opts = "default_permissions,allow_other";
+			const char* opts = NULL;
+			if (allow_other)
+				opts = allow_opts;
+			else
+				opts = normal_opts;
+			
+			if (fuse_opt_add_arg(&fargs, "-s") == -1 || fuse_opt_add_arg(&fargs, "-o") || fuse_opt_add_arg(&fargs, opts) == -1 || fuse_opt_add_arg(&fargs, mount_point) == -1)
 			{
 				Logging::showErrorW("Unable to set FUSE options.");
 				fuse_opt_free_args(&fargs);
@@ -395,35 +407,35 @@ namespace AppLib
 			buf.atime = APPFS_TIME();
 			APPFS_SAVE_INODE(buf);
 
-			std::stringstream ss1;
-			ss1 << "Opening file with inode " << buf.inodeid << ".";
-			Logging::showInfoW(ss1.str());
+#ifdef DEBUG
+			Logging::showDebugW("Opening file with inode %u.", buf.inodeid);
+#endif
 			LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
 			file.open();
 			if (file.fail() && file.bad())
 				return -EIO;
-			std::stringstream ss2;
-			ss2 << "Seeking to position " << offset << ".";
-			Logging::showInfoW(ss2.str());
+#ifdef DEBUG
+			Logging::showDebugW("Seeking to position %u.", offset);
+#endif
 			file.seekg(offset);
 			if (file.fail() && file.bad())
 				return -EIO;
-			std::stringstream ss3;
-			ss3 << "Reading " << length << " bytes.";
-			Logging::showInfoW(ss3.str());
+#ifdef DEBUG
+			Logging::showDebugW("Reading %u bytes.", length);
+#endif
 			uint32_t amount_read = file.read(out, length);
 			if (file.fail() && file.bad())
 				return -EIO;
-			std::stringstream ss4;
-			ss4 << "Closing file.";
-			Logging::showInfoW(ss4.str());
+#ifdef DEBUG
+			Logging::showDebugW("Closing file.");
+#endif
 			file.close();
 			if (file.fail() && file.bad())
 				return -EIO;
 
-			std::stringstream ss5;
-			ss5 << amount_read << " bytes have been read.";
-			Logging::showInfoW(ss5.str());
+#ifdef DEBUG
+			Logging::showDebugW("%u bytes have been read.");
+#endif
 			return amount_read;
 		}
 
@@ -435,35 +447,35 @@ namespace AppLib
 			buf.atime = APPFS_TIME();
 			APPFS_SAVE_INODE(buf);
 
-			std::stringstream ss1;
-			ss1 << "Opening file with inode " << buf.inodeid << ".";
-			Logging::showInfoW(ss1.str());
+#ifdef DEBUG
+			Logging::showDebugW("Opening file with inode %u.", buf.inodeid);
+#endif
 			LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
 			file.open();
 			if (file.fail() && file.bad())
 				return -EIO;
-			std::stringstream ss2;
-			ss2 << "Seeking to position " << offset << ".";
-			Logging::showInfoW(ss2.str());
+#ifdef DEBUG
+			Logging::showDebugW("Seeking to position %u.", offset);
+#endif
 			file.seekp(offset);
 			if (file.fail() && file.bad())
 				return -EIO;
-			std::stringstream ss3;
-			ss3 << "Writing " << length << " bytes.";
-			Logging::showInfoW(ss3.str());
+#ifdef DEBUG
+			Logging::showDebugW("Writing %u bytes.");
+#endif
 			file.write(in, length);
 			if (file.fail() && file.bad())
 				return -EIO;
-			std::stringstream ss4;
-			ss4 << "Closing file.";
-			Logging::showInfoW(ss4.str());
+#ifdef DEBUG
+			Logging::showDebugW("Closing file.");
+#endif
 			file.close();
 			if (file.fail() && file.bad())
 				return -EIO;
 
-			std::stringstream ss5;
-			ss5 << length << " bytes have been written.";
-			Logging::showInfoW(ss5.str());
+#ifdef DEBUG
+			Logging::showDebugW("%u bytes have been written.");
+#endif
 			return length;
 		}
 
@@ -677,6 +689,15 @@ namespace AppLib
 
 		int Macros::checkPathIsValid(const char *path)
 		{
+			std::vector < std::string > pp = FuseLink::filesystem->splitPathBySeperators(path);
+			LowLevel::FSResult::FSResult res = FuseLink::filesystem->verifyPath(path, &pp);
+			if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
+				return -ENAMETOOLONG;
+			else if (res == LowLevel::FSResult::E_FAILURE_INVALID_PATH)
+				return -ENAMETOOLONG;
+			else if (res != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
+
 			return 0;
 		}
 
