@@ -1,7 +1,11 @@
 #!/bin/bash
 
+# Find the location of this script.
+_S="${BASH_SOURCE[0]}"
+while [ -h "$_S" ] ; do _S="$(readlink "$_S")"; done
+CONFIG_ROOT="$( cd -P "$( dirname "$_S" )" && pwd )"
+
 # The root of the AppFS source code.
-CONFIG_ROOT=$(pwd)/$(dirname $0)
 DIR_ROOT=$(readlink -f $CONFIG_ROOT/../)
 
 # Calculated test folders.
