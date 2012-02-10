@@ -602,7 +602,7 @@ void SetTypeNames()
 	Program::TypeNames[AppLib::LowLevel::INodeType::INT_DATA] = "data";
 	Program::TypeNames[AppLib::LowLevel::INodeType::INT_DIRECTORY] = "directory";
 	Program::TypeNames[AppLib::LowLevel::INodeType::INT_SYMLINK] = "symbolic link";
-	Program::TypeNames[AppLib::LowLevel::INodeType::INT_HARDLINK] = "hard link";
+	Program::TypeNames[AppLib::LowLevel::INodeType::INT_DEVICE] = "device";
 	Program::TypeNames[AppLib::LowLevel::INodeType::INT_TEMPORARY] = "temporary data";
 	Program::TypeNames[AppLib::LowLevel::INodeType::INT_FREELIST] = "freelist block";
 	Program::TypeNames[AppLib::LowLevel::INodeType::INT_FSINFO] = "filesystem info";
@@ -615,7 +615,7 @@ void SetTypeNames()
 	Program::TypeChars[AppLib::LowLevel::INodeType::INT_DATA] = '#';
 	Program::TypeChars[AppLib::LowLevel::INodeType::INT_DIRECTORY] = 'D';
 	Program::TypeChars[AppLib::LowLevel::INodeType::INT_SYMLINK] = 'L';
-	Program::TypeChars[AppLib::LowLevel::INodeType::INT_HARDLINK] = 'H';
+	Program::TypeChars[AppLib::LowLevel::INodeType::INT_DEVICE] = 'D';
 	Program::TypeChars[AppLib::LowLevel::INodeType::INT_TEMPORARY] = 'T';
 	Program::TypeChars[AppLib::LowLevel::INodeType::INT_FREELIST] = '%';
 	Program::TypeChars[AppLib::LowLevel::INodeType::INT_FSINFO] = 'I';

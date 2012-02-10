@@ -17,7 +17,7 @@ CPPFLAGS_optimal = -D_FILE_OFFSET_BITS=64 -I/usr/include
 CXXFLAGS_optimal = -O3 -Os
 CFLAGS_optimal   = -O3 -Os
 CPPFLAGS_debug   = -D_FILE_OFFSET_BITS=64 -I/usr/include/ -DDEBUG
-CXXFLAGS_debug   = -g3 -Wwrite-strings -fno-inline
+CXXFLAGS_debug   = -g3 -Wno-write-strings -fno-inline -fdiagnostics-show-option
 CFLAGS_debug	 = -g3
 
 # Define our error messages.

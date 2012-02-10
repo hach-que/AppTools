@@ -27,7 +27,8 @@ namespace AppLib
 		void FSFile::open(std::ios_base::openmode mode)
 		{
 			INode node = this->filesystem->getINodeByID(this->inodeid);
-			 this->invalid = (node.type != INodeType::INT_FILEINFO);
+			 this->invalid = (node.type != INodeType::INT_FILEINFO &&
+						node.type != INodeType::INT_SYMLINK);
 			if (this->invalid)
 			{
 				this->clear(std::ios::badbit | std::ios::failbit);
@@ -66,7 +67,11 @@ namespace AppLib
 			// If we need to truncate the file to a new size, do so.
 			if (fsize < this->posp + count)
 			{
-				this->truncate(this->posp + count);
+				if (!this->truncate(this->posp + count))
+				{
+					this->clear(std::ios::badbit | std::ios::failbit);
+					return;
+				}
 
 				// Re-get the size.
 				fsize = this->size();

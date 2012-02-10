@@ -44,7 +44,7 @@ int appmount_start(int argc, char *argv[])
 	// Check to see if the argument definitions were allocated
 	// correctly.
 	if (arg_nullcheck(argtable))
-	{
+	{	
 		AppLib::Logging::showErrorW("Insufficient memory.");
 		return 1;
 	}

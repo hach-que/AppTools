@@ -79,8 +79,8 @@ namespace AppLib
 
 				// Symbolic Link
 				INT_SYMLINK = 4,
-				// Hard Link
-				INT_HARDLINK = 5,
+				// Special File (FIFO / Device)
+				INT_DEVICE = 5,
 
 				// Temporary Block
 				INT_TEMPORARY = 6,
@@ -248,7 +248,7 @@ namespace AppLib
 				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->atime), 8);
 				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->mtime), 8);
 				Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->ctime), 8);
-				if (this->type == INodeType::INT_FILEINFO)
+				if (this->type == INodeType::INT_FILEINFO || this->type == INodeType::INT_SYMLINK || this->type == INodeType::INT_DEVICE)
 				{
 					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->dev), 2);
 					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->rdev), 2);
@@ -257,7 +257,7 @@ namespace AppLib
 					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->dat_len), 4);
 					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->info_next), 4);
 				}
-				else
+				else if (this->type == INodeType::INT_DIRECTORY)
 				{
 					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->parent), 2);
 					Endian::doW(&binary_rep, reinterpret_cast < char *>(&this->children_count), 2);
@@ -480,6 +480,19 @@ namespace AppLib
 				std::vector < uint16_t >::iterator it = std::find(this->reservedINodes.begin(), this->reservedINodes.end(), id);
 				if (it != this->reservedINodes.end())
 					this->reservedINodes.erase(it);
+			}
+
+			// Update times.
+			inline void updateTimes(uint16_t id, bool atime, bool mtime, bool ctime)
+			{
+				INode node = this->getINodeByID(id);
+				if (atime)
+					node.atime = APPFS_TIME();
+				if (mtime)
+					node.mtime = APPFS_TIME();
+				if (ctime)
+					node.ctime = APPFS_TIME();
+				this->updateINode(node);
 			}
 
 		      private:

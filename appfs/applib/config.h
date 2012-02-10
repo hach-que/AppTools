@@ -84,4 +84,12 @@ typedef unsigned int pid_t;
 #include <cstring>
 #endif
 
+// We need 64-bit time support.  Since it seems time.h has no
+// _time64 function in UNIX,  we are probably going to have to
+// statically reference it from an external library.  This macro
+// ensures that all of the code will switch over to use the new
+// function when such a function is located.  For now, it uses
+// time() in time.h.
+#define APPFS_TIME() time(NULL);
+
 #endif

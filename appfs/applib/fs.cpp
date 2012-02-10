@@ -157,7 +157,7 @@ namespace AppLib
 			Endian::doR(this->fd, reinterpret_cast < char *>(&node.atime), 8);
 			Endian::doR(this->fd, reinterpret_cast < char *>(&node.mtime), 8);
 			Endian::doR(this->fd, reinterpret_cast < char *>(&node.ctime), 8);
-			if (node.type == INodeType::INT_FILEINFO)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DEVICE)
 			{
 				Endian::doR(this->fd, reinterpret_cast < char *>(&node.dev), 2);
 				Endian::doR(this->fd, reinterpret_cast < char *>(&node.rdev), 2);
@@ -216,7 +216,7 @@ namespace AppLib
 
 			const char *z = "";	// a const char* always has a \0 terminator, which we use to write into the file.
 			// TODO: This needs to be updated with a full list of inode types.
-			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST || node.type == INodeType::INT_DEVICE)
 			{
 				for (int i = 0; i < BSIZE_FILE - data.length(); i += 1)
 					Endian::doW(this->fd, z, 1);
@@ -229,7 +229,7 @@ namespace AppLib
 			}
 			else
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
-			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DIRECTORY)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DIRECTORY || node.type == INodeType::INT_DEVICE)
 			{
 				LowLevel::FSResult::FSResult sres = this->setINodePositionByID(node.inodeid, pos);
 				if (sres != LowLevel::FSResult::E_SUCCESS)
@@ -270,7 +270,8 @@ namespace AppLib
 			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
 			// Ensure that this INode is a type that can be updated.
-			if (node.type != INodeType::INT_FILEINFO && node.type != INodeType::INT_DIRECTORY)
+			if (node.type != INodeType::INT_FILEINFO && node.type != INodeType::INT_DIRECTORY &&
+				node.type != INodeType::INT_SYMLINK && node.type != INodeType::INT_DEVICE)
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
 
 			// Check to make sure the inode ID is already assigned.
@@ -370,6 +371,9 @@ namespace AppLib
 		{
 			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
+			if (parentid == childid)
+				return FSResult::E_FAILURE_GENERAL;
+
 			signed int type_offset = 2;
 			signed int children_count_offset = 292;
 			signed int children_offset = 294;
@@ -421,6 +425,10 @@ namespace AppLib
 				Endian::doW(this->fd, reinterpret_cast < char *>(&children_count_current), 2);
 				this->fd->seekg(oldg);
 				Util::seekp_ex(this->fd, oldp);
+
+				// Update times.
+				this->updateTimes(parentid, false, true, true);
+
 				return FSResult::E_SUCCESS;
 			}
 		}
@@ -481,6 +489,10 @@ namespace AppLib
 				Endian::doW(this->fd, reinterpret_cast < char *>(&children_count_current), 2);
 				this->fd->seekg(oldg);
 				Util::seekp_ex(this->fd, oldp);
+
+				// Update times.
+				this->updateTimes(parentid, false, true, true);
+
 				return FSResult::E_SUCCESS;
 			}
 		}
@@ -506,7 +518,7 @@ namespace AppLib
 
 			std::vector < INode > inodechildren;
 			INode node = this->getINodeByID(parentid);
-			if (node.type == INodeType::INT_INVALID)
+			if (node.type != INodeType::INT_DIRECTORY)
 			{
 				return inodechildren;
 			}
@@ -525,7 +537,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE)
 					{
 						inodechildren.insert(inodechildren.end(), cnode);
 					}
@@ -559,7 +571,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE)
 					{
 						if (cnode.inodeid == childid)
 						{
@@ -596,7 +608,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE)
 					{
 						if (strcmp(filename, cnode.filename) == 0)
 						{
@@ -681,7 +693,7 @@ namespace AppLib
 			this->fd->seekg(pos + 2);
 			Endian::doR(this->fd, reinterpret_cast < char *>(&type_raw), 2);
 
-			if (type_raw == INodeType::INT_FILEINFO)
+			if (type_raw == INodeType::INT_FILEINFO || type_raw == INodeType::INT_SYMLINK)
 			{
 				Util::seekp_ex(this->fd, pos + file_len_offset);
 				Endian::doW(this->fd, reinterpret_cast < char *>(&len), 4);
@@ -713,7 +725,7 @@ namespace AppLib
 			// Get the base position of the specified inode.
 			uint32_t bpos = this->getINodePositionByID(id);
 			INode node = this->getINodeByPosition(bpos);
-			if (node.type != INodeType::INT_FILEINFO)
+			if (node.type != INodeType::INT_FILEINFO && node.type != INodeType::INT_SYMLINK)
 			{
 				return FSResult::E_FAILURE_NOT_A_FILE;
 			}
@@ -981,7 +993,8 @@ namespace AppLib
 
 			// Then get the INode and find out the data length.
 			INode node = this->getINodeByPosition(bpos);
-			if (node.type != INodeType::INT_FILEINFO)
+			if (node.type != INodeType::INT_FILEINFO &&
+				node.type != INodeType::INT_SYMLINK)
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
 
 			if (node.dat_len == len)
@@ -1278,6 +1291,10 @@ namespace AppLib
 
 		uint32_t FS::getTemporaryBlock(bool forceRecheck)
 		{
+			// FIXME: This function is most certainly broken and needs
+			//        rewriting before use.
+			assert(false);
+			
 			// We use a static variable to speed up later calls.
 			static uint32_t temporary_position = 0;
 			if (temporary_position != 0 && !forceRecheck)
@@ -1294,6 +1311,7 @@ namespace AppLib
 			uint32_t cpos = this->fd->tellg();
 			while (!this->fd->eof() && cpos == block_position && !this->freelist->isBlockFree(cpos))
 			{
+				// FIXME: What the hell is this doing??!?!
 				Endian::doR(this->fd, reinterpret_cast < char *>(&type_stor), 2);
 				switch (type_stor)
 				{

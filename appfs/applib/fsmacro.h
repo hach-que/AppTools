@@ -15,14 +15,7 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-// We need 64-bit time support.  Since it seems time.h has no
-// _time64 function in UNIX,  we are probably going to have to
-// statically reference it from an external library.  This macro
-// ensures that all of the code will switch over to use the new
-// function when such a function is located.  For now, it uses
-// time() in time.h.
-#define APPFS_TIME() time(NULL);
-
+#define APPFS_MAKE_SYMLINK (fuse_file_info*)0x1000
 #define APPFS_CHECK_PATH_EXISTS() \
 APPFS_CHECK_PATH_VALIDITY() \
 int appfs_check_path_exists_ret = AppLib::FUSE::Macros::checkPathExists(path); \
