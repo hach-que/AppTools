@@ -36,10 +36,37 @@ void APPFS_VERIFY_INODE_ASSERT_POSITION()
 	assert(false);
 }
 
+#define APPFS_FILENAME_COPY(from, to) \
+for (int i = 0; i < 256; i += 1) to[i] = 0; \
+for (int i = 0; i < 255; i += 1) { if (from[i] == 0) break; to[i] = from[i]; }
+
 namespace AppLib
 {
 	namespace LowLevel
 	{
+		INode INode::resolve(FS* filesystem)
+		{
+			if (this->type == INodeType::INT_HARDLINK && this->realid != 0)
+			{
+				Logging::showDebugW("Resolving hardlink %u to %u.", this->inodeid, this->realid);
+				INode node = filesystem->getINodeByID(this->realid);
+				node.realid = this->inodeid;
+				APPFS_FILENAME_COPY(node.filename, node.realfilename);
+				APPFS_FILENAME_COPY(this->filename, node.filename);
+				return node;
+			}
+			else if ((this->type == INodeType::INT_FILEINFO || this->type == INodeType::INT_DEVICE) && this->realid != 0)
+			{
+				Logging::showDebugW("Resolving fileinfo %u back to hardlink %u.", this->inodeid, this->realid);
+				INode node = filesystem->getRealINodeByID(this->realid);
+				node.realid = this->inodeid;
+				APPFS_FILENAME_COPY(this->filename, node.realfilename);
+				return node;
+			}
+			else
+				return *this;
+		}
+
 		FS::FS(LowLevel::BlockStream * fd)
 		{
 			if (fd == NULL)
@@ -101,7 +128,32 @@ namespace AppLib
 			return this->getINodeByPosition(ipos);
 		}
 
+		INode FS::getRealINodeByID(uint16_t id)
+		{
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
+
+			// Retrieve the position using our getINodePositionByID
+			// function.
+			uint32_t ipos = this->getINodePositionByID(id);
+			if (ipos == 0 || ipos < OFFSET_FSINFO)
+				return INode(0, "", INodeType::INT_INVALID);
+			return this->getINodeByRealPosition(ipos);
+		}
+
 		INode FS::getINodeByPosition(uint32_t ipos)
+		{
+			assert( /* Check the stream is not in text-mode. */ this->isValid());
+			
+			INode node = this->getINodeByRealPosition(ipos);
+			
+			// If this is a hardlink, resolve it automatically.
+			if (node.type == INodeType::INT_HARDLINK)
+				node = node.resolve(this);
+			
+			return node;
+		}
+
+		INode FS::getINodeByRealPosition(uint32_t ipos)
 		{
 			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
@@ -151,12 +203,15 @@ namespace AppLib
 				return node;
 			}
 			Endian::doR(this->fd, reinterpret_cast < char *>(&node.filename), 256);
-			Endian::doR(this->fd, reinterpret_cast < char *>(&node.uid), 2);
-			Endian::doR(this->fd, reinterpret_cast < char *>(&node.gid), 2);
-			Endian::doR(this->fd, reinterpret_cast < char *>(&node.mask), 2);
-			Endian::doR(this->fd, reinterpret_cast < char *>(&node.atime), 8);
-			Endian::doR(this->fd, reinterpret_cast < char *>(&node.mtime), 8);
-			Endian::doR(this->fd, reinterpret_cast < char *>(&node.ctime), 8);
+			if (node.type != INodeType::INT_HARDLINK)
+			{
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.uid), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.gid), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.mask), 2);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.atime), 8);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.mtime), 8);
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.ctime), 8);
+			}
 			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DEVICE)
 			{
 				Endian::doR(this->fd, reinterpret_cast < char *>(&node.dev), 2);
@@ -172,10 +227,12 @@ namespace AppLib
 				Endian::doR(this->fd, reinterpret_cast < char *>(&node.children_count), 2);
 				Endian::doR(this->fd, reinterpret_cast < char *>(&node.children), DIRECTORY_CHILDREN_MAX * 2);
 			}
+			else if (node.type == INodeType::INT_HARDLINK)
+				Endian::doR(this->fd, reinterpret_cast < char *>(&node.realid), 2);
 
 			// Seek back to the original reading position.
 			this->fd->seekg(old);
-
+	
 			// Ensure that if our node data is invalid, we return an invalid
 			// INode instead of partial data.
 			if (!node.verify())
@@ -216,7 +273,7 @@ namespace AppLib
 
 			const char *z = "";	// a const char* always has a \0 terminator, which we use to write into the file.
 			// TODO: This needs to be updated with a full list of inode types.
-			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST || node.type == INodeType::INT_DEVICE)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SEGINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_FREELIST || node.type == INodeType::INT_DEVICE || node.type == INodeType::INT_HARDLINK)
 			{
 				for (int i = 0; i < BSIZE_FILE - data.length(); i += 1)
 					Endian::doW(this->fd, z, 1);
@@ -229,7 +286,7 @@ namespace AppLib
 			}
 			else
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
-			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DIRECTORY || node.type == INodeType::INT_DEVICE)
+			if (node.type == INodeType::INT_FILEINFO || node.type == INodeType::INT_SYMLINK || node.type == INodeType::INT_DIRECTORY || node.type == INodeType::INT_DEVICE || node.type == INodeType::INT_HARDLINK)
 			{
 				LowLevel::FSResult::FSResult sres = this->setINodePositionByID(node.inodeid, pos);
 				if (sres != LowLevel::FSResult::E_SUCCESS)
@@ -271,7 +328,8 @@ namespace AppLib
 
 			// Ensure that this INode is a type that can be updated.
 			if (node.type != INodeType::INT_FILEINFO && node.type != INodeType::INT_DIRECTORY &&
-				node.type != INodeType::INT_SYMLINK && node.type != INodeType::INT_DEVICE)
+				node.type != INodeType::INT_SYMLINK && node.type != INodeType::INT_DEVICE &&
+				node.type != INodeType::INT_HARDLINK)
 				return FSResult::E_FAILURE_INODE_NOT_VALID;
 
 			// Check to make sure the inode ID is already assigned.
@@ -342,7 +400,10 @@ namespace AppLib
 		{
 			assert( /* Check the stream is not in text-mode. */ this->isValid());
 
-			APPFS_VERIFY_INODE_POSITION(pos);
+			if (pos != 0)
+			{
+				APPFS_VERIFY_INODE_POSITION(pos);
+			}
 
 			std::streampos old = this->fd->tellp();
 			Util::seekp_ex(this->fd, OFFSET_LOOKUP + (id * 4));
@@ -537,7 +598,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE || cnode.type == INodeType::INT_HARDLINK)
 					{
 						inodechildren.insert(inodechildren.end(), cnode);
 					}
@@ -571,7 +632,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE || cnode.type == INodeType::INT_HARDLINK)
 					{
 						if (cnode.inodeid == childid)
 						{
@@ -608,7 +669,7 @@ namespace AppLib
 				{
 					children_looped += 1;
 					INode cnode = this->getINodeByID(cinode);
-					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE)
+					if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE || cnode.type == INodeType::INT_HARDLINK)
 					{
 						if (strcmp(filename, cnode.filename) == 0)
 						{

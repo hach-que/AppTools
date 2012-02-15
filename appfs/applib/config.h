@@ -49,8 +49,12 @@ http://code.google.com/p/apptools-dist for more information.
 // directory.
 #define DIRECTORY_CHILDREN_MAX 1901
 
+// The maximum file size allowed (10MB + data offset from the 32-bit
+// integer limit).
+#define MSIZE_FILE (0xFFFFFFFF - OFFSET_DATA - (1024 * 1024 * 10))
+
 // Define the sizes of each of the header types.
-#define HSIZE_FILE       306
+#define HSIZE_FILE       308
 #define HSIZE_SEGINFO    8
 #define HSIZE_FREELIST   8
 #define HSIZE_FSINFO     1614

@@ -45,7 +45,17 @@ namespace AppLib
 				double fblocks = fsize / 4096.0f;
 				uint32_t alignedpos = ceil(fblocks) * 4096;
 
-				Logging::showDebugW("FREELIST: Allocate (  new   ) block at %u.\n", alignedpos);
+				// Force the block to be consumed so that the next time
+				// we try to allocate a block, the seek-to-end-of-file
+				// will work as expected.
+				std::streampos oldp = this->fd->tellp();
+				const char* zero = "\0";
+				this->fd->seekp(alignedpos);
+				for (int i = 0; i < 4096; i += 1)
+					this->fd->write(zero, 1);
+				this->fd->seekp(oldp);
+
+				Logging::showDebugW("FREELIST: Allocate (  new   ) block at %u.", alignedpos);
 
 				 return alignedpos;
 			}
@@ -61,7 +71,7 @@ namespace AppLib
 			this->fd->seekp(oldp);
 			uint32_t res = i->second;
 
-			Logging::showDebugW("FREELIST: Allocate (existing) block at %u.\n", res);
+			Logging::showDebugW("FREELIST: Allocate (existing) block at %u.", res);
 
 			// Remove the entry from the position cache.
 			this->position_cache.erase(i);
@@ -84,7 +94,7 @@ namespace AppLib
 			// (since it is now used).
 			if (dpos == 1)
 			{
-				Logging::showDebugW("FREELIST: Reallocated block at %u for list use.\n", pos);
+				Logging::showDebugW("FREELIST: Reallocated block at %u for list use.", pos);
 				return;
 			}
 
@@ -101,10 +111,10 @@ namespace AppLib
 				// Restore the position of the file descriptor.
 				this->fd->seekg(oldg);
 
-				Logging::showDebugW("FREELIST: Free block at %u.\n", pos);
+				Logging::showDebugW("FREELIST: Free block at %u.", pos);
 			}
 			else
-				Logging::showDebugW("FREELIST: Unable to record free'd block %u on disk.\n", pos);
+				Logging::showDebugW("FREELIST: Unable to record free'd block %u on disk.", pos);
 
 			// Add the new free position to the cache.
 			this->position_cache.insert(std::map < uint32_t, uint32_t >::value_type(dpos, pos));
@@ -283,7 +293,7 @@ namespace AppLib
 					Endian::doR(this->fd, reinterpret_cast < char *>(&tpos), 4);
 					if (tpos != 0)
 					{
-						this->position_cache.insert(std::pair < uint32_t, uint32_t > (tpos, fpos + i));
+						this->position_cache.insert(std::pair < uint32_t, uint32_t > (fpos + i, tpos));
 					}
 				}
 

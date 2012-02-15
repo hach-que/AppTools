@@ -88,6 +88,7 @@ namespace AppLib
 			static int checkPathExists(const char *path);
 			static int checkPathNotExists(const char *path);
 			static int checkPathIsValid(const char *path);
+			static int checkPathRenamability(const char *path);
 			static int checkPermission(const char *path, char op, int uid, int gid);
 			static int retrievePathToINode(const char *path, LowLevel::INode * out);
 			static int retrieveParentPathToINode(const char *path, LowLevel::INode * out);

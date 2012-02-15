@@ -20,13 +20,24 @@ http://code.google.com/p/apptools-dist for more information.
 APPFS_CHECK_PATH_VALIDITY() \
 int appfs_check_path_exists_ret = AppLib::FUSE::Macros::checkPathExists(path); \
 if (appfs_check_path_exists_ret != 0) return appfs_check_path_exists_ret;
+#define APPFS_CHECK_TARGET_EXISTS() \
+APPFS_CHECK_TARGET_VALIDITY() \
+int appfs_check_target_exists_ret = AppLib::FUSE::Macros::checkPathExists(target); \
+if (appfs_check_target_exists_ret != 0) return appfs_check_target_exists_ret;
 #define APPFS_CHECK_PATH_NOT_EXISTS() \
 APPFS_CHECK_PATH_VALIDITY() \
 int appfs_check_path_not_exists_ret = AppLib::FUSE::Macros::checkPathNotExists(path); \
 if (appfs_check_path_not_exists_ret != 0) return appfs_check_path_not_exists_ret;
+#define APPFS_CHECK_PATH_RENAMABILITY() \
+APPFS_CHECK_PATH_VALIDITY() \
+int appfs_check_path_renamability_ret = AppLib::FUSE::Macros::checkPathRenamability(path); \
+if (appfs_check_path_renamability_ret != 0) return appfs_check_path_renamability_ret;
 #define APPFS_CHECK_PATH_VALIDITY() \
 int appfs_check_path_is_valid_ret = AppLib::FUSE::Macros::checkPathIsValid(path); \
 if (appfs_check_path_is_valid_ret != 0) return appfs_check_path_is_valid_ret;
+#define APPFS_CHECK_TARGET_VALIDITY() \
+int appfs_check_target_is_valid_ret = AppLib::FUSE::Macros::checkPathIsValid(target); \
+if (appfs_check_target_is_valid_ret != 0) return appfs_check_target_is_valid_ret;
 #define APPFS_CHECK_PERMISSION(op, uid, gid) \
 int appfs_check_path_permission_ret = AppLib::FUSE::Macros::checkPermission(path, op, uid, gid); \
 if (appfs_check_path_permission_ret != 0) return appfs_check_path_permission_ret;
@@ -34,10 +45,18 @@ if (appfs_check_path_permission_ret != 0) return appfs_check_path_permission_ret
 AppLib::LowLevel::INode nde(0, "", AppLib::LowLevel::INodeType::INT_UNSET); \
 int appfs_retrieve_path_to_inode = AppLib::FUSE::Macros::retrievePathToINode(path, &nde); \
 if (appfs_retrieve_path_to_inode != 0) return appfs_retrieve_path_to_inode;
+#define APPFS_RETRIEVE_TARGET_TO_INODE(nde) \
+AppLib::LowLevel::INode nde(0, "", AppLib::LowLevel::INodeType::INT_UNSET); \
+int appfs_retrieve_target_to_inode = AppLib::FUSE::Macros::retrievePathToINode(target, &nde); \
+if (appfs_retrieve_target_to_inode != 0) return appfs_retrieve_target_to_inode;
 #define APPFS_RETRIEVE_PARENT_PATH_TO_INODE(nde) \
 AppLib::LowLevel::INode nde(0, "", AppLib::LowLevel::INodeType::INT_UNSET); \
 int appfs_retrieve_parent_path_to_inode = AppLib::FUSE::Macros::retrieveParentPathToINode(path, &nde); \
 if (appfs_retrieve_parent_path_to_inode != 0) return appfs_retrieve_parent_path_to_inode;
+#define APPFS_RETRIEVE_PARENT_TARGET_TO_INODE(nde) \
+AppLib::LowLevel::INode nde(0, "", AppLib::LowLevel::INodeType::INT_UNSET); \
+int appfs_retrieve_parent_target_to_inode = AppLib::FUSE::Macros::retrieveParentPathToINode(target, &nde); \
+if (appfs_retrieve_parent_target_to_inode != 0) return appfs_retrieve_parent_target_to_inode;
 #define APPFS_ASSIGN_NEW_INODE(nde, type) \
 AppLib::LowLevel::INode nde(0, "", type); \
 uint32_t appfs_assign_new_inode_pos; \
@@ -54,11 +73,12 @@ const char* appfs_copy_basename = Macros::extractBasenameFromPath(path); \
 int appfs_copy_const_char_to_filename = INTERNAL_APPFS_COPY_CONST_CHAR_TO_FILENAME(appfs_copy_basename, filename); \
 free((void*)appfs_copy_basename); \
 if (appfs_copy_const_char_to_filename != 0) return appfs_copy_const_char_to_filename;
-#define APPFS_VERIFY_INODE_POSITION(pos) \
+#define APPFS_VERIFY_INODE_POSITION(pos) APPFS_VERIFY_INODE_POSITION_CUSTOM(pos, FSResult::E_FAILURE_INVALID_POSITION);
+#define APPFS_VERIFY_INODE_POSITION_CUSTOM(pos, errResult) \
 if (pos < OFFSET_DATA || (pos - OFFSET_DATA) % 4096 != 0) \
 { \
 	APPFS_VERIFY_INODE_ASSERT_POSITION(); \
-	return FSResult::E_FAILURE_INVALID_POSITION; \
+	return errResult; \
 }
 
 #include <assert.h>
@@ -90,6 +110,10 @@ inline void APPFS_COPY_INODE_TO_POINTER(AppLib::LowLevel::INode & node, AppLib::
 	{
 		pointer->filename[i] = node.filename[i];
 	}
+	for (int i = 0; i < 255; i += 1)
+	{
+		pointer->realfilename[i] = node.realfilename[i];
+	}
 	pointer->type = node.type;
 	pointer->uid = node.uid;
 	pointer->gid = node.gid;
@@ -110,4 +134,5 @@ inline void APPFS_COPY_INODE_TO_POINTER(AppLib::LowLevel::INode & node, AppLib::
 	pointer->dat_len = node.dat_len;
 	pointer->info_next = node.info_next;
 	pointer->flst_next = node.flst_next;
+	pointer->realid = node.realid;
 }

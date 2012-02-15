@@ -38,14 +38,14 @@ namespace AppLib
 			// Define the fuse_operations structure.
 			static fuse_operations appfs_ops;
 			 appfs_ops.getattr = &FuseLink::getattr;
-			 appfs_ops.readlink              = &FuseLink::readlink;
-                         appfs_ops.mknod                 = &FuseLink::mknod;
+			 appfs_ops.readlink = &FuseLink::readlink;
+			 appfs_ops.mknod = &FuseLink::mknod;
 			 appfs_ops.mkdir = &FuseLink::mkdir;
 			 appfs_ops.unlink = &FuseLink::unlink;
 			 appfs_ops.rmdir = &FuseLink::rmdir;
-			 appfs_ops.symlink               = &FuseLink::symlink;
-//                      appfs_ops.rename                = &FuseLink::rename;
-//                      appfs_ops.link                  = &FuseLink::link;
+			 appfs_ops.symlink = &FuseLink::symlink;
+			 appfs_ops.rename = &FuseLink::rename;
+			 appfs_ops.link = &FuseLink::link;
 			 appfs_ops.chmod = &FuseLink::chmod;
 			 appfs_ops.chown = &FuseLink::chown;
 			 appfs_ops.truncate = &FuseLink::truncate;
@@ -179,10 +179,14 @@ namespace AppLib
 					return -ENOENT;
 				}
 			}
-			if (buf.type != LowLevel::INodeType::INT_DIRECTORY && buf.type != LowLevel::INodeType::INT_FILEINFO && buf.type != LowLevel::INodeType::INT_SYMLINK && buf.type != LowLevel::INodeType::INT_DEVICE)
+			if (buf.type != LowLevel::INodeType::INT_DIRECTORY && buf.type != LowLevel::INodeType::INT_FILEINFO && buf.type != LowLevel::INodeType::INT_SYMLINK && buf.type != LowLevel::INodeType::INT_DEVICE && buf.type != LowLevel::INodeType::INT_HARDLINK)
 			{
 				return -ENOENT;
 			}
+
+			// Resolve the hardlink if needed.
+			if (buf.type == LowLevel::INodeType::INT_HARDLINK)
+				buf = buf.resolve(FuseLink::filesystem);
 
 			// Set the values of the stat structure.
 			stbuf->st_ino = buf.inodeid;
@@ -228,7 +232,8 @@ namespace AppLib
 			if (buf.type == LowLevel::INodeType::INT_SYMLINK)
 			{
 				int res = FuseLink::read(path, out, size, 0, NULL);
-				if (res < 0) return res;
+				if (res < 0)
+					return res;
 			}
 			else
 				return -ENOTSUP;
@@ -314,8 +319,22 @@ namespace AppLib
 			if (pos == 0)
 				return -EIO;
 
+			// Get the real INode (if this is a hardlink).
+			int result = 0;
+			LowLevel::INode real = child.resolve(FuseLink::filesystem);
+			if (real.inodeid != child.inodeid)
+			{
+				// The real inode is a hardlink, so we need to
+				// reset that block.
+				uint32_t rpos = FuseLink::filesystem->getINodePositionByID(real.inodeid);
+				if (FuseLink::filesystem->resetBlock(rpos) != LowLevel::FSResult::E_SUCCESS)
+					result = -EIO;
+				if (FuseLink::filesystem->setINodePositionByID(real.inodeid, 0) != LowLevel::FSResult::E_SUCCESS)
+					result = -EIO;
+			}
+
 			// Remove the inode from the directory.
-			LowLevel::FSResult::FSResult res = FuseLink::filesystem->removeChildFromDirectoryInode(parent.inodeid, child.inodeid);
+			LowLevel::FSResult::FSResult res = FuseLink::filesystem->removeChildFromDirectoryInode(parent.inodeid, real.inodeid);
 			if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
 				return -ENOTDIR;
 			else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
@@ -325,6 +344,7 @@ namespace AppLib
 
 			// Now reduce the nlink value by 1.
 			child.nlink -= 1;
+			child.ctime = APPFS_TIME();
 			if (child.nlink == 0)
 			{
 				// Erase all of the file segments first.
@@ -333,13 +353,15 @@ namespace AppLib
 				// Now delete the block at the specified position.
 				if (FuseLink::filesystem->resetBlock(pos) != LowLevel::FSResult::E_SUCCESS)
 					return -EIO;
+				if (FuseLink::filesystem->setINodePositionByID(child.inodeid, 0) != LowLevel::FSResult::E_SUCCESS)
+					return -EIO;
 			}
 			else
 			{
 				// Otherwise just save the new nlink value back.
 				APPFS_SAVE_INODE(child);
 			}
-			return 0;
+			return result;
 		}
 
 		int FuseLink::rmdir(const char *path)
@@ -374,6 +396,10 @@ namespace AppLib
 			if (FuseLink::filesystem->resetBlock(pos) != LowLevel::FSResult::E_SUCCESS)
 				return -EIO;
 
+			// Set the inode position to 0.
+			if (FuseLink::filesystem->setINodePositionByID(child.inodeid, 0) != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
+
 			return 0;
 		}
 
@@ -382,25 +408,99 @@ namespace AppLib
 			APPFS_CHECK_PATH_NOT_EXISTS();
 
 			int res = FuseLink::create(path, 0755, APPFS_MAKE_SYMLINK);
-			if (res != 0) return res;
+			if (res != 0)
+				return res;
 			res = FuseLink::write(path, target, strlen(target), 0, NULL);
-			if (res < 0) return res;
+			if (res < 0)
+				return res;
 
 			return 0;
 		}
 
-		int FuseLink::rename(const char *path, const char *dest)
+		int FuseLink::rename(const char *target, const char *path)
 		{
-			APPFS_CHECK_PATH_EXISTS();
+			APPFS_CHECK_PATH_RENAMABILITY();
+			APPFS_CHECK_TARGET_EXISTS();
+			APPFS_RETRIEVE_TARGET_TO_INODE(child);
+			APPFS_RETRIEVE_PARENT_TARGET_TO_INODE(old_parent);
+			APPFS_RETRIEVE_PARENT_PATH_TO_INODE(new_parent);
 
-			return -ENOTSUP;
+			// Change directory owners if needed.
+			if (old_parent.inodeid != new_parent.inodeid)
+			{
+				// Add the new parent -> child relationship on disk.
+				LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(new_parent.inodeid, child.inodeid);
+				if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
+					return -ENOTDIR;
+				else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
+				{
+					Logging::showErrorW("Maximum number of children in directory reached.");
+					return -EIO;
+				}
+				else if (res != LowLevel::FSResult::E_SUCCESS)
+					return -EIO;
+
+				// Remove the old parent -> child relationship on disk.
+				res = FuseLink::filesystem->removeChildFromDirectoryInode(old_parent.inodeid, child.inodeid);
+				if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
+					return -ENOTDIR;
+				else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
+					return -ENOENT;
+				else if (res != LowLevel::FSResult::E_SUCCESS)
+					return -EIO;
+			}
+
+			// Now change the filename.
+			child.ctime = APPFS_TIME();
+			APPFS_BASENAME_TO_FILENAME(path, child.filename);
+			APPFS_SAVE_INODE(child);
+
+			return 0;
 		}
 
-		int FuseLink::link(const char *path, const char *source)
+		int FuseLink::link(const char *target, const char *path)
 		{
+			// Check to see if the path does not exist.
 			APPFS_CHECK_PATH_NOT_EXISTS();
 
-			return -ENOTSUP;
+			// Check to see if the target exists.
+			APPFS_CHECK_TARGET_EXISTS();
+
+			// Retrieve inode of target.
+			APPFS_RETRIEVE_TARGET_TO_INODE(real);
+
+			// Ensure the target is a plain old file.
+			if (real.type == LowLevel::INodeType::INT_DIRECTORY)
+				return -EISDIR;
+			else if (real.type != LowLevel::INodeType::INT_FILEINFO && real.type != LowLevel::INodeType::INT_DEVICE)
+				return -ENOTSUP;
+
+			// Retrieve inode of path's parent.
+			APPFS_RETRIEVE_PARENT_PATH_TO_INODE(parent);
+
+			APPFS_ASSIGN_NEW_INODE(child, LowLevel::INodeType::INT_HARDLINK);
+			child.realid = real.inodeid;
+			APPFS_BASENAME_TO_FILENAME(path, child.filename);
+			APPFS_SAVE_NEW_INODE(child);
+
+			// Now add the parent -> child relationship on disk.
+			LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
+			if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
+				return -ENOTDIR;
+			else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
+			{
+				Logging::showErrorW("Maximum number of children in directory reached.");
+				return -EIO;
+			}
+			else if (res != LowLevel::FSResult::E_SUCCESS)
+				return -EIO;
+
+			// Increase nlink and save.
+			real.nlink += 1;
+			real.ctime = APPFS_TIME();
+			APPFS_SAVE_INODE(real);
+
+			return 0;
 		}
 
 		int FuseLink::chmod(const char *path, mode_t mode)
@@ -432,6 +532,8 @@ namespace AppLib
 
 		int FuseLink::truncate(const char *path, off_t size)
 		{
+			if (size > MSIZE_FILE)
+				return -EFBIG;
 			APPFS_CHECK_PATH_EXISTS();
 			APPFS_RETRIEVE_PATH_TO_INODE(buf);
 			buf.ctime = APPFS_TIME();
@@ -461,6 +563,8 @@ namespace AppLib
 
 		int FuseLink::read(const char *path, char *out, size_t length, off_t offset, struct fuse_file_info *options)
 		{
+			if (offset > MSIZE_FILE || ((uint64_t) offset + (uint64_t) length) > MSIZE_FILE)
+				return -EFBIG;
 			APPFS_CHECK_PATH_EXISTS();
 			APPFS_RETRIEVE_PATH_TO_INODE(buf);
 			buf.atime = APPFS_TIME();
@@ -493,13 +597,15 @@ namespace AppLib
 				return -EIO;
 
 #ifdef DEBUG
-			Logging::showDebugW("%u bytes have been read.");
+			Logging::showDebugW("%u bytes have been read.", amount_read);
 #endif
 			return amount_read;
 		}
 
 		int FuseLink::write(const char *path, const char *in, size_t length, off_t offset, struct fuse_file_info *options)
 		{
+			if (offset > MSIZE_FILE || ((uint64_t) offset + (uint64_t) length) > MSIZE_FILE)
+				return -EFBIG;
 			APPFS_CHECK_PATH_EXISTS();
 			APPFS_RETRIEVE_PATH_TO_INODE(buf);
 			buf.ctime = APPFS_TIME();
@@ -521,7 +627,7 @@ namespace AppLib
 			if (file.fail() && file.bad())
 				return -EIO;
 #ifdef DEBUG
-			Logging::showDebugW("Writing %u bytes.");
+			Logging::showDebugW("Writing %u bytes.", length);
 #endif
 			file.write(in, length);
 			if (file.fail() && file.bad())
@@ -534,7 +640,7 @@ namespace AppLib
 				return -EIO;
 
 #ifdef DEBUG
-			Logging::showDebugW("%u bytes have been written.");
+			Logging::showDebugW("%u bytes have been written.", length);
 #endif
 			return length;
 		}
@@ -767,6 +873,30 @@ namespace AppLib
 			return 0;
 		}
 
+		int Macros::checkPathRenamability(const char *path)
+		{
+			// If the path doesn't exist, we don't need to check the special
+			// sticky conditions.
+			int ret = Macros::checkPathNotExists(path);
+			if (ret != -EEXIST)
+				return ret;
+
+			// So the path does exist, and we need to check the modes on the
+			// owning directory and the file.
+			APPFS_RETRIEVE_PATH_TO_INODE(child);
+			APPFS_RETRIEVE_PARENT_PATH_TO_INODE(parent);
+			uid_t uid = fuse_get_context()->uid;
+			if ((parent.mask & S_ISVTX) && !(child.uid == uid || parent.uid == uid))
+				return -EACCES;
+
+			// Otherwise, the user is permitted to do this, but we have to remove
+			// the existing entry first.
+			if (child.type == LowLevel::INodeType::INT_DIRECTORY)
+				return FuseLink::rmdir(path);
+			else
+				return FuseLink::unlink(path);
+		}
+
 		int Macros::checkPermission(const char *path, char op, int uid, int gid)
 		{
 			return -EACCES;
@@ -790,6 +920,8 @@ namespace AppLib
 				APPFS_COPY_INODE_TO_POINTER(buf, out);
 				return -ENOENT;
 			}
+			if (buf.type == LowLevel::INodeType::INT_HARDLINK)
+				buf = buf.resolve(FuseLink::filesystem);
 			APPFS_COPY_INODE_TO_POINTER(buf, out);
 			return 0;
 		}
@@ -863,6 +995,7 @@ namespace AppLib
 			pos = FuseLink::filesystem->getFirstFreeBlock(simple_type);
 			if (pos == 0)
 				return -ENOSPC;
+			APPFS_VERIFY_INODE_POSITION_CUSTOM(pos, -EIO);
 
 			// Get a free inode number.
 			uint16_t id = FuseLink::filesystem->getFirstFreeInodeNumber();
@@ -912,7 +1045,7 @@ namespace AppLib
 			else if (mode & S_IFREG)
 				return mode & ~S_IFREG;
 			else
-				return mode; // Keep block / char / FIFO information.
+				return mode;	// Keep block / char / FIFO information.
 		}
 
 		const char *Macros::extractBasenameFromPath(const char *path)
