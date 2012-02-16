@@ -13,10 +13,10 @@ RANLIB           = ranlib
 ######################
 
 # Define our switches for each compiler mode.
-CPPFLAGS_optimal = -D_FILE_OFFSET_BITS=64 -I/usr/include
+CPPFLAGS_optimal = -D_FILE_OFFSET_BITS=64 -I/usr/include -I../appfs
 CXXFLAGS_optimal = -O3 -Os -Wno-write-strings
 CFLAGS_optimal   = -O3 -Os
-CPPFLAGS_debug   = -D_FILE_OFFSET_BITS=64 -I/usr/include/ -DDEBUG
+CPPFLAGS_debug   = -D_FILE_OFFSET_BITS=64 -I/usr/include/ -I../appfs -DDEBUG
 CXXFLAGS_debug   = -g3 -Wno-write-strings -fno-inline -fdiagnostics-show-option
 CFLAGS_debug	 = -g3
 
@@ -44,7 +44,7 @@ debug optimal:
 
 # Create a rule for wrapping object names.
 define uo
-$(shell mkdir -p $(OBJDIR)/ >/dev/null 2>/dev/null; echo $(addprefix $(OBJDIR)/, $1))
+$(shell mkdir -p $(OBJDIR)/components >/dev/null 2>/dev/null; echo $(addprefix $(OBJDIR)/, $1))
 endef
 
 # Define where we want to store object files.

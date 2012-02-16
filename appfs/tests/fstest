@@ -1,0 +1,25 @@
+#!/bin/bash
+
+IGNORE_MOUNTING=true
+if [ "$(dirname $0)" == "" ]; then
+	. ./config
+else
+	. $(dirname $0)/config
+fi
+
+if [ ! -d $DIR_ROOT/../fstest ]; then
+	echo "The POSIX filesystem test suite must be located in $(readlink $DIR_ROOT/../fstest) for this script to work."
+	exit 1
+fi
+
+pushd $DIR_MOUNT
+if [ "$1" != "" ]; then
+	if [ "$2" != "" ]; then
+		prove -v $DIR_ROOT/../fstest/tests/$1/$2.t
+	else
+		prove -r $DIR_ROOT/../fstest/tests/$1
+	fi
+else
+	prove -r -s $DIR_ROOT/../fstest/tests/
+fi
+popd
