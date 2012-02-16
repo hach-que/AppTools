@@ -1,5 +1,4 @@
 #!/bin/apputil
--- vim: set filetype=lua:
 
 require "AppTools.Logger"
 require "ArgTable2.Parser"

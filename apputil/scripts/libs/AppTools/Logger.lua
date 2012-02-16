@@ -1,7 +1,7 @@
 name "AppTools.Logger"
 description [[Provides logging facilities for AppTools scripts.]]
 author "James Rhodes"
-lastmodified "15th February, 2012"
+lastmodified "16th February, 2012"
 
 -- Mark our variables as per instance.
 context

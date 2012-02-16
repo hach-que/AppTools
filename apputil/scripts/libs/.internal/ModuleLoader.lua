@@ -40,14 +40,14 @@ package.loaders[1] = function(module, env)
 				if (classname == nil) then
 					classname = string.sub(name, ldotpos + 1, tdotpos)
 				else
-					table.insert(namespaces,1,string.sub(name, ldotpos + 1, tdotpos))
+					namespaces[#namespaces + 1] = string.sub(name, ldotpos + 1, tdotpos);
 				end
 				tdotpos = ldotpos - 1
 			end
 			ldotpos = ldotpos - 1
 		end
 		if (tdotpos > 0) then
-			table.insert(namespaces,1,string.sub(name, ldotpos + 1, tdotpos))
+			namespaces[#namespaces + 1] = string.sub(name, ldotpos + 1, tdotpos);
 		end
 		z = {}
 		for c, x in ipairs(namespaces) do
