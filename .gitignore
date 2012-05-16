@@ -1,6 +1,3 @@
-# Use glob syntax.
-syntax: glob
-
 # Ignore the filesystem test suite if it exists.
 fstest/*
 
