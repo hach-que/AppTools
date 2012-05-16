@@ -31,7 +31,7 @@ Example
 ~~~~~~~~~~~~~
 First you will need to create an AppFS package.  Assuming you are in the root directory of the project and that you have built each component, try:
 
-```
+```bash
 > appfs/appcreate test.afs
 > mkdir mount
 > appfs/appmount test.afs mount >/dev/null 2>/dev/null &  # See note.
