@@ -1,4 +1,0 @@
-This directory is used for prepping distribution of AppTools to go
-into a .afs package format.  This directory and the utilities to 
-build the .afs package are not yet available.
-
