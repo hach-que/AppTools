@@ -42,3 +42,5 @@ test
 ```
 
 At the moment the APIs are still under development (in particular the exposed APIs to Lua for AppFS need to be more than load / unload / ls).
+
+**NOTE:** AppMount currently runs in the foreground for debugging purposes, thus you need to use `>/dev/null 2>/dev/null &` in order to run it silently in the background.
