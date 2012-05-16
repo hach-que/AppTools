@@ -85,7 +85,11 @@ typedef unsigned int pid_t;
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef __cpluscplus
 #include <cstring>
+#else
+#include <string.h>
+#endif
 #endif
 
 // We need 64-bit time support.  Since it seems time.h has no

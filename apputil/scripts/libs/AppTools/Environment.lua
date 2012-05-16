@@ -20,7 +20,7 @@ visibility
 
 --- Checks to ensure that the list of binaries are in PATH.
 --  @param apps An indexed table of binary files to look for.
-function Environment:CheckBinaries(apps)
+function Environment.CheckBinaries(apps)
 	local paths = os.getenv("PATH");
 	local found = {}
 	for i, app in ipairs(apps) do

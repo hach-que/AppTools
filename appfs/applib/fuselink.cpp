@@ -159,6 +159,38 @@ namespace AppLib
 		{
 			return this->mountResult;
 		}
+		
+		void API::load(const char* disk_image)
+		{
+			// Attempt to open the specified disk image.
+			LowLevel::BlockStream * fd = new LowLevel::BlockStream(disk_image);
+			if (!fd->is_open())
+			{
+				Logging::showErrorW("Unable to open specified disk image.");
+				return;
+			}
+			fd->seekp(0);
+			fd->seekg(0);
+
+			// Attempt to create an FS object based on the disk image.
+			LowLevel::FS * filesystem = new LowLevel::FS(fd);
+			if (!filesystem->isValid())
+			{
+				Logging::showErrorW("Unable to read the specified disk image as an AppFS filesystem.");
+				delete fd;
+				return;
+			}
+			FuseLink::filesystem = filesystem;
+		}
+		
+		void API::unload()
+		{
+			if (FuseLink::filesystem != NULL)
+			{
+				delete FuseLink::filesystem;
+				FuseLink::filesystem = NULL;
+			}
+		}
 
 		int FuseLink::getattr(const char *path, struct stat *stbuf)
 		{

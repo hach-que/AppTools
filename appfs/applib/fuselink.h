@@ -82,6 +82,13 @@ namespace AppLib
 			int mountResult;
 		};
 
+		class API
+		{
+		public:
+			static void load(const char* disk_image);
+			static void unload();
+		};
+		
 		class Macros
 		{
 		      public:
