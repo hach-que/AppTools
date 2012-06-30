@@ -8,7 +8,7 @@ LIBS		= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 -lm ../appfs/libapp.a /usr/
 all: apputil components
 
 apputil: $(OBJS)
-	gcc -o $(EXE) $(OBJS) $(LIBS)
+	gcc -Wl,-E -o $(EXE) $(OBJS) $(LIBS)
 
 components: force_look
 	@$(ECHO) looking in components : $(MAKE) $(MFLAGS) $(MAKECMDGOALS)
