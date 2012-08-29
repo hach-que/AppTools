@@ -13,8 +13,9 @@ http://code.google.com/p/apptools-dist for more information.
 #include "config.h"
 #include "applib/logging.h"
 
-#define LIB_PATH "scripts/libs/"
-#define SCRIPT_PATH "scripts/"
+#ifndef LIB_PATH
+#error LIB_PATH not defined.
+#endif
 
 std::string concat_str(const char* a, const char* b)
 {
@@ -34,8 +35,6 @@ int run_lua(const char* name, int argc, char* argv[])
 	// Set our internal constants.
 	lua_pushstring(L, LIB_PATH);
 	lua_setglobal(L, "_APPUTIL_LIB_PATH");
-	lua_pushstring(L, SCRIPT_PATH);
-	lua_setglobal(L, "_APPUTIL_SCRIPT_PATH");
 	struct program_state* state = (struct program_state*)malloc(sizeof(struct program_state*));
 	state->argc = argc;
 	state->argv = argv;
@@ -52,7 +51,7 @@ int run_lua(const char* name, int argc, char* argv[])
 	}
 
 	// Execute file.
-	int ret = luaL_dofile(L, concat_str(concat_str(SCRIPT_PATH, name).c_str(), ".lua").c_str());
+	int ret = luaL_dofile(L, name);
 
 	if (ret != 0)
 	{
@@ -78,10 +77,10 @@ int main(int argc, char* argv[])
 	AppLib::Logging::setApplicationName(std::string("apputil"));
 
 	// Parse the arguments provided.
-	struct arg_str *script = arg_str1(NULL, NULL, "script", "the name of the script to execute");
+	struct arg_file *script = arg_file1(NULL, NULL, "script", "the path of the script to execute");
 	struct arg_end *end = arg_end(20);
 	void *argtable[] = { script, end };
-	script->sval[0] = NULL;
+	script->filename[0] = NULL;
 
 	// Check to see if the argument definitions were allocated
 	// correctly.
@@ -95,7 +94,7 @@ int main(int argc, char* argv[])
 	int nerrors = arg_parse(argc, argv, argtable);
 
 	// Check to see if there were errors.
-	if (nerrors > 0 && script->sval[0] == NULL)
+	if (nerrors > 0 && script->filename[0] == NULL)
 	{
 		printf("Usage: apputil");
 		arg_print_syntax(stdout, argtable, "\n");
@@ -107,7 +106,7 @@ int main(int argc, char* argv[])
 	}
 
 	// Store the script path the user has provided.
-	script_path = script->sval[0];
+	script_path = script->filename[0];
 	
 	// Now execute the script.
 	return run_lua(script_path, argc, argv);

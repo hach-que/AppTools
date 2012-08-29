@@ -4,13 +4,25 @@
 ## Basic settings ##
 ####################
 
+PATH_LIB = $(prefix)/lib/apptools
+PATH_BIN = $(prefix)/bin
+
 LDFLAGS	         = 
 ECHO	         = echo
 RANLIB           = ranlib
+INSTALL          = install
+MKDIR            = mkdir
+CP               = cp
+CHOWN            = chown
+CHMOD            = chmod
 
 ######################
 ## Compiler control ##
 ######################
+
+# Retrieve our architecture setting
+ARCH = $(shell getconf LONG_BIT)
+ARCH_SUFFIX = $(if $(firstword $(filter 64,$(ARCH))),,64)
 
 # Define our switches for each compiler mode.
 CPPFLAGS_optimal = -D_FILE_OFFSET_BITS=64 -I/usr/include -I../appfs

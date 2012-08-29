@@ -1,4 +1,4 @@
-include ../Makefile.inc
+include ../../Makefile.inc
 
 CPPFLAGS   += -I.. -I/usr/include/fuse
 OBJLIBS     = ../libapp.a

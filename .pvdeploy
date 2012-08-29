@@ -4,10 +4,13 @@ include ^appfs/libapp.a$
 include ^appfs/applib/(.*).h$
 include ^apputil/apputil$
 include ^apputil/scripts/(.*)$
+include ^apputil/libs/(.*)$
 
 # Rewrite to be contained in the same folder.
 rewrite ^appfs/applib/(.*?)$ include/$1
 rewrite ^appfs/libapp.a$ lib/libapp.a
 rewrite ^appfs/(.*?)$ bin/$1
 rewrite ^apputil/apputil$ bin/apputil
-rewrite ^apputil/scripts/(.*?)$ bin/scripts/$1
+rewrite ^apputil/scripts/app(.*?)\.lua$ bin/app$1
+rewrite ^apputil/scripts/(.*?)$ lib/apptools/$1
+rewrite ^apputil/libs/(.*?)$ lib/apptools/$1

@@ -14,9 +14,14 @@ AppTools is founded on the principle of *universality*, that an object (such as 
   * The package management system must support third-party packages and third-party repository sources.
 
 ## Building
-Run `make` in the the `appfs` and `apputil` folders (in that order since `apputil` depends on `appfs`) to produce binaries for your system.
+Run `make prefix=<path> debug all` in the root folder to produce binaries for your system.
 
 This will build AppMount, AppCreate, AppFS, AppUtil and AppInspect.
+
+## Installing
+Run `make prefix=<path> debug install` in the root folder to install AppTools on your system.
+
+Make sure that the prefix path is the same one specified for building!
 
 ## Usage
 The AppTools infrastructure orientates around the AppFS package format.  Unlike other package formats, this is a full read-write filesystem with on-the-fly resizing which allows applications to be run directly from within their packages as well as installed on a system.

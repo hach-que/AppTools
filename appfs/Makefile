@@ -1,4 +1,4 @@
-include Makefile.inc
+include ../Makefile.inc
 
 DIRS	= applib
 EXE_APPFS	= appfs
@@ -10,7 +10,7 @@ OBJS_APPMOUNT	= $(call uo, appmount.o)
 OBJS_APPINSPECT = $(call uo, appinspect.o)
 OBJS_APPCREATE  = $(call uo, appcreate.o)
 OBJLIBS	= libapp.a
-LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 -lm ./libapp.a /usr/lib64/libfuse.a
+LIBS	= -L. -lpthread -lstdc++ -ldl -lrt -largtable2 -lm ./libapp.a /usr/lib$(LIB_SUFFIX)/libfuse.a
 
 all: appfs appmount appinspect appcreate
 
@@ -38,3 +38,5 @@ clean:
 force_look:
 	@true
 
+install:
+	@true

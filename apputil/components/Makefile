@@ -1,13 +1,13 @@
-include ../Makefile.inc
+include ../../Makefile.inc
 
 EXE_ARGTABLE2	= argtable2.so
-LIB_ARGTABLE2	= -L. -largtable2 /usr/lib64/liblua.a
+LIB_ARGTABLE2	= -L. -largtable2 /usr/lib$(LIB_SUFFIX)/liblua.a
 EXE_APPFS	= appfs.so
-LIB_APPFS	= -L. ../../appfs/libapp.a /usr/lib64/liblua.a -lfuse
+LIB_APPFS	= -L. ../../appfs/libapp.a /usr/lib$(LIB_SUFFIX)/liblua.a -lfuse
 CFLAGS         += -fPIC
 CXXFLAGS       += -fPIC
 OBJS_CLEAN      = argtable2.o appfs.o
-SCRIPT_COPY     = ../scripts/libs/.native/
+SCRIPT_COPY     = ../libs/.native/
 
 all: argtable2 appfs copy
 
