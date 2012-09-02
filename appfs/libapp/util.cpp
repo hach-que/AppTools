@@ -6,7 +6,7 @@ This class contains low-level utility functions which do not
 suit any other existing class.
 
 Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                28th July 2010
+				28th July 2010
 
 This software is licensed under an MIT license.  See
 http://code.google.com/p/apptools-dist for more information.
@@ -63,25 +63,25 @@ namespace AppLib
 		void Util::sanitizeArguments(char ** argv, int argc, std::string & command, int start)
 		{
 			for (int i = start; i < argc; i += 1)
-            {
-                // There must be a better way of replacing characters to
-                // ensure the arguments are passed correctly.
-                std::string insane_argv = argv[i];
-                std::string sane_argv = "";
-                for (int a = 0; a < insane_argv.length(); a += 1)
-                {
-                    if (insane_argv[a] == '\\')
-                        sane_argv.append("\\\\");
-                    else if (insane_argv[a] == '"')
+			{
+				// There must be a better way of replacing characters to
+				// ensure the arguments are passed correctly.
+				std::string insane_argv = argv[i];
+				std::string sane_argv = "";
+				for (int a = 0; a < insane_argv.length(); a += 1)
+				{
+					if (insane_argv[a] == '\\')
+						sane_argv.append("\\\\");
+					else if (insane_argv[a] == '"')
 						sane_argv.append("\\\"");
-                    else
-                        sane_argv += insane_argv[a];
-                }
-                command = command + " \"" + sane_argv + "\"";
-            }
+					else
+						sane_argv += insane_argv[a];
+				}
+				command = command + " \"" + sane_argv + "\"";
+			}
 		}
 
-        bool Util::extractBootstrap(std::string source, std::string dest)
+		bool Util::extractBootstrap(std::string source, std::string dest)
 		{
 			FILE * fsrc = fopen(source.c_str(), "r");
 			if (fsrc == NULL) return false;
@@ -101,13 +101,13 @@ namespace AppLib
 			return true;
 		}
 
-		const char* Util::getProcessFilename()
+		char* Util::getProcessFilename()
 		{
 			// This is non-portable code.  For each UNIX kernel this is
 			// compiled on, a section needs to be added to handle fetching
 			// the current process filename.  There are a list of ways for
 			// each kernel available at:
-			//  * http://stackoverflow.com/questions/933850
+			//	* http://stackoverflow.com/questions/933850
 #ifdef WIN32
 			return NULL;
 #else
@@ -118,7 +118,7 @@ namespace AppLib
 			if (ret == -1)
 				return NULL;
 			else
-				return std::string(buf).c_str();
+				return buf;
 #endif
 		}
 
@@ -167,7 +167,7 @@ namespace AppLib
 			fsnode.setAppAuthor(appauthor);
 			fsnode.pos_root = OFFSET_DATA;
 			fsnode.pos_freelist = 0; // The first FreeList block will automatically be
-									 // created when the first block is freed.
+						 // created when the first block is freed.
 			std::string fsnode_towrite = fsnode.getBinaryRepresentation();
 			nfd->write(fsnode_towrite.c_str(), fsnode_towrite.size());
 			for (int i = fsnode_towrite.size(); i < LENGTH_FSINFO; i += 1)

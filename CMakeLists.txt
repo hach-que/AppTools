@@ -5,4 +5,5 @@ set(CMAKE_MODULE_PATH ${APPTOOLS_SOURCE_DIR}/cmake)
 
 add_subdirectory(third-party)
 add_subdirectory(appfs)
+add_subdirectory(apputil)
 
