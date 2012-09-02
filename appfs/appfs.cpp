@@ -12,10 +12,10 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-#include "applib/logging.h"
-#include "applib/util.h"
-#include "applib/fuselink.h"
-#include "applib/environment.h"
+#include "libapp/logging.h"
+#include "libapp/util.h"
+#include "libapp/fuselink.h"
+#include "libapp/environment.h"
 #include "config.h"
 #include "funcdefs.h"
 #include <pthread.h>

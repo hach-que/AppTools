@@ -12,9 +12,9 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-#include "applib/logging.h"
-#include "applib/fsfile.h"
-#include "applib/fs.h"
+#include "libapp/logging.h"
+#include "libapp/fsfile.h"
+#include "libapp/fs.h"
 #include <algorithm>
 #include <string>
 #include <vector>

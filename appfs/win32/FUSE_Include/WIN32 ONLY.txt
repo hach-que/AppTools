@@ -1,5 +1,0 @@
-These files are used to compile AppLib on Windows.  They do not function correctly,
-only provide the appropriate FUSE structures for the source code to compile.
-
-On Linux you should use the FUSE header files installed from your package manager (or
-that came with the FUSE source you have downloaded).

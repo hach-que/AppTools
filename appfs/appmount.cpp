@@ -12,8 +12,8 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-#include "applib/logging.h"
-#include "applib/fuselink.h"
+#include "libapp/logging.h"
+#include "libapp/fuselink.h"
 #include "config.h"
 #include "funcdefs.h"
 

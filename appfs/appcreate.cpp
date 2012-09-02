@@ -12,7 +12,7 @@ http://code.google.com/p/apptools-dist for more information.
 
 */
 
-#include "applib/util.h"
+#include "libapp/util.h"
 
 int main(int argc, char *argv[])
 {
