@@ -62,8 +62,8 @@ if (appfs_copy_const_char_to_filename != 0) return appfs_copy_const_char_to_file
 #define APPFS_VERIFY_INODE_POSITION_CUSTOM(pos, errResult) \
 if (pos < OFFSET_DATA || (pos - OFFSET_DATA) % 4096 != 0) \
 { \
-	APPFS_VERIFY_INODE_ASSERT_POSITION(); \
-	return errResult; \
+    APPFS_VERIFY_INODE_ASSERT_POSITION(); \
+    return errResult; \
 }
 
 #include <assert.h>
@@ -75,49 +75,49 @@ void APPFS_VERIFY_INODE_ASSERT_POSITION();
 
 inline AppLib::LowLevel::FSResult::FSResult INTERNAL_APPFS_COPY_CONST_CHAR_TO_FILENAME(const char *ret, char filename[256])
 {
-	if (strlen(ret) >= 256)
-		return AppLib::LowLevel::FSResult::E_FAILURE_INVALID_FILENAME;
-	for (int i = 0; i < 256; i += 1)
-		filename[i] = 0;
-	for (int i = 0; i < 255; i += 1)
-	{
-		if (ret[i] == 0)
-			break;
-		filename[i] = ret[i];
-	}
-	return AppLib::LowLevel::FSResult::E_SUCCESS;
+    if (strlen(ret) >= 256)
+        return AppLib::LowLevel::FSResult::E_FAILURE_INVALID_FILENAME;
+    for (int i = 0; i < 256; i += 1)
+        filename[i] = 0;
+    for (int i = 0; i < 255; i += 1)
+    {
+        if (ret[i] == 0)
+            break;
+        filename[i] = ret[i];
+    }
+    return AppLib::LowLevel::FSResult::E_SUCCESS;
 }
 
 inline void APPFS_COPY_INODE_TO_POINTER(AppLib::LowLevel::INode & node, AppLib::LowLevel::INode * pointer)
 {
-	pointer->inodeid = node.inodeid;
-	for (int i = 0; i < 255; i += 1)
-	{
-		pointer->filename[i] = node.filename[i];
-	}
-	for (int i = 0; i < 255; i += 1)
-	{
-		pointer->realfilename[i] = node.realfilename[i];
-	}
-	pointer->type = node.type;
-	pointer->uid = node.uid;
-	pointer->gid = node.gid;
-	pointer->mask = node.mask;
-	pointer->atime = node.atime;
-	pointer->mtime = node.mtime;
-	pointer->ctime = node.ctime;
-	pointer->parent = node.parent;
-	for (int i = 0; i < node.children_count; i += 1)
-	{
-		pointer->children[i] = node.children[i];
-	}
-	pointer->children_count = node.children_count;
-	pointer->dev = node.dev;
-	pointer->rdev = node.rdev;
-	pointer->nlink = node.nlink;
-	pointer->blocks = node.blocks;
-	pointer->dat_len = node.dat_len;
-	pointer->info_next = node.info_next;
-	pointer->flst_next = node.flst_next;
-	pointer->realid = node.realid;
+    pointer->inodeid = node.inodeid;
+    for (int i = 0; i < 255; i += 1)
+    {
+        pointer->filename[i] = node.filename[i];
+    }
+    for (int i = 0; i < 255; i += 1)
+    {
+        pointer->realfilename[i] = node.realfilename[i];
+    }
+    pointer->type = node.type;
+    pointer->uid = node.uid;
+    pointer->gid = node.gid;
+    pointer->mask = node.mask;
+    pointer->atime = node.atime;
+    pointer->mtime = node.mtime;
+    pointer->ctime = node.ctime;
+    pointer->parent = node.parent;
+    for (int i = 0; i < node.children_count; i += 1)
+    {
+        pointer->children[i] = node.children[i];
+    }
+    pointer->children_count = node.children_count;
+    pointer->dev = node.dev;
+    pointer->rdev = node.rdev;
+    pointer->nlink = node.nlink;
+    pointer->blocks = node.blocks;
+    pointer->dat_len = node.dat_len;
+    pointer->info_next = node.info_next;
+    pointer->flst_next = node.flst_next;
+    pointer->realid = node.realid;
 }

@@ -35,187 +35,187 @@
 
 namespace AppLib
 {
-	namespace LowLevel
-	{
-		BlockStream::BlockStream(std::string filename)
-		{
-			CREATE_CRITICAL();
+    namespace LowLevel
+    {
+        BlockStream::BlockStream(std::string filename)
+        {
+            CREATE_CRITICAL();
 
-			ENTER_CRITICAL();
+            ENTER_CRITICAL();
 
-			this->opened = false;
-			this->invalid = false;
+            this->opened = false;
+            this->invalid = false;
 
-			this->fd = new std::fstream(filename.c_str(), std::ios::in | std::ios::out | std::ios::binary);
-			if (!this->fd->is_open())
-			{
-				Logging::showErrorW("Unable to open specified file as BlockStream.");
-				this->invalid = true;
-				this->opened = false;
-				this->clear(std::ios::badbit | std::ios::failbit);
-				return;
-			}
-			else
-			{
-				this->fd->exceptions(std::ifstream::badbit | std::ios::failbit | std::ios::eofbit);
-				this->invalid = false;
-				this->opened = true;
-			}
+            this->fd = new std::fstream(filename.c_str(), std::ios::in | std::ios::out | std::ios::binary);
+            if (!this->fd->is_open())
+            {
+                Logging::showErrorW("Unable to open specified file as BlockStream.");
+                this->invalid = true;
+                this->opened = false;
+                this->clear(std::ios::badbit | std::ios::failbit);
+                return;
+            }
+            else
+            {
+                this->fd->exceptions(std::ifstream::badbit | std::ios::failbit | std::ios::eofbit);
+                this->invalid = false;
+                this->opened = true;
+            }
 
-			LEAVE_CRITICAL();
-		}
+            LEAVE_CRITICAL();
+        }
 
-		void BlockStream::write(const char *data, std::streamsize count)
-		{
-			ENTER_CRITICAL();
+        void BlockStream::write(const char *data, std::streamsize count)
+        {
+            ENTER_CRITICAL();
 
-			if (this->invalid || !this->opened || this->fail())
-			{
-				if (!this->fail())
-					this->clear(std::ios::badbit | std::ios::failbit);
-				return;
-			}
+            if (this->invalid || !this->opened || this->fail())
+            {
+                if (!this->fail())
+                    this->clear(std::ios::badbit | std::ios::failbit);
+                return;
+            }
 
-			this->fd->write(data, count);
+            this->fd->write(data, count);
 
-			LEAVE_CRITICAL();
-		}
+            LEAVE_CRITICAL();
+        }
 
-		std::streamsize BlockStream::read(char *out, std::streamsize count)
-		{
-			ENTER_CRITICAL();
+        std::streamsize BlockStream::read(char *out, std::streamsize count)
+        {
+            ENTER_CRITICAL();
 
-			if (this->invalid || !this->opened || this->fail())
-			{
-				if (!this->fail())
-					this->clear(std::ios::badbit | std::ios::failbit);
-				return 0;
-			}
+            if (this->invalid || !this->opened || this->fail())
+            {
+                if (!this->fail())
+                    this->clear(std::ios::badbit | std::ios::failbit);
+                return 0;
+            }
 
-			this->fd->readsome(out, count);
-			std::streamsize total = this->fd->gcount();
+            this->fd->readsome(out, count);
+            std::streamsize total = this->fd->gcount();
 
-			LEAVE_CRITICAL();
+            LEAVE_CRITICAL();
 
-			return total;
-		}
+            return total;
+        }
 
-		void BlockStream::close()
-		{
-			ENTER_CRITICAL();
+        void BlockStream::close()
+        {
+            ENTER_CRITICAL();
 
-			this->fd->close();
-			this->opened = false;
+            this->fd->close();
+            this->opened = false;
 
-			LEAVE_CRITICAL();
-		}
+            LEAVE_CRITICAL();
+        }
 
-		void BlockStream::seekp(std::streampos pos, std::ios_base::seekdir dir)
-		{
-			ENTER_CRITICAL();
+        void BlockStream::seekp(std::streampos pos, std::ios_base::seekdir dir)
+        {
+            ENTER_CRITICAL();
 
-			if (this->invalid || !this->opened || this->fail())
-			{
-				if (!this->fail())
-					this->clear(std::ios::badbit | std::ios::failbit);
-				return;
-			}
+            if (this->invalid || !this->opened || this->fail())
+            {
+                if (!this->fail())
+                    this->clear(std::ios::badbit | std::ios::failbit);
+                return;
+            }
 
-			this->fd->seekp(pos, dir);
+            this->fd->seekp(pos, dir);
 
-			LEAVE_CRITICAL();
-		}
+            LEAVE_CRITICAL();
+        }
 
-		void BlockStream::seekg(std::streampos pos, std::ios_base::seekdir dir)
-		{
-			ENTER_CRITICAL();
+        void BlockStream::seekg(std::streampos pos, std::ios_base::seekdir dir)
+        {
+            ENTER_CRITICAL();
 
-			if (this->invalid || !this->opened || this->fail())
-			{
-				if (!this->fail())
-					this->clear(std::ios::badbit | std::ios::failbit);
-				return;
-			}
+            if (this->invalid || !this->opened || this->fail())
+            {
+                if (!this->fail())
+                    this->clear(std::ios::badbit | std::ios::failbit);
+                return;
+            }
 
-			this->fd->seekg(pos, dir);
+            this->fd->seekg(pos, dir);
 
-			LEAVE_CRITICAL();
-		}
+            LEAVE_CRITICAL();
+        }
 
-		std::streampos BlockStream::tellp()
-		{
-			ENTER_CRITICAL();
+        std::streampos BlockStream::tellp()
+        {
+            ENTER_CRITICAL();
 
-			if (this->invalid || !this->opened || this->fail())
-			{
-				if (!this->fail())
-					this->clear(std::ios::badbit | std::ios::failbit);
-				return 0;
-			}
+            if (this->invalid || !this->opened || this->fail())
+            {
+                if (!this->fail())
+                    this->clear(std::ios::badbit | std::ios::failbit);
+                return 0;
+            }
 
-			std::streampos pos = this->fd->tellp();
+            std::streampos pos = this->fd->tellp();
 
-			LEAVE_CRITICAL();
+            LEAVE_CRITICAL();
 
-			return pos;
-		}
+            return pos;
+        }
 
-		std::streampos BlockStream::tellg()
-		{
-			ENTER_CRITICAL();
+        std::streampos BlockStream::tellg()
+        {
+            ENTER_CRITICAL();
 
-			if (this->invalid || !this->opened || this->fail())
-			{
-				if (!this->fail())
-					this->clear(std::ios::badbit | std::ios::failbit);
-				return 0;
-			}
+            if (this->invalid || !this->opened || this->fail())
+            {
+                if (!this->fail())
+                    this->clear(std::ios::badbit | std::ios::failbit);
+                return 0;
+            }
 
-			std::streampos pos = this->fd->tellg();
+            std::streampos pos = this->fd->tellg();
 
-			LEAVE_CRITICAL();
+            LEAVE_CRITICAL();
 
-			return pos;
-		}
+            return pos;
+        }
 
-		bool BlockStream::is_open()
-		{
-			return this->fd->is_open();
-		}
+        bool BlockStream::is_open()
+        {
+            return this->fd->is_open();
+        }
 
-		std::ios::iostate BlockStream::rdstate()
-		{
-			return this->fd->rdstate();
-		}
+        std::ios::iostate BlockStream::rdstate()
+        {
+            return this->fd->rdstate();
+        }
 
-		void BlockStream::clear()
-		{
-			this->fd->clear();
-		}
+        void BlockStream::clear()
+        {
+            this->fd->clear();
+        }
 
-		void BlockStream::clear(std::ios::iostate state)
-		{
-			this->fd->clear(state);
-		}
+        void BlockStream::clear(std::ios::iostate state)
+        {
+            this->fd->clear(state);
+        }
 
-		bool BlockStream::good()
-		{
-			return this->fd->good();
-		}
+        bool BlockStream::good()
+        {
+            return this->fd->good();
+        }
 
-		bool BlockStream::bad()
-		{
-			return this->fd->bad();
-		}
+        bool BlockStream::bad()
+        {
+            return this->fd->bad();
+        }
 
-		bool BlockStream::eof()
-		{
-			return this->fd->eof();
-		}
+        bool BlockStream::eof()
+        {
+            return this->fd->eof();
+        }
 
-		bool BlockStream::fail()
-		{
-			return this->fd->fail();
-		}
-	}
+        bool BlockStream::fail()
+        {
+            return this->fd->fail();
+        }
+    }
 }

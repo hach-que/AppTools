@@ -9,11 +9,11 @@
 
 namespace AppLib
 {
-	class Environment
-	{
-		public:
-			static std::vector<bool> searchForBinaries(std::vector<std::string> & binaries);
-	};
+    class Environment
+    {
+        public:
+            static std::vector<bool> searchForBinaries(std::vector<std::string> & binaries);
+    };
 }
 
 #endif

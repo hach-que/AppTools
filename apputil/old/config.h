@@ -21,24 +21,24 @@
 
 struct program_state
 {
-	int argc;
-	char** argv;
+    int argc;
+    char** argv;
 };
 
 inline int apputil_get_argc(lua_State * L)
 {
-	lua_getglobal(L, "_APPUTIL_PROGRAM_STATE");
-	void* ud = lua_touserdata(L, -1);
-	if (ud == NULL) return 0;
-	struct program_state* state = (struct program_state*)ud;
-	return state->argc;
+    lua_getglobal(L, "_APPUTIL_PROGRAM_STATE");
+    void* ud = lua_touserdata(L, -1);
+    if (ud == NULL) return 0;
+    struct program_state* state = (struct program_state*)ud;
+    return state->argc;
 }
 
 inline char** apputil_get_argv(lua_State * L)
 {
-	lua_getglobal(L, "_APPUTIL_PROGRAM_STATE");
-	void* ud = lua_touserdata(L, -1);
-	if (ud == NULL) return NULL;
-	struct program_state* state = (struct program_state*)ud;
-	return state->argv;
+    lua_getglobal(L, "_APPUTIL_PROGRAM_STATE");
+    void* ud = lua_touserdata(L, -1);
+    if (ud == NULL) return NULL;
+    struct program_state* state = (struct program_state*)ud;
+    return state->argv;
 }
