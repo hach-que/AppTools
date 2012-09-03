@@ -14,19 +14,14 @@ AppTools is founded on the principle of *universality*, that an object (such as 
   * The package management system must support third-party packages and third-party repository sources.
 
 ## Building
-Run `make prefix=<path> debug all` in the root folder to produce binaries for your system.
+Create a new build directory outside the source area and change to this directory.  Run `cmake ../path/to/source` followed by `make` to build a copy of AppTools.
 
-This will build AppMount, AppCreate, AppFS, AppUtil and AppInspect.
-
-## Installing
-Run `make prefix=<path> debug install` in the root folder to install AppTools on your system.
-
-Make sure that the prefix path is the same one specified for building!
+You should use a compiler that supports C++11 such as LLVM/Clang to compile AppTools (you'll get better warnings and error messages with LLVM/Clang as well). 
 
 ## Usage
 The AppTools infrastructure orientates around the AppFS package format.  Unlike other package formats, this is a full read-write filesystem with on-the-fly resizing which allows applications to be run directly from within their packages as well as installed on a system.
 
-The binaries created by the `appfs` are the core utilities for interacting with the package format, while AppUtil provides a Lua-based infrastructure for interacting with the package management system.  By exposing the installation and similar mechanism as easy-to-understand and easy-to-modify Lua code, it allows developers and distributions to customize the package management system while still maintaining compatibility with cross-distribution packages.
+The binaries created by the `appfs` are the core utilities for interacting with the package format, while AppUtil provides a Python-based infrastructure for interacting with the package management system.  By exposing the installation and similar mechanism as easy-to-understand and easy-to-modify Python code, it allows developers and distributions to customize the package management system while still maintaining compatibility with cross-distribution packages.
 
 ### Example
 First you will need to create an AppFS package.  Assuming you are in the root directory of the project and that you have built each component, try:
@@ -46,6 +41,6 @@ Opening ../test.afs ...
 test
 ```
 
-At the moment the APIs are still under development (in particular the exposed APIs to Lua for AppFS need to be more than load / unload / ls).
+At the moment the APIs are still under development (in particular the exposed APIs to Python for AppFS need to be more than load / unload / ls).
 
 **NOTE:** AppMount currently runs in the foreground for debugging purposes, thus you need to use `>/dev/null 2>/dev/null &` in order to run it silently in the background.
