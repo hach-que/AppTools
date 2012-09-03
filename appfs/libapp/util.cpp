@@ -1,17 +1,4 @@
-/*
-
-Code file for Util.
-
-This class contains low-level utility functions which do not
-suit any other existing class.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-				28th July 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #include "config.h"
 

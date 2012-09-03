@@ -1,17 +1,4 @@
-/*
-
-Header file for Endian.
-
-This class is used to convert memory data on machines that are 
-not little-endian based.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                29th June 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #ifndef CLASS_ENDIAN
 #define CLASS_ENDIAN

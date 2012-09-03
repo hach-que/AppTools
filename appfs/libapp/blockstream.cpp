@@ -1,18 +1,4 @@
-/*
-
-Code file for BlockStream.
-
-This class is capable of caching write and read requests in memory
-on a per-block basis and also allows AppLib to read and write to
-the current executable file (unlike std::fstream).
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                5th August 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #include "config.h"
 

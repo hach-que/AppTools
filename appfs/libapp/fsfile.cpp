@@ -1,3 +1,5 @@
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
+
 #include "fsfile.h"
 #include "fs.h"
 #include "util.h"

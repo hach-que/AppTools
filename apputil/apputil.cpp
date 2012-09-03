@@ -1,13 +1,4 @@
-/*
-
-Code file for main.cpp
-
-This file is the code file for AppUtil.
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #include <Python.h>
 #include <libapp/logging.h>

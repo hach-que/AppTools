@@ -1,17 +1,4 @@
-/*
-
-Code file for FS.
-
-This class reads AppFS packages and their contents.  The FuseLink
-class uses this class to read and write data.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                22nd June 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #include "config.h"
 

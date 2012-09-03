@@ -1,20 +1,7 @@
-/*
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-Header file for Logging.
-
-This class provides a standardized way for sending error, warning
-and informational messages back to the standard output.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                22nd June 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
-
-// NOTE: Unlike in the Python libraries, messages are not automatically
-//       intended on newline characters.
+// FIXME: Unlike in the Python libraries, messages are not automatically
+//        intended on newline characters.
 
 #ifndef CLASS_LOGGING
 #define CLASS_LOGGING

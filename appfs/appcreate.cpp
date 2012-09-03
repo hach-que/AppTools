@@ -1,16 +1,4 @@
-/*
-
-Code file for appcreate.cpp
-
-This file is the code file for AppCreate.
-
-Last edited by: James Rhodes <jrhodes@redpointsoftware.com.au>
-                5th February 2011
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #include "libapp/util.h"
 

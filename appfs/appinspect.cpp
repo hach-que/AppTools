@@ -1,16 +1,4 @@
-/*
-
-Code file for appinspect.cpp
-
-This file is the code file for AppInspect.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                11th November 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #include "libapp/logging.h"
 #include "libapp/fsfile.h"

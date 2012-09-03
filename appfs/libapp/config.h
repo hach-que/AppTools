@@ -1,17 +1,4 @@
-/*
-
-Header file for Logging.
-
-This is the AppFS configuration file.  It specifies settings
-such as offsets.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                27th June 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #define FUSE_USE_VERSION 26
 

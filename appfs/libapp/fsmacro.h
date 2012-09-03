@@ -1,19 +1,4 @@
-/*
-
-Header file for FS macros.
-
-These macros are used in the FUSE functions to perform common
-checks on the arguments provided to the function (such as
-file existance, etc.)  The macros are not seperate C++ functions
-for ease-of-use within FUSE callbacks.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                20th July 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #define APPFS_MAKE_SYMLINK (fuse_file_info*)0x1000
 #define APPFS_CHECK_PATH_EXISTS() \

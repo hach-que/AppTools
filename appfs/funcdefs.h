@@ -1,16 +1,6 @@
-/*
+/* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-Header file for config.h
-
-This file contains all of the function definitions.
-
-Last edited by: James Rhodes <jrhodes@roket-enterprises.com>,
-                20th July 2010
-
-This software is licensed under an MIT license.  See
-http://code.google.com/p/apptools-dist for more information.
-
-*/
+// FIXME: Is this still needed?
 
 int main(int argc, char *argv[]);
 
