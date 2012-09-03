@@ -1,8 +1,8 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "config.h"
-#include "util.h"
-#include "environment.h"
+#include <libapp/config.h>
+#include <libapp/lowlevel/util.h>
+#include <libapp/environment.h>
 #include <string>
 #include <vector>
 

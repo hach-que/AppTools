@@ -1,7 +1,7 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "freelist.h"
-#include "fs.h"
+#include <libapp/lowlevel/freelist.h>
+#include <libapp/lowlevel/fs.h>
 #include <math.h>
 
 namespace AppLib

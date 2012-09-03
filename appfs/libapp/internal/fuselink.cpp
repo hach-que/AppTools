@@ -1,9 +1,9 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "config.h"
-#include "fuselink.h"
-#include "logging.h"
-#include "fsmacro.h"
+#include <libapp/config.h>
+#include <libapp/internal/fuselink.h>
+#include <libapp/logging.h>
+#include <libapp/lowlevel/fsmacro.h>
 #include <string>
 #include <time.h>
 #include <linux/kdev_t.h>

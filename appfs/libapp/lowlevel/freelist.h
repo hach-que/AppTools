@@ -9,8 +9,8 @@
 #include <iostream>
 #include <fstream>
 #include <map>
-#include <libapp/endian.h>
-#include <libapp/fs.h>
+#include <libapp/lowlevel/endian.h>
+#include <libapp/lowlevel/fs.h>
 
 namespace AppLib
 {

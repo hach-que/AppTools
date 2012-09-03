@@ -11,9 +11,9 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
-#include <libapp/endian.h>
-#include <libapp/fsfile.h>
-#include <libapp/blockstream.h>
+#include <libapp/lowlevel/endian.h>
+#include <libapp/lowlevel/fsfile.h>
+#include <libapp/lowlevel/blockstream.h>
 
 namespace AppLib
 {

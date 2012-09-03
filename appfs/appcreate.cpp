@@ -1,6 +1,6 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "libapp/util.h"
+#include <libapp/lowlevel/util.h>
 
 int main(int argc, char *argv[])
 {

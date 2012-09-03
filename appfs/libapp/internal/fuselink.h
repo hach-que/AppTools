@@ -8,7 +8,7 @@
 #include <fuse.h>
 #include <stdio.h>
 #include <errno.h>
-#include <libapp/fs.h>
+#include <libapp/lowlevel/fs.h>
 
 namespace AppLib
 {
@@ -16,7 +16,7 @@ namespace AppLib
     {
         class FuseLink
         {
-              public:
+        public:
             static LowLevel::FS * filesystem;
             static void (*continuefunc) (void);
             static int getattr(const char *path, struct stat *stbuf);
@@ -32,7 +32,8 @@ namespace AppLib
             static int chown(const char *path, uid_t user, gid_t group);
             static int truncate(const char *path, off_t size);
             static int open(const char *path, struct fuse_file_info *options);
-            static int read(const char *path, char *out, size_t length, off_t offset, struct fuse_file_info *options);
+            static int read(const char *path, char *out, size_t length,
+                            off_t offset, struct fuse_file_info *options);
             static int write(const char *, const char *, size_t, off_t, struct fuse_file_info *);
             static int statfs(const char *, struct statvfs *);
             static int flush(const char *, struct fuse_file_info *);
@@ -55,17 +56,20 @@ namespace AppLib
             static int lock(const char *, struct fuse_file_info *, int cmd, struct flock *);
             static int utimens(const char *, const struct timespec tv[2]);
             static int bmap(const char *, size_t blocksize, uint64_t * idx);
-            static int ioctl(const char *, int cmd, void *arg, struct fuse_file_info *, unsigned int flags, void *data);
-            static int poll(const char *, struct fuse_file_info *, struct fuse_pollhandle *ph, unsigned *reventsp);
+            static int ioctl(const char *, int cmd, void *arg,
+                             struct fuse_file_info *, unsigned int flags, void *data);
+            static int poll(const char *, struct fuse_file_info *,
+                            struct fuse_pollhandle *ph, unsigned *reventsp);
         };
 
         class Mounter
         {
-              public:
-            Mounter(const char *disk_image, char const *mount_point, bool foreground, bool allow_other, void (*continue_func) (void));
+        public:
+            Mounter(const char *disk_image, char const *mount_point,
+                    bool foreground, bool allow_other, void (*continue_func) (void));
             int getResult();
 
-              private:
+        private:
             int mountResult;
         };
 
@@ -78,7 +82,7 @@ namespace AppLib
         
         class Macros
         {
-              public:
+        public:
             static int checkPathExists(const char *path);
             static int checkPathNotExists(const char *path);
             static int checkPathIsValid(const char *path);
@@ -90,7 +94,8 @@ namespace AppLib
             static int saveNewINode(uint32_t pos, LowLevel::INode * buf);
             static int extractMaskFromMode(mode_t mode);
             static const char *extractBasenameFromPath(const char *path);
-            static int assignNewINode(LowLevel::INode * buf, LowLevel::INodeType::INodeType type, uint32_t & pos);
+            static int assignNewINode(LowLevel::INode * buf, LowLevel::INodeType::INodeType type,
+                                      uint32_t & pos);
         };
 
         struct FUSEData

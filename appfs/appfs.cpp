@@ -1,9 +1,9 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "libapp/logging.h"
-#include "libapp/util.h"
-#include "libapp/fuselink.h"
-#include "libapp/environment.h"
+#include <libapp/logging.h>
+#include <libapp/lowlevel/util.h>
+#include <libapp/internal/fuselink.h>
+#include <libapp/environment.h>
 #include "config.h"
 #include "funcdefs.h"
 #include <pthread.h>

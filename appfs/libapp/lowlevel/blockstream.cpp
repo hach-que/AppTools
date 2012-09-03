@@ -1,12 +1,12 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "config.h"
+#include <libapp/config.h>
 
 #include <string>
 #include <iostream>
-#include "logging.h"
-#include "endian.h"
-#include "blockstream.h"
+#include <libapp/logging.h>
+#include <libapp/lowlevel/endian.h>
+#include <libapp/lowlevel/blockstream.h>
 #include <errno.h>
 #ifndef WIN32
 #define _open ::open

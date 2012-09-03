@@ -8,7 +8,7 @@
 #include <string>
 #include <iostream>
 #include <libapp/logging.h>
-#include <libapp/endian.h>
+#include <libapp/lowlevel/endian.h>
 #include <errno.h>
 #include <pthread.h>
 

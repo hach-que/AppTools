@@ -1,10 +1,10 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "fsfile.h"
-#include "fs.h"
-#include "util.h"
-#include "logging.h"
-#include "blockstream.h"
+#include <libapp/lowlevel/fsfile.h>
+#include <libapp/lowlevel/fs.h>
+#include <libapp/lowlevel/util.h>
+#include <libapp/logging.h>
+#include <libapp/lowlevel/blockstream.h>
 #include <map>
 #include <math.h>
 #include <stdarg.h>

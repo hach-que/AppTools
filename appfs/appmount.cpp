@@ -1,7 +1,7 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "libapp/logging.h"
-#include "libapp/fuselink.h"
+#include <libapp/logging.h>
+#include <libapp/internal/fuselink.h>
 #include "config.h"
 #include "funcdefs.h"
 

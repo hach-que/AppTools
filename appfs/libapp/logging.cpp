@@ -1,9 +1,9 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "config.h"
+#include <libapp/config.h>
 
 #include <string>
-#include "logging.h"
+#include <libapp/logging.h>
 
 namespace AppLib
 {

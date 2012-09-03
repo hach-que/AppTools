@@ -67,7 +67,7 @@ if (pos < OFFSET_DATA || (pos - OFFSET_DATA) % 4096 != 0) \
 }
 
 #include <assert.h>
-#include <libapp/fs.h>
+#include <libapp/lowlevel/fs.h>
 
 void APPFS_VERIFY_INODE_ASSERT_POSITION();
 

@@ -1,14 +1,14 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "config.h"
+#include <libapp/config.h>
 
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "util.h"
-#include "logging.h"
-#include "blockstream.h"
-#include "fs.h"
+#include <libapp/lowlevel/util.h>
+#include <libapp/logging.h>
+#include <libapp/lowlevel/blockstream.h>
+#include <libapp/lowlevel/fs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <limits.h>

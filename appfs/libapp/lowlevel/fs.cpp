@@ -1,17 +1,17 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#include "config.h"
+#include <libapp/config.h>
 
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "fs.h"
-#include "logging.h"
-#include "endian.h"
-#include "util.h"
-#include "blockstream.h"
-#include "freelist.h"
-#include "fsmacro.h"
+#include <libapp/lowlevel/fs.h>
+#include <libapp/logging.h>
+#include <libapp/lowlevel/endian.h>
+#include <libapp/lowlevel/util.h>
+#include <libapp/lowlevel/blockstream.h>
+#include <libapp/lowlevel/freelist.h>
+#include <libapp/lowlevel/fsmacro.h>
 #include <errno.h>
 #include <assert.h>
 #include <math.h>

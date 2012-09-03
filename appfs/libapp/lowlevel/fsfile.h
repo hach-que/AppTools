@@ -6,7 +6,7 @@
 #include <libapp/config.h>
 
 #include <iostream>
-#include <libapp/blockstream.h>
+#include <libapp/lowlevel/blockstream.h>
 
 namespace AppLib
 {
