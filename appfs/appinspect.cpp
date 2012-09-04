@@ -1,7 +1,7 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
 #include <libapp/logging.h>
-#include <libapp/lowlevel/fsfile.h>
+#include <libapp/fsfile.h>
 #include <libapp/lowlevel/fs.h>
 #include <algorithm>
 #include <string>

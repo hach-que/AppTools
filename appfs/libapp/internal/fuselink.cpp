@@ -559,7 +559,7 @@ namespace AppLib
             buf.mtime = APPFS_TIME();
             buf.atime = APPFS_TIME();
             APPFS_SAVE_INODE(buf);
-            LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
+            FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
             file.open();
             if (file.fail() && file.bad())
                 return -EIO;
@@ -592,7 +592,7 @@ namespace AppLib
 #ifdef DEBUG
             Logging::showDebugW("Opening file with inode %u.", buf.inodeid);
 #endif
-            LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
+            FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
             file.open();
             if (file.fail() && file.bad())
                 return -EIO;
@@ -635,7 +635,7 @@ namespace AppLib
 #ifdef DEBUG
             Logging::showDebugW("Opening file with inode %u.", buf.inodeid);
 #endif
-            LowLevel::FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
+            FSFile file = FuseLink::filesystem->getFile(buf.inodeid);
             file.open();
             if (file.fail() && file.bad())
                 return -EIO;

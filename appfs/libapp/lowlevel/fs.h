@@ -1,7 +1,7 @@
 /* vim: set ts=4 sw=4 tw=0 et ai :*/
 
-#ifndef CLASS_FS
-#define CLASS_FS
+#ifndef CLASS_LOWLEVEL_FS
+#define CLASS_LOWLEVEL_FS
 
 #include <libapp/config.h>
 
@@ -12,7 +12,7 @@
 #include <vector>
 #include <algorithm>
 #include <libapp/lowlevel/endian.h>
-#include <libapp/lowlevel/fsfile.h>
+#include <libapp/fsfile.h>
 #include <libapp/lowlevel/blockstream.h>
 
 namespace AppLib

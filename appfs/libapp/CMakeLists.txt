@@ -3,13 +3,15 @@ include_directories(${APPTOOLS_SOURCE_DIR}/appfs)
 add_library(app STATIC
     lowlevel/endian.cpp
     lowlevel/fs.cpp
-    lowlevel/fsfile.cpp
     lowlevel/freelist.cpp
     lowlevel/blockstream.cpp
     lowlevel/util.cpp
     internal/fuselink.cpp
+    exception/package.cpp
     environment.cpp
     logging.cpp
+    fsfile.cpp
+    fs.cpp
     )
 find_package(FUSE REQUIRED)
 add_definitions(-D_FILE_OFFSET_BITS=64)
