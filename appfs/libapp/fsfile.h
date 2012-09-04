@@ -20,6 +20,7 @@ namespace AppLib
     public:
         FSFile(LowLevel::FS * filesystem, LowLevel::BlockStream * fd, uint16_t inodeid);
         void open(std::ios_base::openmode mode = std::ios_base::in | std::ios_base::out);
+        void open(int mode); // FIXME: Workaround for Cython.
         void write(const char *data, std::streamsize count);
         std::streamsize read(char *out, std::streamsize count);
         bool truncate(std::streamsize len);

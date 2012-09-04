@@ -23,6 +23,7 @@ namespace AppLib
                 static char* getProcessFilename();
                 static bool createPackage(std::string path, const char* appname, const char* appver,
                             const char* appdesc, const char* appauthor);
+                static int translateOpenMode(std::string mode);
         };
     }
 }

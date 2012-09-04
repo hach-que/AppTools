@@ -23,4 +23,10 @@ namespace AppLib
             throw Exception::PackageNotValid();
         }
     }
+
+    FSFile* FS::open(std::string path)
+    {
+        // TODO: Implement this function.
+        return NULL;
+    }
 }

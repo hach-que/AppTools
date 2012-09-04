@@ -48,6 +48,14 @@ namespace AppLib
         }
     }
 
+    void FSFile::open(int mode)
+    {
+        // FIXME: This is a forced coercion since Cython can't
+        // handle the STL's IO open modes.  This should really
+        // reside in a stub file that is used just for Cython.
+        this->open((std::ios_base::openmode)mode);
+    }
+
     void FSFile::write(const char *data, std::streamsize count)
     {
         if (this->invalid || !this->opened)

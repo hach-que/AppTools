@@ -187,5 +187,17 @@ namespace AppLib
 
             return true;
         }
+
+        int Util::translateOpenMode(std::string mode)
+        {
+            if (mode == "r")
+                return std::ios_base::in | std::ios_base::binary;
+            else if (mode == "w")
+                return std::ios_base::out | std::ios_base::binary;
+            else if (mode == "rw")
+                return std::ios_base::in | std::ios_base::out | std::ios_base::binary;
+            else
+                throw std::exception(); // FIXME: Appropriate message.
+        }
     }
 }

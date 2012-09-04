@@ -88,10 +88,10 @@ namespace AppLib
 
         class INode
         {
-              public:
+        public:
             uint16_t inodeid;
             char filename[256];
-             INodeType::INodeType type;
+            INodeType::INodeType type;
             uint16_t uid;
             uint16_t gid;
             uint16_t mask;
@@ -165,7 +165,7 @@ namespace AppLib
                 this->pos_freelist = 0;
             }
 
-            inline INode(uint16_t id, const char *filename, INodeType::INodeType type)
+            inline INode(uint16_t id = 0, const char *filename = "", INodeType::INodeType type = INodeType::INT_UNSET)
             {
                 this->inodeid = id;
                 this->setFilename(filename, "");
