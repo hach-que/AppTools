@@ -20,6 +20,21 @@ namespace AppLib
         {
             return "The specified package was not valid.";
         }
+
+        const char* NoFreeSpace::what() const throw()
+        {
+            return "There was no free space on the containing medium with which to expand the package.";
+        }
+
+        const char* AccessDenied::what() const throw()
+        {
+            return "Access was denied to the specified file or directory.";
+        }
+
+        const char* PathNotValid::what() const throw()
+        {
+            return "The specified path was not in the correct format.";
+        }
     }
 }
 

@@ -18,6 +18,7 @@ foreach(i IN ITEMS ${CPP_SOURCE_LIST})
 endforeach()
 
 # Define Cython files.
+set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -Wno-deprecated-writable-strings)
 set_source_files_properties(
     ${APPTOOLS_PYTHON_SOURCE_DIR}/apptools.pyx
     PROPERTIES CYTHON_IS_CXX TRUE)

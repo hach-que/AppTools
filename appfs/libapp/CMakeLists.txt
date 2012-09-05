@@ -8,6 +8,8 @@ add_library(app STATIC
     lowlevel/util.cpp
     internal/fuselink.cpp
     exception/package.cpp
+    exception/fs.cpp
+    exception/util.cpp
     environment.cpp
     logging.cpp
     fsfile.cpp

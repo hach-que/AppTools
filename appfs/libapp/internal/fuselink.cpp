@@ -881,7 +881,7 @@ namespace AppLib
         int Macros::checkPathIsValid(const char *path)
         {
             std::vector < std::string > pp = FuseLink::filesystem->splitPathBySeperators(path);
-            LowLevel::FSResult::FSResult res = FuseLink::filesystem->verifyPath(path, &pp);
+            LowLevel::FSResult::FSResult res = FuseLink::filesystem->verifyPath(path, pp);
             if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
                 return -ENAMETOOLONG;
             else if (res == LowLevel::FSResult::E_FAILURE_INVALID_PATH)
@@ -1017,7 +1017,7 @@ namespace AppLib
             APPFS_VERIFY_INODE_POSITION_CUSTOM(pos, -EIO);
 
             // Get a free inode number.
-            uint16_t id = FuseLink::filesystem->getFirstFreeInodeNumber();
+            uint16_t id = FuseLink::filesystem->getFirstFreeINodeNumber();
             if (id == 0)
                 return -ENOSPC;
             buf->inodeid = id;

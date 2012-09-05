@@ -359,7 +359,7 @@ namespace AppLib
             return ipos;
         }
 
-        uint16_t FS::getFirstFreeInodeNumber()
+        uint16_t FS::getFirstFreeINodeNumber()
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
@@ -545,14 +545,14 @@ namespace AppLib
             }
         }
 
-        FSResult::FSResult FS::filenameIsUnique(uint16_t parentid, char *filename)
+        FSResult::FSResult FS::filenameIsUnique(uint16_t parentid, std::string filename)
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
             std::vector < INode > inodechildren = this->getChildrenOfDirectory(parentid);
             for (unsigned int i = 0; i < inodechildren.size(); i += 1)
             {
-                if (strcmp(filename, inodechildren[i].filename) == 0)
+                if (filename == inodechildren[i].filename)
                 {
                     return FSResult::E_FAILURE_NOT_UNIQUE;
                 }
@@ -632,15 +632,13 @@ namespace AppLib
             return INode(0, "", INodeType::INT_INVALID);
         }
 
-        INode FS::getChildOfDirectory(uint16_t parentid, const char *filename)
+        INode FS::getChildOfDirectory(uint16_t parentid, std::string filename)
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
             INode node = this->getINodeByID(parentid);
             if (node.type == INodeType::INT_INVALID)
-            {
                 return INode(0, "", INodeType::INT_INVALID);
-            }
 
             uint16_t children_looped = 0;
             uint16_t total_looped = 0;
@@ -657,12 +655,8 @@ namespace AppLib
                     children_looped += 1;
                     INode cnode = this->getINodeByID(cinode);
                     if (cnode.type == INodeType::INT_FILEINFO || cnode.type == INodeType::INT_DIRECTORY || cnode.type == INodeType::INT_SYMLINK || cnode.type == INodeType::INT_DEVICE || cnode.type == INodeType::INT_HARDLINK)
-                    {
-                        if (strcmp(filename, cnode.filename) == 0)
-                        {
+                        if (filename == cnode.filename)
                             return cnode;
-                        }
-                    }
                 }
             }
 
@@ -978,13 +972,13 @@ namespace AppLib
             return 0;
         }
 
-        int32_t FS::resolvePathnameToInodeID(const char *path)
+        int32_t FS::resolvePathnameToInodeID(std::string path)
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
             std::vector < std::string > components;
             std::string buf = "";
-            for (int i = 0; i < strlen(path); i += 1)
+            for (int i = 0; i < path.length(); i += 1)
             {
                 if (path[i] == '/')
                 {
@@ -1437,11 +1431,11 @@ namespace AppLib
             return ret;
         }
 
-        FSResult::FSResult FS::verifyPath(std::string original, std::vector < std::string > *split)
+        FSResult::FSResult FS::verifyPath(std::string original, std::vector < std::string >& split)
         {
             if (original.length() >= 4096 || original.find('\0') != std::string::npos)
                 return FSResult::E_FAILURE_INVALID_PATH;
-            for (std::vector < std::string >::iterator i = split->begin(); i != split->end(); i++)
+            for (std::vector < std::string >::iterator i = split.begin(); i != split.end(); i++)
                 if ((*i).length() >= 256 || (*i).find('\0') != std::string::npos)
                     return FSResult::E_FAILURE_INVALID_FILENAME;
             return FSResult::E_SUCCESS;

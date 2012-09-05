@@ -23,6 +23,21 @@ namespace AppLib
         {
             virtual const char* what() const throw();
         };
+
+        class NoFreeSpace : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
+
+        class AccessDenied : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
+
+        class PathNotValid : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
     }
 }
 
