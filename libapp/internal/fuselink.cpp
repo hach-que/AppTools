@@ -277,7 +277,7 @@ namespace AppLib
             APPFS_SAVE_NEW_INODE(child);
 
             // Now add the parent -> child relationship on disk.
-            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
+            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryINode(parent.inodeid, child.inodeid);
             if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                 return -ENOTDIR;
             else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
@@ -307,7 +307,7 @@ namespace AppLib
             APPFS_SAVE_NEW_INODE(child);
 
             // Now add the parent -> child relationship on disk.
-            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
+            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryINode(parent.inodeid, child.inodeid);
             if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                 return -ENOTDIR;
             else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
@@ -353,7 +353,7 @@ namespace AppLib
             }
 
             // Remove the inode from the directory.
-            LowLevel::FSResult::FSResult res = FuseLink::filesystem->removeChildFromDirectoryInode(parent.inodeid, real.inodeid);
+            LowLevel::FSResult::FSResult res = FuseLink::filesystem->removeChildFromDirectoryINode(parent.inodeid, real.inodeid);
             if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                 return -ENOTDIR;
             else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
@@ -403,7 +403,7 @@ namespace AppLib
                 return -EIO;
 
             // Remove the directory from it's parent.
-            LowLevel::FSResult::FSResult res = FuseLink::filesystem->removeChildFromDirectoryInode(parent.inodeid, child.inodeid);
+            LowLevel::FSResult::FSResult res = FuseLink::filesystem->removeChildFromDirectoryINode(parent.inodeid, child.inodeid);
             if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                 return -ENOTDIR;
             else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
@@ -448,7 +448,7 @@ namespace AppLib
             if (old_parent.inodeid != new_parent.inodeid)
             {
                 // Add the new parent -> child relationship on disk.
-                LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(new_parent.inodeid, child.inodeid);
+                LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryINode(new_parent.inodeid, child.inodeid);
                 if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                     return -ENOTDIR;
                 else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
@@ -460,7 +460,7 @@ namespace AppLib
                     return -EIO;
 
                 // Remove the old parent -> child relationship on disk.
-                res = FuseLink::filesystem->removeChildFromDirectoryInode(old_parent.inodeid, child.inodeid);
+                res = FuseLink::filesystem->removeChildFromDirectoryINode(old_parent.inodeid, child.inodeid);
                 if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                     return -ENOTDIR;
                 else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
@@ -503,7 +503,7 @@ namespace AppLib
             APPFS_SAVE_NEW_INODE(child);
 
             // Now add the parent -> child relationship on disk.
-            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
+            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryINode(parent.inodeid, child.inodeid);
             if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                 return -ENOTDIR;
             else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
@@ -780,7 +780,7 @@ namespace AppLib
             APPFS_SAVE_NEW_INODE(child);
 
             // Now add the parent -> child relationship on disk.
-            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryInode(parent.inodeid, child.inodeid);
+            LowLevel::FSResult::FSResult res = FuseLink::filesystem->addChildToDirectoryINode(parent.inodeid, child.inodeid);
             if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
                 return -ENOTDIR;
             else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)

@@ -24,16 +24,20 @@ namespace AppLib
     private:
         AppLib::LowLevel::BlockStream * stream;
         AppLib::LowLevel::FS * filesystem;
+        uid_t uid;
+        gid_t gid;
 
     public:
-        FS(std::string packagePath);
+        FS(std::string packagePath, uid_t uid = 0, gid_t gid = 0);
         void getattr(std::string path, struct stat& stbufOut)
             const throw(Exception::PathNotValid, Exception::FileNotFound,
                     Exception::InternalInconsistency);
         std::string readlink(std::string path)
             const throw(Exception::PathNotValid, Exception::FileNotFound,
                     Exception::NotSupported, Exception::InternalInconsistency);
-        int mknod(std::string path, mode_t mask, dev_t devid);
+        void mknod(std::string path, mode_t mask, dev_t devid)
+            throw(Exception::PathNotValid, Exception::FileExists,
+                    Exception::InternalInconsistency);
         int mkdir(std::string path, mode_t mask);
         int unlink(std::string path);
         int rmdir(std::string path);
@@ -45,6 +49,9 @@ namespace AppLib
         int truncate(std::string path, off_t size);
         FSFile* open(std::string path);
         int statfs(std::string path, struct statvfs& stvfsOut);
+
+        void setuid(uid_t uid) throw();
+        void setgid(gid_t gid) throw();
 
     private:
         bool checkPathExists(std::string path) const throw();
@@ -62,6 +69,7 @@ namespace AppLib
         LowLevel::INode assignNewINode(LowLevel::INodeType::INodeType type, uint32_t& posOut)
             throw (Exception::INodeSaveInvalid, Exception::INodeSaveFailed,
                     Exception::NoFreeSpace, Exception::INodeExhaustion);
+        time_t getTime();
     };
 }
 

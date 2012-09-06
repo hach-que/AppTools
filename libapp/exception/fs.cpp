@@ -30,6 +30,12 @@ namespace AppLib
                    "with the appropriate tool to ensure the package is not "
                    "corrupt.";
         }
+
+        const char* DirectoryChildLimitReached::what() const throw()
+        {
+            return "No more files or subdirectories can be stored in the "
+                   "specified directory due to filesystem limitations.";
+        }
     }
 }
 

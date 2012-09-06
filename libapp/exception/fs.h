@@ -28,6 +28,11 @@ namespace AppLib
         {
             virtual const char* what() const throw();
         };
+
+        class DirectoryChildLimitReached : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
     }
 }
 

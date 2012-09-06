@@ -6,10 +6,11 @@ from libcpp.string cimport string
 
 cdef extern from "libapp/fs.h" namespace "AppLib":
     cdef cppclass FS:
-        FS(string path)
+        FS(string path) except +
+        FS(string path, int uid, int gid) except +
         void getattr(string path, stat stbuf) except +
         string readlink(string path) except +
-#        int mknod(string path, mode_t mask, dev_t devid)
+        void mknod(string path, int mask, int devid) except +
 #        int mkdir(string path, mode_t mask)
 #        int unlink(string path)
 #        int rmdir(string path)

@@ -8,7 +8,8 @@
 
 namespace AppLib
 {
-    FS::FS(std::string path)
+    FS::FS(std::string path, uid_t uid, gid_t gid)
+        : uid(uid), gid(gid)
     {
         this->stream = new LowLevel::BlockStream(path.c_str());
         if (!this->stream->is_open())
@@ -119,13 +120,82 @@ namespace AppLib
             throw Exception::NotSupported();
     }
 
+    void FS::mknod(std::string path, mode_t mode, dev_t devid)
+        throw(Exception::PathNotValid, Exception::FileExists,
+                Exception::InternalInconsistency)
+    {
+        if (!this->checkPathIsValid(path))
+            throw Exception::PathNotValid();
+
+        if (this->checkPathExists(path))
+            throw Exception::FileExists();
+
+        LowLevel::INode parent;
+        if (!this->retrieveParentPathToINode(path, parent))
+            throw Exception::FileNotFound();
+
+        uint32_t pos;
+        LowLevel::INode child = this->assignNewINode(LowLevel::INodeType::INT_DEVICE, pos);
+        try
+        {
+            child.mask = this->extractMaskFromMode(mode);
+            child.ctime = this->getTime();
+            child.mtime = this->getTime();
+            child.atime = this->getTime();
+            child.uid = this->uid;
+            child.gid = this->gid;
+            child.dev = MINOR(devid);
+            child.rdev = MAJOR(devid);
+            child.setFilename(this->extractBasenameFromPath(path).c_str());
+            this->saveNewINode(pos, child);
+        }
+        catch (...)
+        {
+            // Ensure INode release and rethrow.
+            this->filesystem->unreserveINodeID(child.inodeid);
+            throw;
+        }
+
+        // Now add the parent-child relationship.
+        try
+        {
+            LowLevel::FSResult::FSResult res = this->filesystem->addChildToDirectoryINode(parent.inodeid, child.inodeid);
+            if (res == LowLevel::FSResult::E_FAILURE_NOT_A_DIRECTORY)
+                throw Exception::NotADirectory();
+            else if (res == LowLevel::FSResult::E_FAILURE_MAXIMUM_CHILDREN_REACHED)
+                throw Exception::DirectoryChildLimitReached();
+            else if (res != LowLevel::FSResult::E_SUCCESS)
+                throw Exception::InternalInconsistency();
+        }
+        catch (...)
+        {
+            // Ensure INode is freed and rethrow.
+            this->filesystem->resetBlock(pos);
+            throw;
+        }
+    }
+
     FSFile* FS::open(std::string path)
     {
         // TODO: Implement this function.
         return NULL;
     }
 
-    /**** PRIVATE METHODS ****/
+    void FS::setuid(uid_t uid) throw()
+    {
+        this->uid = uid;
+    }
+
+    void FS::setgid(gid_t gid) throw()
+    {
+        this->gid = gid;
+    }
+
+    /****
+     *
+     * PRIVATE METHODS!
+     *
+     ****/
 
     bool FS::checkPathExists(std::string path) const throw()
     {
@@ -281,5 +351,10 @@ namespace AppLib
         // this inode is written to disk, it is the callee's responsibility
         // to ensure the ID is freed.
         return buf;
+    }
+
+    time_t FS::getTime()
+    {
+        return time(NULL);
     }
 }

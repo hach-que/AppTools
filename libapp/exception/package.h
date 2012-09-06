@@ -38,6 +38,16 @@ namespace AppLib
         {
             virtual const char* what() const throw();
         };
+
+        class FileExists : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
+
+        class NotADirectory : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
     }
 }
 

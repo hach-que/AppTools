@@ -374,7 +374,7 @@ namespace AppLib
             INode getINodeByRealPosition(uint32_t rpos);
 
             // A return value of 0 indicates that the specified INode
-            // does not exist.  Underlyingly calls getInodePositionByID(id, true);
+            // does not exist.  Underlyingly calls getINodePositionByID(id, true);
             uint32_t getINodePositionByID(uint16_t id);
 
             // A return value of 0 indicates that the specified INode
@@ -403,10 +403,10 @@ namespace AppLib
             // Adds a child inode to a parent (directory) inode.  Please note that it doesn't
             // check to see whether or not the child is already attached to the parent, but
             // it will add the child reference in the lowest available slot.
-            FSResult::FSResult addChildToDirectoryInode(uint16_t parentid, uint16_t childid);
+            FSResult::FSResult addChildToDirectoryINode(uint16_t parentid, uint16_t childid);
 
             // Removes a child inode from a parent (directory) inode.
-            FSResult::FSResult removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid);
+            FSResult::FSResult removeChildFromDirectoryINode(uint16_t parentid, uint16_t childid);
 
             // Returns whether or not a specified filename is unique
             // inside a directory.  E_SUCCESS indicates unique, E_FAILURE_NOT_UNIQUE
@@ -453,7 +453,7 @@ namespace AppLib
             uint32_t resolvePositionInFile(uint16_t inodeid, uint32_t pos);
 
             // Resolve a pathname into an inode id.
-            int32_t resolvePathnameToInodeID(std::string path);
+            int32_t resolvePathnameToINodeID(std::string path);
 
             // Sets the length of a file, allocating or erasing blocks / data where necessary.
             FSResult::FSResult truncateFile(uint16_t inodeid, uint32_t len);

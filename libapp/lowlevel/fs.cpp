@@ -415,7 +415,7 @@ namespace AppLib
             return this->freelist->isBlockFree(pos);
         }
 
-        FSResult::FSResult FS::addChildToDirectoryInode(uint16_t parentid, uint16_t childid)
+        FSResult::FSResult FS::addChildToDirectoryINode(uint16_t parentid, uint16_t childid)
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
@@ -481,7 +481,7 @@ namespace AppLib
             }
         }
 
-        FSResult::FSResult FS::removeChildFromDirectoryInode(uint16_t parentid, uint16_t childid)
+        FSResult::FSResult FS::removeChildFromDirectoryINode(uint16_t parentid, uint16_t childid)
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
@@ -972,7 +972,7 @@ namespace AppLib
             return 0;
         }
 
-        int32_t FS::resolvePathnameToInodeID(std::string path)
+        int32_t FS::resolvePathnameToINodeID(std::string path)
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 

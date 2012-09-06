@@ -35,6 +35,16 @@ namespace AppLib
         {
             return "The specified path was not in the correct format.";
         }
+
+        const char* FileExists::what() const throw()
+        {
+            return "The specified file already exists.";
+        }
+
+        const char* NotADirectory::what() const throw()
+        {
+            return "The specified path is not a directory.";
+        }
     }
 }
 

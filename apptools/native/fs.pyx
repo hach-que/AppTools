@@ -9,8 +9,8 @@ class FileStat:
     pass
 
 cdef class Package:
-    def __cinit__(self, char* path):
-        self.thisptr = new FS(string(path))
+    def __cinit__(self, char* path, int uid=0, int gid=0):
+        self.thisptr = new FS(string(path), uid, gid)
 
     def __dealloc__(self):
         del self.thisptr
@@ -36,6 +36,9 @@ cdef class Package:
 
     def readlink(self, char* path):
         return self.thisptr.readlink(string(path)).c_str()
+
+    def mknod(self, char* path, int mode, int devid):
+        self.thisptr.mknod(string(path), mode, devid)
 
     def open(self, char* path, char* mode):
         return PackageFile(self, path, mode)
