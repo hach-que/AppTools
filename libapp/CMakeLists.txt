@@ -1,5 +1,5 @@
 # vim: set ts=4 sw=4 tw=0 ai et:
-include_directories(${APPTOOLS_SOURCE_DIR}/appfs)
+include_directories(${APPTOOLS_SOURCE_DIR})
 add_library(app STATIC
     lowlevel/endian.cpp
     lowlevel/fs.cpp
@@ -19,4 +19,3 @@ find_package(FUSE REQUIRED)
 add_definitions(-D_FILE_OFFSET_BITS=64)
 include_directories(${FUSE_INCLUDE_DIRS})
 target_link_libraries(app ${FUSE_LIBRARIES})
-add_subdirectory(python)

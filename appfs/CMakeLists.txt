@@ -1,7 +1,5 @@
 # vim: set ts=4 sw=4 tw=0 ai et:
-add_subdirectory(libapp)
-
-include_directories(${APPTOOLS_SOURCE_DIR}/appfs)
+include_directories(${APPTOOLS_SOURCE_DIR})
 include_directories(${APPTOOLS_SOURCE_DIR}/third-party/argtable2)
 #link_directories(${APPTOOLS_BINARY_DIR}/appfs/libapp)
 

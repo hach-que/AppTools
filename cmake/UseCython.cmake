@@ -80,7 +80,7 @@ set( CYTHON_C_EXTENSION "c" )
 # Create a *.c or *.cxx file from a *.pyx file.
 # Input the generated file basename.  The generate file will put into the variable
 # placed in the "generated_file" argument. Finally all the *.py and *.pyx files.
-function( compile_pyx _name generated_file )
+function( compile_pyx _prefix _name generated_file )
   # Default to assuming all files are C.
   set( cxx_arg "" )
   set( extension ${CYTHON_C_EXTENSION} )
@@ -93,7 +93,6 @@ function( compile_pyx _name generated_file )
   set( pyx_locations "" )
 
   foreach( pyx_file ${ARGN} )
-    message("FILE:${pyx_file}")
     get_filename_component( pyx_file_basename "${pyx_file}" NAME_WE )
 
     # Determine if it is a C or C++ file.
@@ -203,24 +202,44 @@ function( compile_pyx _name generated_file )
     set( include_directory_arg ${include_directory_arg} "-I" "${_include_dir}" )
   endforeach()
 
-  # Determining generated file name.
-  set( _generated_file "${_name}.${extension}" )
-  set_source_files_properties( ${_generated_file} PROPERTIES GENERATED TRUE )
-  set( ${generated_file} ${_generated_file} PARENT_SCOPE )
-
   list( REMOVE_DUPLICATES pxd_dependencies )
   list( REMOVE_DUPLICATES c_header_dependencies )
 
-  # Add the command to run the compiler.
-  add_custom_command( OUTPUT ${_generated_file}
-    COMMAND ${CYTHON_EXECUTABLE}
-    ARGS ${cxx_arg} ${include_directory_arg}
-    ${annotate_arg} ${no_docstrings_arg} ${cython_debug_arg} ${CYTHON_FLAGS} 
-    --output-file  ${_generated_file} ${pyx_locations}
-    DEPENDS ${pyx_locations} ${pxd_dependencies}
-    IMPLICIT_DEPENDS ${pyx_lang} ${c_header_dependencies}
-    COMMENT ${comment}
-    )
+  # Determining generated file name.
+  if("${_prefix}" STREQUAL "")
+    set( _generated_file "${_name}.${extension}" )
+    set_source_files_properties( ${_generated_file} PROPERTIES GENERATED TRUE )
+    set( ${generated_file} ${_generated_file} PARENT_SCOPE )
+
+    # Add the command to run the compiler.
+    add_custom_command( OUTPUT ${_generated_file}
+      COMMAND ${CYTHON_EXECUTABLE}
+      ARGS ${cxx_arg} ${include_directory_arg}
+      ${annotate_arg} ${no_docstrings_arg} ${cython_debug_arg} ${CYTHON_FLAGS} 
+      --output-file  ${_generated_file} ${pyx_locations}
+      DEPENDS ${pyx_locations} ${pxd_dependencies}
+      IMPLICIT_DEPENDS ${pyx_lang} ${c_header_dependencies}
+      COMMENT ${comment}
+      )
+  else()
+    set( _generated_file "${_prefix}.${_name}.${extension}" )
+    set( _actual_file "${_name}.${extension}" )
+    set_source_files_properties( ${_actual_file} PROPERTIES GENERATED TRUE )
+    set( ${generated_file} ${_actual_file} PARENT_SCOPE )
+
+    # Add the command to run the compiler.
+    add_custom_command( OUTPUT ${_actual_file}
+      COMMAND ${CYTHON_EXECUTABLE}
+      ARGS ${cxx_arg} ${include_directory_arg}
+      ${annotate_arg} ${no_docstrings_arg} ${cython_debug_arg} ${CYTHON_FLAGS} 
+      --output-file  ${_generated_file} ${pyx_locations}
+      COMMAND mv
+      ARGS ${_generated_file} ${_actual_file}
+      DEPENDS ${pyx_locations} ${pxd_dependencies}
+      IMPLICIT_DEPENDS ${pyx_lang} ${c_header_dependencies}
+      COMMENT ${comment}
+      )
+  endif()
 
   # Remove their visibility to the user.
   set( corresponding_pxd_file "" CACHE INTERNAL "" )
@@ -230,7 +249,7 @@ endfunction()
 
 # cython_add_module( <name> src1 src2 ... srcN )
 # Build the Cython Python module.
-function( cython_add_module _name )
+function( cython_add_module _prefix _name )
   set( pyx_module_sources "" )
   set( other_module_sources "" )
   foreach( _file ${ARGN} )
@@ -240,7 +259,7 @@ function( cython_add_module _name )
       list( APPEND other_module_sources ${_file} )
     endif()
   endforeach()
-  compile_pyx( ${_name} generated_file ${pyx_module_sources} )
+  compile_pyx( ${_prefix} ${_name} generated_file ${pyx_module_sources} )
   include_directories( ${PYTHON_INCLUDE_DIRS} )
   python_add_module( ${_name} ${generated_file} ${other_module_sources} )
   target_link_libraries( ${_name} ${PYTHON_LIBRARIES} )
@@ -262,7 +281,7 @@ function( cython_add_standalone_executable _name )
         set( main_module "${_file}" )
       elseif( NOT "${_file}" STREQUAL "${cython_arguments_MAIN_MODULE}" )
         set( PYTHON_MODULE_${_file_we}_static_BUILD_SHARED OFF )
-        compile_pyx( "${_file_we}_static" generated_file "${_file}" )
+        compile_pyx( "" "${_file_we}_static" generated_file "${_file}" )
         list( APPEND pyx_module_sources "${generated_file}" )
       endif()
     else()
@@ -278,7 +297,7 @@ function( cython_add_standalone_executable _name )
   endif()
   get_filename_component( main_module_we "${main_module}" NAME_WE )
   set( CYTHON_FLAGS ${CYTHON_FLAGS} --embed )
-  compile_pyx( "${main_module_we}_static" generated_file ${main_module} )
+  compile_pyx( "" "${main_module_we}_static" generated_file ${main_module} )
   add_executable( ${_name} ${generated_file} ${pyx_module_sources} ${other_module_sources} )
   target_link_libraries( ${_name} ${PYTHON_LIBRARIES} ${pyx_module_libs} )
 endfunction()

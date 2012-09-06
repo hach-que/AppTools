@@ -1,4 +1,4 @@
-# vim: set ts=4 sw=4 tw=0 et ai:
+# vim: set ts=4 sw=4 tw=0 et ai syntax=pyrex:
 
 from libcpp.string cimport string
 from libcpp.vector cimport vector

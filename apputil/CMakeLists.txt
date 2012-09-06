@@ -3,7 +3,7 @@ add_executable(apputil apputil.cpp)
 find_package(PythonLibs REQUIRED)
 find_package(PythonInterp REQUIRED)
 target_link_libraries(apputil app argtable2 ${PYTHON_LIBRARIES})
-include_directories(${APPTOOLS_SOURCE_DIR}/appfs ${PYTHON_INCLUDE_DIRS})
+include_directories(${APPTOOLS_SOURCE_DIR} ${PYTHON_INCLUDE_DIRS})
 include_directories(${APPTOOLS_SOURCE_DIR}/third-party/argtable2)
 add_definitions("-D_FILE_OFFSET_BITS=64")
 exec_program("${PYTHON_EXECUTABLE}"
