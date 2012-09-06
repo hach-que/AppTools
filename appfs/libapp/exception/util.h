@@ -13,6 +13,16 @@ namespace AppLib
         {
             virtual const char* what() const throw();
         };
+
+        class NotSupported : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
+
+        class NotImplemented : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
     }
 }
 

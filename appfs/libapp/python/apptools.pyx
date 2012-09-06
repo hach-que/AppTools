@@ -47,7 +47,7 @@ cdef extern from "libapp/fs.h" namespace "AppLib":
     cdef cppclass FS:
         FS(string path)
         void getattr(string path, stat stbuf) except +
-#        int readlink(string path, string& out)
+        string readlink(string path) except +
 #        int mknod(string path, mode_t mask, dev_t devid)
 #        int mkdir(string path, mode_t mask)
 #        int unlink(string path)
@@ -95,6 +95,9 @@ cdef class Package:
         f.mtime = value.st_mtime
         f.ctime = value.st_ctime
         return f
+
+    def readlink(self, char* path):
+        return self.thisptr.readlink(string(path)).c_str()
 
     def open(self, char* path, char* mode):
         return PackageFile(self, path, mode)

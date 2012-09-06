@@ -12,6 +12,7 @@
 #include <libapp/lowlevel/fs.h>
 #include <libapp/exception/package.h>
 #include <libapp/exception/fs.h>
+#include <libapp/exception/util.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -29,7 +30,9 @@ namespace AppLib
         void getattr(std::string path, struct stat& stbufOut)
             const throw(Exception::PathNotValid, Exception::FileNotFound,
                     Exception::InternalInconsistency);
-        int readlink(std::string path, std::string& out);
+        std::string readlink(std::string path)
+            const throw(Exception::PathNotValid, Exception::FileNotFound,
+                    Exception::NotSupported, Exception::InternalInconsistency);
         int mknod(std::string path, mode_t mask, dev_t devid);
         int mkdir(std::string path, mode_t mask);
         int unlink(std::string path);

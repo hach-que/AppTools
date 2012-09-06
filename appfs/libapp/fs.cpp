@@ -1,6 +1,7 @@
 /* vim: set ts=4 sw=4 tw=0 :*/
 
 #include <exception>
+#include <cstdlib>
 #include <libapp/fs.h>
 #include <libapp/exception/package.h>
 #include <linux/kdev_t.h>
@@ -81,6 +82,41 @@ namespace AppLib
         }
         else
             throw Exception::InternalInconsistency();
+    }
+
+    std::string FS::readlink(std::string path)
+        const throw(Exception::PathNotValid, Exception::FileNotFound,
+                Exception::NotSupported, Exception::InternalInconsistency)
+    {
+        if (!this->checkPathIsValid(path))
+            throw Exception::PathNotValid();
+
+        LowLevel::INode buf;
+        if (!this->retrievePathToINode(path, buf))
+            throw Exception::FileNotFound();
+
+        if (buf.type == LowLevel::INodeType::INT_SYMLINK)
+        {
+            // Read the link information out of the file.
+            FSFile* file = new FSFile(this->filesystem, this->stream, buf.inodeid);
+            file->open(std::ios_base::in);
+            char* buffer = (char*)malloc(buf.dat_len + 1);
+            std::streamsize count = file->read(buffer, buf.dat_len);
+            if (count < buf.dat_len)
+                buffer[count] = '\0';
+            else
+                buffer[buf.dat_len] = '\0';
+            std::string result = buffer;
+            free(buffer);
+
+            // Check to make sure it is valid.
+            if (count != buf.dat_len)
+                throw Exception::InternalInconsistency();
+            
+            return result;
+        }
+        else
+            throw Exception::NotSupported();
     }
 
     FSFile* FS::open(std::string path)

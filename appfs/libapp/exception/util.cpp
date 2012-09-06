@@ -10,6 +10,16 @@ namespace AppLib
         {
             return "The open mode must be either \"r\", \"w\" or \"rw\".";
         }
+
+        const char* NotSupported::what() const throw()
+        {
+            return "The specified operation is not supported.";
+        }
+
+        const char* NotImplemented::what() const throw()
+        {
+            return "The specified functionality is not implemented.";
+        }
     }
 }
 
