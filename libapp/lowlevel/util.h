@@ -7,7 +7,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include <libapp/lowlevel/blockstream.h>
+#include <libapp/lowlevel/fsresult.h>
 
 namespace AppLib
 {
@@ -24,6 +26,18 @@ namespace AppLib
                 static bool createPackage(std::string path, const char* appname, const char* appver,
                             const char* appdesc, const char* appauthor);
                 static int translateOpenMode(std::string mode);
+
+                //! Utility function for splitting paths into their components.
+                static std::vector<std::string> splitPathBySeperators(std::string path);
+
+                //! Utility function for verifying the validity of a supplied path.
+                static FSResult::FSResult verifyPath(std::string original, std::vector<std::string>& split);
+
+                /*!
+                 * Extracts the basename (filename) from the specified
+                 * path.
+                 */
+                static std::string extractBasenameFromPath(std::string path);
         };
     }
 }

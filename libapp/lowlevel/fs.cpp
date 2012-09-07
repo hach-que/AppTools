@@ -200,7 +200,7 @@ namespace AppLib
 
             // Check to make sure the position is valid.
             FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
-            if (!res)
+            if (res != FSResult::E_SUCCESS)
                 return res;
 
             // Check to make sure the inode ID is not already assigned.
@@ -258,7 +258,7 @@ namespace AppLib
 
             // Check to make sure the position is valid.
             FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
-            if (!res)
+            if (res != FSResult::E_SUCCESS)
                 return res;
 
             // Ensure that this INode is a type that allows updating via
@@ -298,7 +298,7 @@ namespace AppLib
 
             // Check to make sure the position is valid.
             FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
-            if (!res)
+            if (res != FSResult::E_SUCCESS)
                 return res;
 
             // Do some sanity checks on the content.
@@ -365,7 +365,7 @@ namespace AppLib
             {
                 // Check to make sure the position is valid.
                 FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
-                if (!res)
+                if (res != FSResult::E_SUCCESS)
                     return res;
             }
 
@@ -1384,42 +1384,6 @@ namespace AppLib
             this->fd->close();
         }
 
-        std::vector < std::string > FS::splitPathBySeperators(std::string path)
-        {
-            std::vector < std::string > ret;
-            while (path[0] == '/' && path.length() > 0)
-                path = path.substr(1);
-            std::string buf = "";
-            for (unsigned int i = 0; i < path.length(); i += 1)
-            {
-                if (path[i] == '/' && buf.length() > 0)
-                {
-                    ret.insert(ret.end(), buf);
-                    buf = "";
-                }
-                else if (path[i] != '/')
-                {
-                    buf += path[i];
-                }
-            }
-            if (buf.length() > 0)
-            {
-                ret.insert(ret.end(), buf);
-                buf = "";
-            }
-            return ret;
-        }
-
-        FSResult::FSResult FS::verifyPath(std::string original, std::vector < std::string >& split)
-        {
-            if (original.length() >= 4096 || original.find('\0') != std::string::npos)
-                return FSResult::E_FAILURE_INVALID_PATH;
-            for (std::vector < std::string >::iterator i = split.begin(); i != split.end(); i++)
-                if ((*i).length() >= 256 || (*i).find('\0') != std::string::npos)
-                    return FSResult::E_FAILURE_INVALID_FILENAME;
-            return FSResult::E_SUCCESS;
-        }
-
         void FS::reserveINodeID(uint16_t id)
         {
             this->reservedINodes.insert(this->reservedINodes.end(), id);
@@ -1440,9 +1404,10 @@ namespace AppLib
             return LowLevel::FSResult::E_SUCCESS;
         }
 
-        LowLevel::FSResult::FSResult copyBasenameToFilename(const char* basename, char filename[256])
+        LowLevel::FSResult::FSResult copyBasenameToFilename(const char* path, char filename[256])
         {
-            if (strlen(basename) >= 256)
+            std::string basename = Util::extractBasenameFromPath(path);
+            if (basename.length() >= 256)
                 return AppLib::LowLevel::FSResult::E_FAILURE_INVALID_FILENAME;
             for (int i = 0; i < 256; i += 1)
                 filename[i] = 0;

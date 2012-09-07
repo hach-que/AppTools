@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <libapp/fs.h>
 #include <libapp/exception/package.h>
+#include <libapp/lowlevel/util.h>
 #include <linux/kdev_t.h>
 
 namespace AppLib
@@ -316,7 +317,7 @@ namespace AppLib
         }
         
         // Change the filename.
-        child.setFilename(this->extractBasenameFromPath(destPath).c_str());
+        child.setFilename(LowLevel::Util::extractBasenameFromPath(destPath).c_str());
         this->touchINode(child, "c");
         this->saveINode(child);
     }
@@ -479,8 +480,8 @@ namespace AppLib
 
     void FS::ensurePathIsValid(std::string path) const
     {
-        std::vector<std::string> components = this->filesystem->splitPathBySeperators(path);
-        LowLevel::FSResult::FSResult res = this->filesystem->verifyPath(path, components);
+        std::vector<std::string> components = LowLevel::Util::splitPathBySeperators(path);
+        LowLevel::FSResult::FSResult res = LowLevel::Util::verifyPath(path, components);
         if (res == LowLevel::FSResult::E_FAILURE_INVALID_PATH)
             throw Exception::PathNotValid();
         else if (res == LowLevel::FSResult::E_FAILURE_INVALID_FILENAME)
@@ -492,7 +493,7 @@ namespace AppLib
     void FS::ensurePathExists(std::string path) const
     {
         this->ensurePathIsValid(path);
-        std::vector<std::string> components = this->filesystem->splitPathBySeperators(path);
+        std::vector<std::string> components = LowLevel::Util::splitPathBySeperators(path);
         LowLevel::INode buf = this->filesystem->getINodeByID(0);
         for (unsigned int i = 0; i < components.size(); i++)
         {
@@ -505,7 +506,7 @@ namespace AppLib
     void FS::ensurePathIsAvailable(std::string path) const
     {
         this->ensurePathIsValid(path);
-        std::vector<std::string> components = this->filesystem->splitPathBySeperators(path);
+        std::vector<std::string> components = LowLevel::Util::splitPathBySeperators(path);
         LowLevel::INode buf = this->filesystem->getINodeByID(0);
         for (unsigned int i = 0; i < components.size() - 1; i++)
         {
@@ -559,7 +560,7 @@ namespace AppLib
     bool FS::retrievePathToINode(std::string path, LowLevel::INode& out, int limit) const
     {
         this->ensurePathIsValid(path);
-        std::vector<std::string> components = this->filesystem->splitPathBySeperators(path);
+        std::vector<std::string> components = LowLevel::Util::splitPathBySeperators(path);
         out = this->filesystem->getINodeByID(0);
         for (unsigned int i = 0; i < (limit <= 0 ? components.size() - (-limit) : limit); i++)
         {
@@ -607,14 +608,6 @@ namespace AppLib
             return mode & ~S_IFREG;
         else
             return mode; // Keep other information.
-    }
-
-    std::string FS::extractBasenameFromPath(std::string path) const
-    {
-        std::vector<std::string> components = this->filesystem->splitPathBySeperators(path);
-        if (components.size() == 0)
-            return "";
-        return components[components.size() - 1];
     }
 
     LowLevel::INode FS::assignNewINode(LowLevel::INodeType::INodeType type, uint32_t& posOut)
@@ -695,7 +688,7 @@ namespace AppLib
             child.uid = this->uid;
             child.gid = this->gid;
             configuration(child);
-            child.setFilename(this->extractBasenameFromPath(path).c_str());
+            child.setFilename(LowLevel::Util::extractBasenameFromPath(path).c_str());
             this->saveNewINode(pos, child);
         }
         catch (...)

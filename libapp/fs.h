@@ -375,11 +375,6 @@ namespace AppLib
          */
         int extractMaskFromMode(mode_t mode) const;
         /*!
-         * Extracts the basename (filename) from the specified
-         * path.
-         */
-        std::string extractBasenameFromPath(std::string path) const;
-        /*!
          * Assigns a new inode the specified type and stores the
          * position of the new inode into posOut.
          *

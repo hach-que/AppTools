@@ -24,33 +24,12 @@ namespace AppLib
 #include <libapp/lowlevel/blockstream.h>
 #include <libapp/lowlevel/inode.h>
 #include <libapp/lowlevel/freelist.h>
+#include <libapp/lowlevel/fsresult.h>
 
 namespace AppLib
 {
     namespace LowLevel
     {
-        namespace FSResult
-        {
-            enum FSResult
-            {
-                E_SUCCESS,
-                E_FAILURE_GENERAL,
-                E_FAILURE_INVALID_FILENAME,
-                E_FAILURE_INVALID_PATH,
-                E_FAILURE_INVALID_POSITION,
-                E_FAILURE_INODE_ALREADY_ASSIGNED,
-                E_FAILURE_INODE_NOT_ASSIGNED,
-                E_FAILURE_INODE_NOT_VALID,
-                E_FAILURE_NOT_A_DIRECTORY,
-                E_FAILURE_NOT_A_FILE,
-                E_FAILURE_NOT_UNIQUE,
-                E_FAILURE_NOT_IMPLEMENTED,
-                E_FAILURE_MAXIMUM_CHILDREN_REACHED,
-                E_FAILURE_PARTIAL_TRUNCATION,
-                E_FAILURE_UNKNOWN
-            };
-        }
-
         class FS
         {
         public:
@@ -206,12 +185,6 @@ namespace AppLib
             //! Closes the filesystem.
             void close();
 
-            //! Utility function for splitting paths into their components.
-            std::vector<std::string> splitPathBySeperators(std::string path);
-
-            //! Utility function for verifying the validity of a supplied path.
-            FSResult::FSResult verifyPath(std::string original, std::vector<std::string>& split);
-
             //! Reserves an INode ID for future use without require the INode to actually be
             //! written to disk.
             void reserveINodeID(uint16_t id);
@@ -226,7 +199,7 @@ namespace AppLib
             static LowLevel::FSResult::FSResult checkINodePositionIsValid(int pos);
 
             //! Copies the basename from basename into the filename.
-            static LowLevel::FSResult::FSResult copyBasenameToFilename(const char* basename,
+            static LowLevel::FSResult::FSResult copyBasenameToFilename(const char* path,
                     char filename[256]);
 
         private:

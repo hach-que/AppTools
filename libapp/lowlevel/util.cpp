@@ -199,5 +199,49 @@ namespace AppLib
             else
                 throw std::exception(); // FIXME: Appropriate message.
         }
+
+        std::vector<std::string> Util::splitPathBySeperators(std::string path)
+        {
+            std::vector < std::string > ret;
+            while (path[0] == '/' && path.length() > 0)
+                path = path.substr(1);
+            std::string buf = "";
+            for (unsigned int i = 0; i < path.length(); i += 1)
+            {
+                if (path[i] == '/' && buf.length() > 0)
+                {
+                    ret.insert(ret.end(), buf);
+                    buf = "";
+                }
+                else if (path[i] != '/')
+                {
+                    buf += path[i];
+                }
+            }
+            if (buf.length() > 0)
+            {
+                ret.insert(ret.end(), buf);
+                buf = "";
+            }
+            return ret;
+        }
+
+        FSResult::FSResult Util::verifyPath(std::string original, std::vector<std::string>& split)
+        {
+            if (original.length() >= 4096 || original.find('\0') != std::string::npos)
+                return FSResult::E_FAILURE_INVALID_PATH;
+            for (std::vector < std::string >::iterator i = split.begin(); i != split.end(); i++)
+                if ((*i).length() >= 256 || (*i).find('\0') != std::string::npos)
+                    return FSResult::E_FAILURE_INVALID_FILENAME;
+            return FSResult::E_SUCCESS;
+        }
+    
+        std::string Util::extractBasenameFromPath(std::string path)
+        {
+            std::vector<std::string> components = Util::splitPathBySeperators(path);
+            if (components.size() == 0)
+                return "";
+            return components[components.size() - 1];
+        }
     }
 }
