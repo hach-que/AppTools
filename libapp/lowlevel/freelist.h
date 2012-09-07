@@ -5,6 +5,14 @@
 
 #include <libapp/config.h>
 
+namespace AppLib
+{
+    namespace LowLevel
+    {
+        class FreeList;
+    }
+}
+
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -18,7 +26,7 @@ namespace AppLib
     {
         class FreeList
         {
-              public:
+        public:
             FreeList(FS * filesystem, BlockStream * fd);
 
             // Finds a free block, marks it as allocated in the free
@@ -36,10 +44,10 @@ namespace AppLib
             // Returns the specified type of an inode at the specified
             // position, returning INT_FREEBLOCK and INT_DATA in appropriate
             // circumstances.
-             INodeType::INodeType getBlockType(uint32_t pos);
+            INodeType::INodeType getBlockType(uint32_t pos);
 
-              private:
-             FS * filesystem;
+         private:
+            FS * filesystem;
             BlockStream *fd;
 
             // Returns the position in the free space allocation table
@@ -65,7 +73,7 @@ namespace AppLib
             // The first (key) value is the position that's free, the second
             // value is the position on disk of the free allocation index
             // (i.e. the result of getIndexInList for the specified position).
-             std::map < uint32_t, uint32_t > position_cache;
+            std::map < uint32_t, uint32_t > position_cache;
 
             // Resyncronizes the cache based on what is on disk.
             void syncronizeCache();

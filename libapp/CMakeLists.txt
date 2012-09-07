@@ -2,6 +2,7 @@
 include_directories(${APPTOOLS_SOURCE_DIR})
 add_library(app STATIC
     lowlevel/endian.cpp
+    lowlevel/inode.cpp
     lowlevel/fs.cpp
     lowlevel/freelist.cpp
     lowlevel/blockstream.cpp

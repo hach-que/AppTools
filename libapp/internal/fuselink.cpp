@@ -3,7 +3,6 @@
 #include <libapp/config.h>
 #include <libapp/internal/fuselink.h>
 #include <libapp/logging.h>
-#include <libapp/lowlevel/fsmacro.h>
 #include <string>
 #include <time.h>
 #include <linux/kdev_t.h>

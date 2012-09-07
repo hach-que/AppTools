@@ -11,49 +11,15 @@
 #include <libapp/lowlevel/util.h>
 #include <libapp/lowlevel/blockstream.h>
 #include <libapp/lowlevel/freelist.h>
-#include <libapp/lowlevel/fsmacro.h>
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
 #include <vector>
 
-void APPFS_VERIFY_INODE_ASSERT_POSITION()
-{
-    // Temporary; used for tracking invalid position writes.
-    assert(false);
-}
-
-#define APPFS_FILENAME_COPY(from, to) \
-for (int i = 0; i < 256; i += 1) to[i] = 0; \
-for (int i = 0; i < 255; i += 1) { if (from[i] == 0) break; to[i] = from[i]; }
-
 namespace AppLib
 {
     namespace LowLevel
     {
-        INode INode::resolve(FS* filesystem)
-        {
-            if (this->type == INodeType::INT_HARDLINK && this->realid != 0)
-            {
-                Logging::showDebugW("Resolving hardlink %u to %u.", this->inodeid, this->realid);
-                INode node = filesystem->getINodeByID(this->realid);
-                node.realid = this->inodeid;
-                APPFS_FILENAME_COPY(node.filename, node.realfilename);
-                APPFS_FILENAME_COPY(this->filename, node.filename);
-                return node;
-            }
-            else if ((this->type == INodeType::INT_FILEINFO || this->type == INodeType::INT_DEVICE) && this->realid != 0)
-            {
-                Logging::showDebugW("Resolving fileinfo %u back to hardlink %u.", this->inodeid, this->realid);
-                INode node = filesystem->getRealINodeByID(this->realid);
-                node.realid = this->inodeid;
-                APPFS_FILENAME_COPY(this->filename, node.realfilename);
-                return node;
-            }
-            else
-                return *this;
-        }
-
         FS::FS(LowLevel::BlockStream * fd)
         {
             if (fd == NULL)
@@ -233,7 +199,9 @@ namespace AppLib
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
             // Check to make sure the position is valid.
-            APPFS_VERIFY_INODE_POSITION(pos);
+            FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
+            if (!res)
+                return res;
 
             // Check to make sure the inode ID is not already assigned.
             // TODO: This needs to be updated with a full list of inode types whose inode ID should
@@ -288,7 +256,10 @@ namespace AppLib
         {
             assert( /* Check the stream is not in text-mode. */ this->isValid());
 
-            APPFS_VERIFY_INODE_POSITION(pos);
+            // Check to make sure the position is valid.
+            FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
+            if (!res)
+                return res;
 
             // Ensure that this INode is a type that allows updating via
             // manual positioning.
@@ -325,7 +296,10 @@ namespace AppLib
             if (pos == 0)
                 return FSResult::E_FAILURE_INODE_NOT_ASSIGNED;
 
-            APPFS_VERIFY_INODE_POSITION(pos);
+            // Check to make sure the position is valid.
+            FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
+            if (!res)
+                return res;
 
             // Do some sanity checks on the content.
             if (!node.verify())
@@ -389,7 +363,10 @@ namespace AppLib
 
             if (pos != 0)
             {
-                APPFS_VERIFY_INODE_POSITION(pos);
+                // Check to make sure the position is valid.
+                FSResult::FSResult res = FS::checkINodePositionIsValid(pos);
+                if (!res)
+                    return res;
             }
 
             std::streampos old = this->fd->tellp();
@@ -1441,6 +1418,53 @@ namespace AppLib
                 if ((*i).length() >= 256 || (*i).find('\0') != std::string::npos)
                     return FSResult::E_FAILURE_INVALID_FILENAME;
             return FSResult::E_SUCCESS;
+        }
+
+        void FS::reserveINodeID(uint16_t id)
+        {
+            this->reservedINodes.insert(this->reservedINodes.end(), id);
+        }
+
+        void FS::unreserveINodeID(uint16_t id)
+        {
+            std::vector<uint16_t>::iterator it =
+                std::find(this->reservedINodes.begin(), this->reservedINodes.end(), id);
+            if (it != this->reservedINodes.end())
+                this->reservedINodes.erase(it);
+        }
+
+        LowLevel::FSResult::FSResult FS::checkINodePositionIsValid(int pos)
+        {
+            if (pos < OFFSET_DATA || (pos - OFFSET_DATA) % 4096 != 0)
+                return LowLevel::FSResult::E_FAILURE_INVALID_POSITION;
+            return LowLevel::FSResult::E_SUCCESS;
+        }
+
+        LowLevel::FSResult::FSResult copyBasenameToFilename(const char* basename, char filename[256])
+        {
+            if (strlen(basename) >= 256)
+                return AppLib::LowLevel::FSResult::E_FAILURE_INVALID_FILENAME;
+            for (int i = 0; i < 256; i += 1)
+                filename[i] = 0;
+            for (int i = 0; i < 255; i += 1)
+            {
+                if (basename[i] == 0)
+                    break;
+                filename[i] = basename[i];
+            }
+            return AppLib::LowLevel::FSResult::E_SUCCESS;
+        }
+
+        void FS::updateTimes(uint16_t id, bool atime, bool mtime, bool ctime)
+        {
+            INode node = this->getINodeByID(id);
+            if (atime)
+                node.atime = APPFS_TIME();
+            if (mtime)
+                node.mtime = APPFS_TIME();
+            if (ctime)
+                node.ctime = APPFS_TIME();
+            this->updateINode(node);
         }
     }
 }
