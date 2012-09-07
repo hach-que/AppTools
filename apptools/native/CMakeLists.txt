@@ -17,13 +17,13 @@ foreach(i IN ITEMS ${CPP_SOURCE_LIST})
 endforeach()
 
 # Define Cython files.
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -Wno-deprecated-writable-strings)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-writable-strings -Wno-reserved-user-defined-literal")
 set_source_files_properties(
     ${LIBAPP_PYTHON_SOURCE_DIR}/fsfile.pyx
     ${LIBAPP_PYTHON_SOURCE_DIR}/fs.pyx
     PROPERTIES CYTHON_IS_CXX TRUE)
-cython_add_module(apptools.native fsfile fsfile.pyx)# ${PYTHON_SOURCE_LIST})
-cython_add_module(apptools.native fs fs.pyx)# ${PYTHON_SOURCE_LIST})
+cython_add_module(apptools.native fsfile fsfile.pyx)
+cython_add_module(apptools.native fs fs.pyx)
 
 add_definitions(-D_FILE_OFFSET_BITS=64)
 include_directories(${FUSE_INCLUDE_DIRS})

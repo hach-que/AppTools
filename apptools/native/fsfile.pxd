@@ -4,6 +4,7 @@ from libcpp cimport bool
 
 cdef extern from "libapp/fsfile.h" namespace "AppLib":
     cdef cppclass FSFile:
+        FSFile(FSFile copy)
         void open(int mode)
         unsigned long read(char* out, int count)
         bool truncate(unsigned long len)

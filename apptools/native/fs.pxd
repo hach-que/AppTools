@@ -3,6 +3,7 @@
 from fsfile cimport FSFile
 from system cimport stat
 from libcpp.string cimport string
+from libcpp.vector cimport vector
 
 cdef extern from "libapp/fs.h" namespace "AppLib":
     cdef cppclass FS:
@@ -10,20 +11,25 @@ cdef extern from "libapp/fs.h" namespace "AppLib":
         FS(string path, int uid, int gid) except +
         void getattr(string path, stat stbuf) except +
         string readlink(string path) except +
-        void mknod(string path, int mask, int devid) except +
-#        int mkdir(string path, mode_t mask)
-#        int unlink(string path)
-#        int rmdir(string path)
-#        int symlink(string linkPath, string targetPath)
-#        int rename(string srcPath, string destPath)
-#        int link(string linkPath, string targetPath)
-#        int chmod(string path, mode_t mask)
-#        int chown(string path, uid_t user, gid_t group)
-#        int truncate(string path, off_t size)
-        FSFile* open(string path)
-#        int statfs(string path, struct statvfs* stbuf)
+        void mknod(string path, int mode, int devid) except +
+        void mkdir(string path, int mode) except +
+        void unlink(string path) except +
+        void rmdir(string path) except +
+        void symlink(string linkPath, string targetPath) except +
+        void rename(string srcPath, string destPath) except +
+        void link(string linkPath, string targetPath) except +
+        void chmod(string path, int mode) except +
+        void chown(string path, int uid, int gid) except +
+        void truncate(string path, unsigned long size) except +
+        FSFile open(string path) # exceptions not handled; use c_open instead.
+        vector[string] readdir(string path) except +
+        void create(string path, int mode) except +
+        void utimens(string path, int access, int modification) except +
+        void setuid(int uid) except +
+        void setgid(int gid) except +
+        void touch(string path, string modes) except +
 
 cdef class Package:
     cdef FS* thisptr
 
-    cdef FSFile* c_open(self, char* path)
+    cdef FSFile* c_open(self, char* path) except +

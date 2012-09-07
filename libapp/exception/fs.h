@@ -33,6 +33,11 @@ namespace AppLib
         {
             virtual const char* what() const throw();
         };
+
+        class FilenameTooLong : public std::exception
+        {
+            virtual const char* what() const throw();
+        };
     }
 }
 

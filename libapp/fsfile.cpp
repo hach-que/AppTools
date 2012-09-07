@@ -28,8 +28,11 @@ namespace AppLib
 
     void FSFile::open(std::ios_base::openmode mode)
     {
+        if (this->bad() || this->fail())
+            return;
+
         INode node = this->filesystem->getINodeByID(this->inodeid);
-         this->invalid = (node.type != INodeType::INT_FILEINFO &&
+        this->invalid = (node.type != INodeType::INT_FILEINFO &&
                     node.type != INodeType::INT_SYMLINK);
         if (this->invalid)
         {
@@ -58,6 +61,9 @@ namespace AppLib
 
     void FSFile::write(const char *data, std::streamsize count)
     {
+        if (this->bad() || this->fail())
+            return;
+
         if (this->invalid || !this->opened)
         {
             this->clear(std::ios::badbit | std::ios::failbit);
@@ -229,6 +235,9 @@ namespace AppLib
 
     std::streamsize FSFile::read(char *out, std::streamsize count)
     {
+        if (this->bad() || this->fail())
+            return 0;
+
         if (this->invalid || !this->opened)
         {
             this->clear(std::ios::badbit | std::ios::failbit);
@@ -406,6 +415,9 @@ namespace AppLib
 
     bool FSFile::truncate(std::streamsize len)
     {
+        if (this->bad() || this->fail())
+            return false;
+
         FSResult::FSResult fres = this->filesystem->truncateFile(this->inodeid, len);
         return (fres == FSResult::E_SUCCESS);
     }
@@ -423,6 +435,9 @@ namespace AppLib
 
     void FSFile::seekp(std::streampos pos)
     {
+        if (this->bad() || this->fail())
+            return;
+
         if (this->invalid || !this->opened)
         {
             this->clear(std::ios::badbit | std::ios::failbit);
@@ -434,6 +449,9 @@ namespace AppLib
 
     void FSFile::seekg(std::streampos pos)
     {
+        if (this->bad() || this->fail())
+            return;
+
         if (this->invalid || !this->opened)
         {
             this->clear(std::ios::badbit | std::ios::failbit);

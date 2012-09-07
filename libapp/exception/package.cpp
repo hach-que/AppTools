@@ -45,6 +45,22 @@ namespace AppLib
         {
             return "The specified path is not a directory.";
         }
+
+        const char* IsADirectory::what() const throw()
+        {
+            return "The specified path is a directory, but directories are not permitted "
+                   "for this operation.";
+        }
+
+        const char* DirectoryNotEmpty::what() const throw()
+        {
+            return "The directory is not empty.";
+        }
+
+        const char* FileTooBig::what() const throw()
+        {
+            return "The specified file can not be increased to the required size.";
+        }
     }
 }
 

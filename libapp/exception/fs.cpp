@@ -36,6 +36,11 @@ namespace AppLib
             return "No more files or subdirectories can be stored in the "
                    "specified directory due to filesystem limitations.";
         }
+
+        const char* FilenameTooLong::what() const throw()
+        {
+            return "One or more of the path components are too long.";
+        }
     }
 }
 

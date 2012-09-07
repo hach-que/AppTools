@@ -1410,6 +1410,8 @@ namespace AppLib
         std::vector < std::string > FS::splitPathBySeperators(std::string path)
         {
             std::vector < std::string > ret;
+            while (path[0] == '/' && path.length() > 0)
+                path = path.substr(1);
             std::string buf = "";
             for (unsigned int i = 0; i < path.length(); i += 1)
             {
