@@ -15,6 +15,11 @@ cdef class Package:
     def __dealloc__(self):
         del self.thisptr
 
+    @staticmethod
+    def create(char* path, char* appname, char* appver,
+            char* appdesc, char* appauthor):
+        createPackage(string(path), appname, appver, appdesc, appauthor)
+
     def getattr(self, char* path):
         cdef stat value
         self.thisptr.getattr(string(path), value)

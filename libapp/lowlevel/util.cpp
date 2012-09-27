@@ -11,6 +11,7 @@
 #include <libapp/lowlevel/fs.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 #include <limits.h>
 #include <time.h>
 

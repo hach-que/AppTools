@@ -4,6 +4,12 @@ from fsfile cimport FSFile
 from system cimport stat
 from libcpp.string cimport string
 from libcpp.vector cimport vector
+from libcpp cimport bool
+
+cdef extern from "libapp/lowlevel/util.h" namespace "AppLib::LowLevel::Util":
+    bool createPackage(string path, char* appname, char* appver,
+            char* appdesc, char* appauthor)
+    int translateOpenMode(string mode) except +
 
 cdef extern from "libapp/fs.h" namespace "AppLib":
     cdef cppclass FS:
