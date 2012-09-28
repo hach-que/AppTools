@@ -8,19 +8,30 @@
 #include <string.h>
 #include <linux/limits.h>
 
-unsigned int inside_objsearch = 0;
-
 #define APPAUDIT_NAME   "appd.Service"
 #define APPAUDIT_OPATH  "/appd/Service"
 #define APPAUDIT_IPATH  "appd.Service"
 #define APPAUDIT_METHOD "resolve_lazy"
 #ifdef APPAUDIT_DEBUG
-#define DBUS_FAIL(err) { fprintf(stderr, "%s\n", dbus_error_is_set(&error) ? error.message : err); free(linkbuf); return NULL; }
+#define DBUS_FAIL(err) \
+    { \
+        if (dbus_error_is_set(&error)) \
+            fprintf(stderr, "%s: %s\n", err, error.message); \
+        else \
+            fprintf(stderr, "%s", err); \
+        free(linkbuf); \
+        return NULL; \
+    }
 #else
 #define DBUS_FAIL(err) { free(linkbuf); return NULL; }
 #endif
 
-char* dbus_search(const char* name)
+/* Stores the last known bus ID so that if appd
+ * is running on the session bus, we don't try the
+ * system bus again after the first attempt. */
+int last_known_bus = -1;
+
+char* dbus_search_impl(const char* name, int bus_id)
 {
     DBusConnection* bus = NULL;
     DBusMessage* msg = NULL;
@@ -37,7 +48,7 @@ char* dbus_search(const char* name)
 
     /* Now attempt D-Bus communication. */
     dbus_error_init(&error);
-    bus = dbus_bus_get(DBUS_BUS_SESSION, &error);
+    bus = dbus_bus_get(bus_id, &error);
     if (bus == NULL || dbus_error_is_set(&error))
         DBUS_FAIL("bus not found");
     msg = dbus_message_new_method_call(APPAUDIT_NAME,
@@ -53,7 +64,13 @@ char* dbus_search(const char* name)
         DBUS_FAIL("can't append arguments");
     reply = dbus_connection_send_with_reply_and_block(bus, msg, -1, &error);
     if (reply == NULL || dbus_error_is_set(&error))
+    {
+        /* Fall back to session bus if system bus does
+         * not have appd running. */
+        if (bus_id == DBUS_BUS_SYSTEM)
+            return dbus_search_impl(name, DBUS_BUS_SESSION);
         DBUS_FAIL("can't send message");
+    }
     if (!dbus_message_get_args(reply, &error,
                 DBUS_TYPE_BOOLEAN, &success,
                 DBUS_TYPE_STRING, &result,
@@ -68,6 +85,7 @@ char* dbus_search(const char* name)
     msg = NULL;
     dbus_connection_unref(bus);
     bus = NULL;
+    last_known_bus = bus_id;
 
     /* Now return the result. */
     if (success)
@@ -82,6 +100,16 @@ char* dbus_search(const char* name)
         return NULL;
     }
 }
+
+char* dbus_search(const char* name)
+{
+    if (last_known_bus == -1)
+        return dbus_search_impl(name, DBUS_BUS_SYSTEM);
+    else
+        return dbus_search_impl(name, last_known_bus);
+}
+
+unsigned int inside_objsearch = 0;
 
 char* real_search(const char* name)
 {
