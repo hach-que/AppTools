@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+# vim: set ts=4 sw=4 tw=0 et ai:
+
+from apptools.dbus.service import run_daemon
+
+if __name__ == '__main__':
+    run_daemon()

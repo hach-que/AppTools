@@ -12,4 +12,4 @@ add_subdirectory(libapp)
 add_subdirectory(apptools)
 add_subdirectory(appfs)
 add_subdirectory(apputil)
-
+add_subdirectory(appaudit)
